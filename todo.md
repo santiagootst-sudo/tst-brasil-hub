@@ -5,9 +5,11 @@
 - [x] Criar controle de permissões por perfil e contexto ativo, com isolamento de dados.
 - [x] Preservar e integrar o Gerador de PGR como primeiro aplicativo do portal sem alterar suas regras funcionais.
 - [x] Criar site público com proposta de valor, planos e entrada para cadastro.
-- [ ] Configurar produtos, checkout recorrente, retorno de pagamento e cancelamento.
-- [ ] Processar eventos de assinatura com verificação de assinatura e controle de acesso.
-- [ ] Adicionar cobertura de testes para permissões, contextos, PGR e estados de assinatura.
+- [x] Configurar produtos, checkout recorrente, retorno de pagamento e cancelamento.
+- [x] Processar eventos de assinatura com verificação de assinatura e controle de acesso.
+- [x] Adicionar cobertura de testes para permissões, contextos, PGR e estados de assinatura.
+- [x] Adicionar testes automatizados para a rota protegida do PGR cobrindo autenticação, vínculo com ambiente e assinatura ativa.
+- [x] Validar no fluxo real da rota do PGR o bloqueio e a liberação por estado de assinatura.
 - [ ] Validar visualmente os fluxos críticos do portal antes da entrega.
 - [x] Implementar e validar enforcement de permissões por papel do workspace (owner, manager e member) nas ações do portal.
 - [ ] Homologar o PGR integrado com autosave, exportação, isolamento entre ambientes e bloqueio/liberação por assinatura.

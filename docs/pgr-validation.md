@@ -37,3 +37,9 @@ A landing page foi revisada para apresentar o Portal TST como plataforma complet
 ## Materiais e Suporte compartilhados
 
 Foram adicionadas as tabelas `materials` e `support_tickets`, ambas indexadas por ambiente de trabalho e criadas por migração não destrutiva. As páginas autenticadas de Materiais e Suporte permitem, respectivamente, registrar modelos, checklists e procedimentos reais; e abrir chamados relacionados ao ambiente selecionado. A validação de interface confirmou os estados vazios quando não há ambiente criado. A validação automatizada passou a cobrir leitura isolada, bloqueio para ambiente sem vínculo, cadastro de materiais por gestor e abertura de chamados por membro.
+
+## Cobertura de acesso ao PGR e assinatura
+
+A suíte automatizada agora exercita a rota protegida do PGR nos cenários de ausência de autenticação, ausência de vínculo com o ambiente, assinatura sem acesso e assinatura ativa. Também cobre a persistência de ativação e cancelamento de assinatura a partir de eventos Stripe processados pelo servidor. A validação técnica local concluiu com 24 testes aprovados; a homologação com checkout e webhook reais continua dependente do sandbox Stripe.
+
+Também foram incluídos testes isolados para a criação de checkout recorrente, o reaproveitamento de cliente Stripe, as URLs de retorno de sucesso e cancelamento, o portal de gestão de assinatura e a verificação de assinatura de webhook por payload assinado localmente. A suíte técnica local passou a conter 28 testes aprovados. A confirmação contra preços, credenciais e eventos entregues pelo sandbox permanece como etapa de homologação externa.

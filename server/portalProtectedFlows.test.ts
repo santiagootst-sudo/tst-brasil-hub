@@ -84,6 +84,8 @@ describe("portal protected flows", () => {
   it("bloqueia membro de registrar certificados ou treinamentos", async () => {
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "member" });
     const caller = appRouter.createCaller(createContext());
+    await expect(caller.portal.createCompany({ workspaceId: 7, name: "Unidade A" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.portal.createPgrProject({ workspaceId: 7, name: "PGR Unidade A" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.portal.createCertificate({ workspaceId: 7, participantName: "Ana", trainingName: "NR-35", issuedAt: new Date() })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.portal.createTraining({ workspaceId: 7, title: "Integração", participantCount: 4 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.portal.createMaterial({ workspaceId: 7, title: "Checklist de EPI", category: "checklist" })).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -100,11 +102,31 @@ describe("portal protected flows", () => {
     expect(db.createTrainingForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, participantCount: 4, createdByUserId: 12 }));
   });
 
+  it("permite que proprietário crie empresa e projeto PGR no próprio ambiente", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "owner" });
+    db.createCompanyForWorkspace.mockResolvedValue({ id: 51 });
+    db.createPgrProjectForWorkspace.mockResolvedValue({ id: 52 });
+    const caller = appRouter.createCaller(createContext());
+    await caller.portal.createCompany({ workspaceId: 7, name: "Unidade A" });
+    await caller.portal.createPgrProject({ workspaceId: 7, name: "PGR Unidade A" });
+    expect(db.createCompanyForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, name: "Unidade A" }));
+    expect(db.createPgrProjectForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, name: "PGR Unidade A", legacyStorageKey: expect.stringContaining("workspace-7-pgr-") }));
+  });
+
   it("permite que qualquer membro abra chamado, mas mantém o cadastro de materiais para gestores", async () => {
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "member" });
     db.createSupportTicketForWorkspace.mockResolvedValue({ id: 41 });
     const caller = appRouter.createCaller(createContext());
     await caller.portal.createSupportTicket({ workspaceId: 7, subject: "Acesso ao PGR", message: "Preciso de ajuda para abrir o projeto de PGR." });
     expect(db.createSupportTicketForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, createdByUserId: 12 }));
+  });
+
+  it("calcula o acesso pago a partir do estado da assinatura retornado pelo banco", async () => {
+    db.getSubscriptionForUser.mockResolvedValue({ planCode: "autonomo", status: "active" });
+    const active = await appRouter.createCaller(createContext()).billing.status();
+    expect(active.hasPaidAccess).toBe(true);
+    db.getSubscriptionForUser.mockResolvedValue({ planCode: "autonomo", status: "past_due" });
+    const pastDue = await appRouter.createCaller(createContext()).billing.status();
+    expect(pastDue.hasPaidAccess).toBe(false);
   });
 });
