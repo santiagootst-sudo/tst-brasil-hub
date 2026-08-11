@@ -17,6 +17,38 @@ async function getPgrHtml() {
   return cachedPgrHtml;
 }
 
+function withPortalShell(html: string, workspaceId: number) {
+  const portalScript = `<style>
+html.portal-tst-embedded #loginContainer { display: none !important; }
+html.portal-tst-embedded #pgrContainer { display: block !important; }
+#portal-tst-back-link { position: fixed; top: 14px; right: 18px; z-index: 2147483647; display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; background: #063b43; color: #ffffff; padding: 10px 14px; font: 700 13px/1.1 Arial, sans-serif; text-decoration: none; box-shadow: 0 8px 22px rgba(6, 59, 67, .24); }
+#portal-tst-back-link:hover { background: #0c7474; }
+</style><script>
+(function () {
+  var portalBackUrl = '/app/pgr?workspace=${workspaceId}';
+  function activatePortalMode() {
+    document.documentElement.classList.add('portal-tst-embedded');
+    var login = document.getElementById('loginContainer');
+    var app = document.getElementById('pgrContainer');
+    if (login) login.style.display = 'none';
+    if (app) { app.classList.add('active'); app.style.display = 'block'; }
+    if (!document.getElementById('portal-tst-back-link')) {
+      var back = document.createElement('a');
+      back.id = 'portal-tst-back-link';
+      back.href = portalBackUrl;
+      back.textContent = '← Voltar ao Portal TST';
+      back.setAttribute('aria-label', 'Voltar ao Portal TST');
+      document.body.appendChild(back);
+    }
+  }
+  document.documentElement.classList.add('portal-tst-embedded');
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', activatePortalMode);
+  else activatePortalMode();
+})();
+</script>`;
+  return html.includes("</head>") ? html.replace("</head>", `${portalScript}</head>`) : `${portalScript}${html}`;
+}
+
 export function registerPgrLegacyRoute(app: Express) {
   app.get("/api/apps/pgr/:workspaceId", async (req: Request, res: Response) => {
     try {
@@ -52,7 +84,7 @@ export function registerPgrLegacyRoute(app: Express) {
         "Cache-Control": "private, no-store",
         "X-Frame-Options": "SAMEORIGIN",
       });
-      return res.send(html);
+      return res.send(withPortalShell(html, workspaceId));
     } catch (error) {
       console.error("[PGR] Falha ao abrir aplicativo legado", error);
       return res.status(500).send("Não foi possível carregar o Gerador de PGR.");

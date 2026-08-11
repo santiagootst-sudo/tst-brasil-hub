@@ -72,5 +72,9 @@
 - [ ] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes.
 - [x] Comprovar o carregamento do app legado do PGR por evidência observável após a atualização da storage key integrada.
 - [x] Adicionar teste automatizado que verifica o modo `portalAuth` e a ocultação do login interno no HTML legado publicado.
-- [ ] Validar no navegador a abertura real do iframe do PGR após selecionar um projeto, registrando o conteúdo interno carregado.
-- [ ] Navegar diretamente para uma URL autorizada recente do PGR e confirmar a resposta HTML válida do aplicativo legado.
+- [x] Corrigir a entrega do PGR integrado para impedir definitivamente a exibição da tela de login interna.
+- [x] Adicionar um botão visível de retorno ao Portal TST dentro do aplicativo legado do PGR.
+- [x] Validar a abertura do PGR e o retorno ao portal no navegador do usuário após a correção.
+- [x] Validar no navegador que o botão de retorno do PGR navega para o ambiente correto no Portal TST sem reexibir o login legado.
+- [x] Validar no navegador a abertura real do iframe do PGR após selecionar um projeto, registrando o conteúdo interno carregado.
+- [x] Navegar diretamente para uma URL autorizada recente do PGR e confirmar a resposta HTML válida do aplicativo legado.

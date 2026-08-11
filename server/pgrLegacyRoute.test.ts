@@ -85,7 +85,10 @@ describe("rota protegida do PGR", () => {
     const response = createResponse();
     await registerHandler()(createRequest(), response);
     expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" }));
-    expect(response.send).toHaveBeenCalledWith("<html>PGR</html>");
+    const html = response.send.mock.calls[0]?.[0] as string;
+    expect(html).toContain("<html>PGR</html>");
+    expect(html).toContain("portal-tst-embedded");
+    expect(html).toContain("Voltar ao Portal TST");
   });
 
   it("entrega o PGR com ticket temporário quando o iframe não possui cookie de sessão", async () => {
@@ -101,6 +104,8 @@ describe("rota protegida do PGR", () => {
     expect(pgrTicket.verifyPgrIframeTicket).toHaveBeenCalledWith("ticket-temporario");
     expect(db.getWorkspaceForUser).toHaveBeenCalledWith(7, 12);
     expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ "Content-Type": "text/html; charset=utf-8" }));
-    expect(response.send).toHaveBeenCalledWith("<html>PGR</html>");
+    const html = response.send.mock.calls[0]?.[0] as string;
+    expect(html).toContain("<html>PGR</html>");
+    expect(html).toContain("portalBackUrl = '/app/pgr?workspace=7'");
   });
 });

@@ -76,6 +76,10 @@ Na inspeção visual do iframe, foi possível identificar o cabeçalho do aplica
 
 A abertura da URL temporária do PGR diretamente no navegador encontrou uma indisponibilidade transitória do conector. Por isso, a última validação do iframe seguirá buscando uma resposta direta da rota e uma captura do conteúdo interno carregado; essa etapa permanece pendente no checklist.
 
+Essa limitação foi superada com uma URL autorizada recém-gerada. A rota direta abriu `PGR Pro | Portal TST Brasil`, exibiu o dashboard funcional sem formulário de e-mail ou senha e apresentou o botão fixo **← Voltar ao Portal TST** no canto superior direito. A resposta da rota passa a injetar o modo de portal antes da renderização do HTML legado, de modo que mesmo uma versão estática anterior do aplicativo não pode reexibir a tela interna de login.
+
+O retorno também foi validado no navegador. Ao acionar **← Voltar ao Portal TST**, a página navegou para `/app/pgr?workspace=60002`; após o carregamento, o Portal TST exibiu novamente a carteira de empresas do ambiente **Meu ambiente Autônomo**, o card da empresa e o PGR selecionado, sem reexibir o login legado. O controle do navegador reportou uma falha de conexão após iniciar o clique, mas a URL final e a tela autenticada carregada confirmaram a navegação esperada.
+
 ## Evidência direta do aplicativo legado
 
 A abertura em tela cheia da URL autorizada do projeto foi concluída. O navegador exibiu a página `PGR Pro | Portal TST Brasil`, com o dashboard funcional, navegação de inventário e plano de ação, campos de edição e ações de salvar, visualizar, exportar Word e gráficos. A identificação do cabeçalho mostrou `Portal TST` e `Projeto vinculado ao ambiente ativo`; não foi solicitado e-mail ou senha. Esta validação confirmou a entrega do HTML legado pela rota autorizada e o funcionamento do gerador dentro do contexto selecionado.
