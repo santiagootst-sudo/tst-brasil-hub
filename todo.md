@@ -85,3 +85,9 @@
 - [x] Registrar evidência visual observável de que o iframe ampliado carregou o dashboard completo do PGR, com a barra lateral interna sem cortes horizontal ou vertical.
 - [x] Capturar uma evidência adicional do navegador que relacione o dashboard completo renderizado à instância de iframe do modo ampliado antes do próximo checkpoint.
 - [x] Exibir no modo ampliado um estado visual de carregamento concluído do iframe do PGR para tornar a validação observável no portal.
+- [x] Diagnosticar e corrigir o erro React `insertBefore` ao montar ou desmontar o PGR em tela cheia.
+- [x] Cobrir e validar os ciclos repetidos de abertura, retorno e atualização do PGR ampliado sem erro de reconciliação.
+- [x] Adicionar cobertura automatizada de reabertura e fechamento do PGR ampliado com raiz de portal dedicada.
+- [x] Validar no navegador uma reabertura após retorno, confirmando que o ErrorBoundary não é acionado e que não há novo erro `insertBefore` no console.
+- [x] Executar no navegador, após a refatoração, o ciclo completo abrir → voltar à carteira → reabrir e registrar a ausência do ErrorBoundary.
+- [x] Registrar um trecho de console pós-ciclo que comprove a ausência de novo `insertBefore` após a reabertura manual.
