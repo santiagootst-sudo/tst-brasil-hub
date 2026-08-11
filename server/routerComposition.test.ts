@@ -12,6 +12,7 @@ describe("composição de routers do portal", () => {
       "createSupportTicket",
       "createTraining",
       "createWorkspace",
+      "iframeAccess",
       "materials",
       "supportTickets",
       "trainings",

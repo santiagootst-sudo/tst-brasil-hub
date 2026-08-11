@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { canUsePaidApps } from "./access";
 import { getSubscriptionForUser, getWorkspaceForUser } from "./db";
+import { verifyPgrIframeTicket } from "./pgrIframeTicket";
 import { sdk } from "./_core/sdk";
 import { storageGetSignedUrl } from "./storage";
 
@@ -25,17 +26,23 @@ export function registerPgrLegacyRoute(app: Express) {
       } catch {
         user = null;
       }
-      if (!user) return res.status(401).send("Autenticação necessária para abrir o PGR.");
-
       const workspaceId = Number(req.params.workspaceId);
       if (!Number.isInteger(workspaceId) || workspaceId <= 0) return res.status(400).send("Ambiente inválido.");
 
+      const rawTicket = req.query?.ticket;
+      const ticket = typeof rawTicket === "string" ? await verifyPgrIframeTicket(rawTicket) : null;
+      if (!user && !ticket) return res.status(401).send("Autenticação necessária para abrir o PGR.");
+      if (ticket && ticket.workspaceId !== workspaceId) return res.status(403).send("Ticket inválido para este ambiente.");
+
+      const userId = user?.id ?? ticket!.userId;
+      const userRole = user?.role ?? ticket!.userRole;
+
       const [workspace, subscription] = await Promise.all([
-        getWorkspaceForUser(workspaceId, user.id),
-        getSubscriptionForUser(user.id),
+        getWorkspaceForUser(workspaceId, userId),
+        getSubscriptionForUser(userId),
       ]);
       if (!workspace) return res.status(403).send("Você não possui acesso a este ambiente.");
-      if (!canUsePaidApps({ userRole: user.role, subscriptionStatus: subscription?.status })) {
+      if (!canUsePaidApps({ userRole, subscriptionStatus: subscription?.status })) {
         return res.status(402).send("Uma assinatura ativa é necessária para usar o PGR Pro.");
       }
 

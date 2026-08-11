@@ -7,10 +7,12 @@ const db = vi.hoisted(() => ({
 }));
 const sdk = vi.hoisted(() => ({ authenticateRequest: vi.fn() }));
 const storage = vi.hoisted(() => ({ storageGetSignedUrl: vi.fn() }));
+const pgrTicket = vi.hoisted(() => ({ verifyPgrIframeTicket: vi.fn() }));
 
 vi.mock("./db", () => db);
 vi.mock("./_core/sdk", () => ({ sdk }));
 vi.mock("./storage", () => storage);
+vi.mock("./pgrIframeTicket", () => pgrTicket);
 
 import { registerPgrLegacyRoute } from "./pgrLegacyRoute";
 
@@ -37,8 +39,8 @@ function createResponse() {
   return response as unknown as Response & { status: ReturnType<typeof vi.fn>; send: ReturnType<typeof vi.fn>; set: ReturnType<typeof vi.fn> };
 }
 
-function createRequest(workspaceId = "7") {
-  return { params: { workspaceId } } as unknown as Request;
+function createRequest(workspaceId = "7", query: Record<string, string> = {}) {
+  return { params: { workspaceId }, query } as unknown as Request;
 }
 
 describe("rota protegida do PGR", () => {
@@ -83,6 +85,22 @@ describe("rota protegida do PGR", () => {
     const response = createResponse();
     await registerHandler()(createRequest(), response);
     expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" }));
+    expect(response.send).toHaveBeenCalledWith("<html>PGR</html>");
+  });
+
+  it("entrega o PGR com ticket temporário quando o iframe não possui cookie de sessão", async () => {
+    sdk.authenticateRequest.mockRejectedValue(new Error("iframe sem cookie"));
+    pgrTicket.verifyPgrIframeTicket.mockResolvedValue({ userId: 12, workspaceId: 7, projectId: 3, userRole: "user" });
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, role: "owner" });
+    db.getSubscriptionForUser.mockResolvedValue({ status: "active" });
+    storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
+    const response = createResponse();
+
+    await registerHandler()(createRequest("7", { ticket: "ticket-temporario" }), response);
+
+    expect(pgrTicket.verifyPgrIframeTicket).toHaveBeenCalledWith("ticket-temporario");
+    expect(db.getWorkspaceForUser).toHaveBeenCalledWith(7, 12);
+    expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ "Content-Type": "text/html; charset=utf-8" }));
     expect(response.send).toHaveBeenCalledWith("<html>PGR</html>");
   });
 });

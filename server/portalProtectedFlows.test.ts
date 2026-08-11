@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   createSupportTicketForWorkspace: vi.fn(),
   createTrainingForWorkspace: vi.fn(),
   createWorkspaceForUser: vi.fn(),
+  getPgrProjectForWorkspace: vi.fn(),
   getSubscriptionForUser: vi.fn(),
   getWorkspaceForUser: vi.fn(),
   listCertificatesForWorkspace: vi.fn(),
@@ -20,8 +21,10 @@ const db = vi.hoisted(() => ({
   listTrainingsForWorkspace: vi.fn(),
   listWorkspacesForUser: vi.fn(),
 }));
+const pgrTicket = vi.hoisted(() => ({ createPgrIframeTicket: vi.fn() }));
 
 vi.mock("./db", () => db);
+vi.mock("./pgrIframeTicket", () => pgrTicket);
 
 import { appRouter } from "./routers";
 
@@ -119,6 +122,26 @@ describe("portal protected flows", () => {
     await caller.portal.createPgrProject({ workspaceId: 7, name: "PGR Unidade A" });
     expect(db.createCompanyForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, name: "Unidade A" }));
     expect(db.createPgrProjectForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, name: "PGR Unidade A", legacyStorageKey: expect.stringContaining("workspace-7-pgr-") }));
+  });
+
+  it("emite a autorização do iframe apenas para projeto PGR do ambiente acessível", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "owner" });
+    db.getSubscriptionForUser.mockResolvedValue(subscriptionFixture("active"));
+    db.getPgrProjectForWorkspace.mockResolvedValue({ id: 3, workspaceId: 7, name: "PGR Unidade A" });
+    pgrTicket.createPgrIframeTicket.mockResolvedValue("ticket-seguro");
+
+    await expect(appRouter.createCaller(createContext()).portal.iframeAccess({ workspaceId: 7, projectId: 3 })).resolves.toEqual({ url: "/api/apps/pgr/7?ticket=ticket-seguro" });
+    expect(db.getPgrProjectForWorkspace).toHaveBeenCalledWith(3, 7);
+    expect(pgrTicket.createPgrIframeTicket).toHaveBeenCalledWith(expect.objectContaining({ userId: 12, workspaceId: 7, projectId: 3 }));
+  });
+
+  it("bloqueia a autorização do iframe quando o projeto não pertence ao ambiente", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "owner" });
+    db.getSubscriptionForUser.mockResolvedValue(subscriptionFixture("active"));
+    db.getPgrProjectForWorkspace.mockResolvedValue(undefined);
+
+    await expect(appRouter.createCaller(createContext()).portal.iframeAccess({ workspaceId: 7, projectId: 999 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(pgrTicket.createPgrIframeTicket).not.toHaveBeenCalled();
   });
 
   it("permite que qualquer membro abra chamado, mas mantém o cadastro de materiais para gestores", async () => {

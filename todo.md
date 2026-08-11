@@ -55,3 +55,9 @@
 - [x] Propagar o ambiente ativo pela navegação lateral para que os módulos não retornem ao estado de seleção.
 - [x] Fazer Materiais, Suporte, Treinamentos e Certificados respeitarem o ambiente recebido pela URL e refletirem a troca de contexto.
 - [x] Extrair e testar o helper de leitura e propagação de `workspace` para impedir regressão da navegação por contexto.
+- [ ] Reproduzir e corrigir a abertura funcional do Gerador de PGR no ambiente selecionado.
+- [ ] Validar o cadastro inicial de empresa e projeto PGR antes da abertura do aplicativo legado.
+- [ ] Validar o carregamento do aplicativo legado do PGR dentro do contexto e projeto selecionados.
+- [x] Criar uma autorização temporária e restrita para o iframe do PGR quando a sessão chegar ao portal por cabeçalho, sem expor acesso irrestrito ao aplicativo legado.
+- [x] Cobrir em testes a emissão e validação da autorização temporária do PGR, incluindo escopo de usuário e ambiente.
+- [x] Validar que a autorização do iframe só é emitida para projeto PGR pertencente ao ambiente selecionado.

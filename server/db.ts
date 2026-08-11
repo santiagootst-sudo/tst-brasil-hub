@@ -116,6 +116,16 @@ export async function listPgrProjectsForWorkspace(workspaceId: number) {
   return db.select().from(pgrProjects).where(eq(pgrProjects.workspaceId, workspaceId)).orderBy(desc(pgrProjects.updatedAt));
 }
 
+export async function getPgrProjectForWorkspace(projectId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db
+    .select()
+    .from(pgrProjects)
+    .where(and(eq(pgrProjects.id, projectId), eq(pgrProjects.workspaceId, workspaceId)))
+    .limit(1))[0];
+}
+
 export async function createPgrProjectForWorkspace(input: { workspaceId: number; companyId?: number | null; name: string; legacyStorageKey: string }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");

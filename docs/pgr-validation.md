@@ -51,3 +51,9 @@ Foi identificado que o dashboard e o PGR tentavam extrair `workspace` do valor r
 A validação no navegador confirmou que um cartão de ambiente existente abre seu dashboard, que o PGR reconhece o mesmo contexto e que o módulo de Materiais exibe o ambiente ativo correspondente. A tela inicial também passou a separar de forma explícita a ação de **abrir painel** da ação de **criar outro ambiente**. A criação efetiva de um novo ambiente continua sem dados de demonstração e deve ser conferida na próxima sessão de uso real.
 
 O formulário de criação também foi aberto e fechado sem submissão para confirmar os rótulos, o contexto Autônomo e a ação final `Criar e abrir painel`. Nenhum registro foi criado durante essa verificação. A seleção de ambiente e a propagação de contexto foram confirmadas sem depender de dados fictícios.
+
+## Ponte autenticada do iframe PGR
+
+O aplicativo legado é exibido em um iframe e, em previews onde a sessão chega ao portal por cabeçalho, esse iframe não recebe automaticamente a credencial de autorização. Para manter a proteção sem depender de cookie, a abertura passou a usar uma autorização JWT curta, com escopo de usuário, ambiente e projeto PGR. A rota do aplicativo valida o ticket, o vínculo do usuário com o ambiente e a assinatura antes de entregar o HTML.
+
+A emissão do ticket agora exige que o projeto pertença ao ambiente informado. A suíte local cobre a emissão, a rejeição de ticket inválido, o bloqueio para projeto fora de escopo e a entrega do PGR por ticket temporário sem cookie; a validação técnica local alcançou 40 testes aprovados. A abertura visual do aplicativo legado ainda requer um projeto PGR real no ambiente selecionado, que não foi criado automaticamente para evitar dados de demonstração.
