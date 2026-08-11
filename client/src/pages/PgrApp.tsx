@@ -1,0 +1,19 @@
+import { ArrowLeft, BadgeCheck, CircleAlert, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
+import { useLocation } from "wouter";
+import { Link } from "wouter";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+
+export default function PgrApp() {
+  const [location] = useLocation();
+  const workspaceId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("workspace"));
+  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: Number.isInteger(workspaceId) && workspaceId > 0 });
+  const billing = trpc.billing.status.useQuery();
+  const loading = workspace.isLoading || billing.isLoading;
+  if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  if (!workspaceId || !workspace.data) return <DashboardLayout title="PGR Pro"><div className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><CircleAlert className="mx-auto h-8 w-8 text-[#e98766]" /><h2 className="mt-4 text-2xl font-bold">Selecione um ambiente antes de abrir o PGR.</h2><Link href="/app" className="mt-5 inline-flex items-center text-sm font-bold text-[#0c7474]">Voltar aos ambientes</Link></div></DashboardLayout>;
+  if (!billing.data?.hasPaidAccess) return <DashboardLayout title="PGR Pro"><div className="mx-auto max-w-2xl rounded-[2rem] border border-[#d7ebe6] bg-white p-9 text-center shadow-sm"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0e9] text-[#d67845]"><ShieldCheck className="h-7 w-7" /></span><h2 className="mt-5 text-3xl font-bold">Ative o PGR Pro para este ambiente.</h2><p className="mt-3 text-sm leading-6 text-[#5d7479]">O acesso é liberado depois da confirmação da assinatura. Seus dados permanecem separados por ambiente de trabalho.</p><Link href="/planos" className="mt-7 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Ver planos mensais</Link></div></DashboardLayout>;
+  const iframeSource = `/api/apps/pgr/${workspace.data.id}?workspace=portal-${workspace.data.id}&portalAuth=1`;
+  return <DashboardLayout title="PGR Pro"><div className="mb-5 flex flex-col justify-between gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 md:flex-row md:items-center"><div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]"><ShieldCheck className="h-5 w-5" /></span><div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Aplicativo central</p><h2 className="text-lg font-bold">PGR Pro · {workspace.data.name}</h2><p className="text-xs text-[#6f858a]">Dados isolados neste ambiente. Valide informações técnicas antes de gerar documentos oficiais.</p></div></div><div className="flex items-center gap-3"><Link href="/app" className="inline-flex items-center gap-2 text-sm font-bold text-[#0c7474]"><ArrowLeft className="h-4 w-4" />Ambientes</Link><a href={iframeSource} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-[#bddbd5] px-4 py-2 text-sm font-bold text-[#315158]"><ExternalLink className="h-4 w-4" />Abrir em tela cheia</a></div></div><div className="overflow-hidden rounded-3xl border border-[#dcebe8] bg-white shadow-sm"><div className="flex items-center justify-between border-b border-[#e7f1ef] bg-[#fbfefd] px-5 py-3 text-xs text-[#5d7479]"><span className="inline-flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-[#39a77e]" />Sessão do PGR vinculada ao ambiente atual</span><span>Portal TST Brasil</span></div><iframe title="Gerador de PGR" src={iframeSource} className="h-[calc(100vh-15rem)] min-h-[720px] w-full bg-white" /></div></DashboardLayout>;
+}
