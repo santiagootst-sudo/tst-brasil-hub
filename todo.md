@@ -14,3 +14,5 @@
 - [x] Propagar os metadados de usuário e plano à assinatura para processar cancelamentos e alterações de status corretamente.
 - [x] Exibir os estados de retorno e cancelamento de cobrança na interface do portal.
 - [ ] Registrar e testar o webhook em sandbox com um ciclo completo de assinatura.
+- [ ] Homologar checkout, webhook, cancelamento e bloqueio de acesso quando o sandbox Stripe estiver disponível.
+- [x] Evoluir os fluxos do PGR e dos ambientes de trabalho sem dependência da homologação de pagamentos.
