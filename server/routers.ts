@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { canUsePaidApps } from "./access";
-import { createWorkspaceForUser, getSubscriptionForUser, getWorkspaceForUser, listCompaniesForWorkspace, listPgrProjectsForWorkspace, listWorkspacesForUser } from "./db";
+import { createCompanyForWorkspace, createPgrProjectForWorkspace, createWorkspaceForUser, getSubscriptionForUser, getWorkspaceForUser, listCompaniesForWorkspace, listPgrProjectsForWorkspace, listWorkspacesForUser } from "./db";
 import { getSubscriptionPlan, subscriptionPlans, type PlanCode } from "./products";
 import { createCustomerBillingPortal, createSubscriptionCheckout } from "./stripe";
+import { canManageWorkspace } from "./workspaceAccess";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -33,6 +35,25 @@ export const appRouter = router({
         listPgrProjectsForWorkspace(workspace.id),
       ]);
       return { ...workspace, companies, pgrProjects };
+    }),
+    createCompany: protectedProcedure.input(z.object({
+      workspaceId: z.number().int().positive(),
+      name: z.string().trim().min(2).max(255),
+      document: z.string().trim().max(32).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const workspace = await getWorkspaceForUser(input.workspaceId, ctx.user.id);
+      if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+      return createCompanyForWorkspace(input);
+    }),
+    createPgrProject: protectedProcedure.input(z.object({
+      workspaceId: z.number().int().positive(),
+      companyId: z.number().int().positive().optional(),
+      name: z.string().trim().min(2).max(255),
+    })).mutation(async ({ ctx, input }) => {
+      const workspace = await getWorkspaceForUser(input.workspaceId, ctx.user.id);
+      if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+      const legacyStorageKey = `workspace-${input.workspaceId}-pgr-${crypto.randomUUID()}`;
+      return createPgrProjectForWorkspace({ ...input, legacyStorageKey });
     }),
   }),
   billing: router({

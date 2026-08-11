@@ -78,6 +78,17 @@ export async function listCompaniesForWorkspace(workspaceId: number) {
   return db.select().from(companies).where(eq(companies.workspaceId, workspaceId)).orderBy(desc(companies.updatedAt));
 }
 
+export async function createCompanyForWorkspace(input: { workspaceId: number; name: string; document?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(companies).values({
+    workspaceId: input.workspaceId,
+    name: input.name,
+    document: input.document ?? null,
+  });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
 export async function getSubscriptionForUser(userId: number): Promise<Subscription | undefined> {
   const db = await getDb();
   if (!db) return undefined;
@@ -103,4 +114,16 @@ export async function listPgrProjectsForWorkspace(workspaceId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(pgrProjects).where(eq(pgrProjects.workspaceId, workspaceId)).orderBy(desc(pgrProjects.updatedAt));
+}
+
+export async function createPgrProjectForWorkspace(input: { workspaceId: number; companyId?: number | null; name: string; legacyStorageKey: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(pgrProjects).values({
+    workspaceId: input.workspaceId,
+    companyId: input.companyId ?? null,
+    name: input.name,
+    legacyStorageKey: input.legacyStorageKey,
+  });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
 }
