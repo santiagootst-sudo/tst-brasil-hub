@@ -61,3 +61,5 @@
 - [x] Criar uma autorização temporária e restrita para o iframe do PGR quando a sessão chegar ao portal por cabeçalho, sem expor acesso irrestrito ao aplicativo legado.
 - [x] Cobrir em testes a emissão e validação da autorização temporária do PGR, incluindo escopo de usuário e ambiente.
 - [x] Validar que a autorização do iframe só é emitida para projeto PGR pertencente ao ambiente selecionado.
+- [x] Diagnosticar e corrigir a exceção React reportada durante o fluxo do Gerador de PGR.
+- [x] Validar que a página de PGR não viola a ordem de hooks ao alternar entre estados de ambiente, assinatura e projeto.

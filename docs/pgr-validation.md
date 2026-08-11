@@ -57,3 +57,9 @@ O formulário de criação também foi aberto e fechado sem submissão para conf
 O aplicativo legado é exibido em um iframe e, em previews onde a sessão chega ao portal por cabeçalho, esse iframe não recebe automaticamente a credencial de autorização. Para manter a proteção sem depender de cookie, a abertura passou a usar uma autorização JWT curta, com escopo de usuário, ambiente e projeto PGR. A rota do aplicativo valida o ticket, o vínculo do usuário com o ambiente e a assinatura antes de entregar o HTML.
 
 A emissão do ticket agora exige que o projeto pertença ao ambiente informado. A suíte local cobre a emissão, a rejeição de ticket inválido, o bloqueio para projeto fora de escopo e a entrega do PGR por ticket temporário sem cookie; a validação técnica local alcançou 40 testes aprovados. A abertura visual do aplicativo legado ainda requer um projeto PGR real no ambiente selecionado, que não foi criado automaticamente para evitar dados de demonstração.
+
+## Correção da exceção React no PGR
+
+O erro de console reportado foi identificado como `Rendered more hooks than during the previous render`. A consulta de autorização do iframe era executada somente depois de retornos condicionais de carregamento, ambiente e assinatura, o que alterava a ordem de hooks entre renderizações. A consulta foi movida para a seção estável de hooks do componente e é apenas habilitada quando existe um projeto PGR e acesso pago.
+
+Após a correção, a página de PGR voltou a carregar o fluxo de empresa e projeto no ambiente selecionado sem a exceção React. A validação visual do iframe legado permanece pendente de um projeto PGR real, sem criação automática de dados de demonstração.

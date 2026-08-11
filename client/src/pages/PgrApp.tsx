@@ -37,6 +37,13 @@ export default function PgrApp() {
     onError: error => toast.error(error.message),
   });
 
+  const availableProjects = workspace.data?.pgrProjects ?? [];
+  const selectedProject = availableProjects.find(project => project.id === selectedProjectId) ?? availableProjects[0] ?? null;
+  const iframeAccess = trpc.portal.iframeAccess.useQuery(
+    { workspaceId, projectId: selectedProject?.id ?? 0 },
+    { enabled: Boolean(selectedProject && billing.data?.hasPaidAccess) },
+  );
+
   const loading = workspace.isLoading || billing.isLoading;
   if (loading) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
   if (!workspaceId || !workspace.data) return <DashboardLayout title="PGR Pro"><div className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><CircleAlert className="mx-auto h-8 w-8 text-[#e98766]" /><h2 className="mt-4 text-2xl font-bold">Selecione um ambiente antes de abrir o PGR.</h2><Link href="/app" className="mt-5 inline-flex items-center text-sm font-bold text-[#0c7474]">Voltar aos ambientes</Link></div></DashboardLayout>;
@@ -44,13 +51,9 @@ export default function PgrApp() {
 
   const canManage = workspace.data.role === "owner" || workspace.data.role === "manager";
   const companies = workspace.data.companies;
-  const projects = workspace.data.pgrProjects;
+  const projects = availableProjects;
   const activeCompanyId = selectedCompanyId ?? companies[0]?.id ?? null;
-  const activeProject = projects.find(project => project.id === selectedProjectId) ?? projects[0] ?? null;
-  const iframeAccess = trpc.portal.iframeAccess.useQuery(
-    { workspaceId, projectId: activeProject?.id ?? 0 },
-    { enabled: Boolean(activeProject) },
-  );
+  const activeProject = selectedProject;
   const iframeSource = activeProject && iframeAccess.data
     ? `${iframeAccess.data.url}&workspace=portal-${workspace.data.id}-${activeProject.legacyStorageKey}&portalAuth=1`
     : "";
