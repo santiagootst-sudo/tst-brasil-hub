@@ -48,3 +48,9 @@
 - [x] Documentar o modelo de assinatura, as transições de acesso e o roteiro de homologação Stripe para execução quando o sandbox estiver disponível.
 - [x] Criar um roteiro de qualidade local com critérios verificáveis para PGR, dashboards, Materiais, Suporte, Treinamentos e Certificados.
 - [x] Definir o backlog técnico de próximos módulos: empresas, equipe, inventário de riscos, plano de ação, indicadores e marketplace futuro.
+- [x] Corrigir a jornada de primeiro acesso para orientar a criação e a abertura do primeiro ambiente Autônomo ou CLT.
+- [ ] Validar que a criação de ambiente leva ao dashboard correspondente sem retornar ao bloqueio de ambiente vazio.
+- [x] Tornar explícita na interface a diferença entre criar um novo ambiente e selecionar um ambiente existente.
+- [x] Corrigir a leitura do parâmetro `workspace` no dashboard e no PGR para que ambientes existentes sejam abertos corretamente.
+- [x] Propagar o ambiente ativo pela navegação lateral para que os módulos não retornem ao estado de seleção.
+- [x] Fazer Materiais, Suporte, Treinamentos e Certificados respeitarem o ambiente recebido pela URL e refletirem a troca de contexto.

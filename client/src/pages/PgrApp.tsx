@@ -1,6 +1,6 @@
 import { ArrowLeft, BadgeCheck, Building2, CircleAlert, ClipboardPlus, ExternalLink, FilePlus2, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 
 export default function PgrApp() {
-  const [location] = useLocation();
-  const workspaceId = Number(new URLSearchParams(location.split("?")[1] ?? "").get("workspace"));
+  const search = useSearch();
+  const workspaceId = Number(new URLSearchParams(search).get("workspace"));
   const utils = trpc.useUtils();
   const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: Number.isInteger(workspaceId) && workspaceId > 0 });
   const billing = trpc.billing.status.useQuery();

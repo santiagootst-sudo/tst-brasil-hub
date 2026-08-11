@@ -43,3 +43,11 @@ Foram adicionadas as tabelas `materials` e `support_tickets`, ambas indexadas po
 A suíte automatizada agora exercita a rota protegida do PGR nos cenários de ausência de autenticação, ausência de vínculo com o ambiente, assinatura sem acesso e assinatura ativa. Também cobre a persistência de ativação e cancelamento de assinatura a partir de eventos Stripe processados pelo servidor. A validação técnica local concluiu com 24 testes aprovados; a homologação com checkout e webhook reais continua dependente do sandbox Stripe.
 
 Também foram incluídos testes isolados para a criação de checkout recorrente, o reaproveitamento de cliente Stripe, as URLs de retorno de sucesso e cancelamento, o portal de gestão de assinatura e a verificação de assinatura de webhook por payload assinado localmente. A suíte técnica local passou a conter 28 testes aprovados. A confirmação contra preços, credenciais e eventos entregues pelo sandbox permanece como etapa de homologação externa.
+
+## Correção da jornada de ambientes
+
+Foi identificado que o dashboard e o PGR tentavam extrair `workspace` do valor retornado por `useLocation`. Esse valor contém apenas o caminho, sem a query string, e fazia o portal interpretar um ambiente válido como ausente. A leitura passou a usar `useSearch`, e a navegação lateral, os atalhos do dashboard e os módulos compartilhados agora preservam `?workspace=ID`.
+
+A validação no navegador confirmou que um cartão de ambiente existente abre seu dashboard, que o PGR reconhece o mesmo contexto e que o módulo de Materiais exibe o ambiente ativo correspondente. A tela inicial também passou a separar de forma explícita a ação de **abrir painel** da ação de **criar outro ambiente**. A criação efetiva de um novo ambiente continua sem dados de demonstração e deve ser conferida na próxima sessão de uso real.
+
+O formulário de criação também foi aberto e fechado sem submissão para confirmar os rótulos, o contexto Autônomo e a ação final `Criar e abrir painel`. Nenhum registro foi criado durante essa verificação. A seleção de ambiente e a propagação de contexto foram confirmadas sem depender de dados fictícios.

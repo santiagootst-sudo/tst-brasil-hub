@@ -1,6 +1,6 @@
 import { Bell, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 
 type DashboardLayoutProps = {
@@ -20,7 +20,14 @@ const menuItems = [
 
 export default function DashboardLayout({ children, title = "Portal TST Brasil" }: DashboardLayoutProps) {
   const [location] = useLocation();
+  const search = useSearch();
   const collapsed = false;
+  const workspaceId = Number(new URLSearchParams(search).get("workspace"));
+  const pathWithWorkspace = (path: string) => {
+    if (!Number.isInteger(workspaceId) || workspaceId <= 0) return path;
+    if (path === "/app") return `/app/visao?workspace=${workspaceId}`;
+    return `${path}?workspace=${workspaceId}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#f6faf9] text-[#102b32]">
@@ -38,9 +45,9 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
         <nav className="flex-1 space-y-1">
           <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">Aplicativos</p>
           {menuItems.map(({ label, icon: Icon, path }) => {
-            const active = location === path;
+            const active = path === "/app" ? location === "/app" || location === "/app/visao" : location === path;
             return (
-              <Link key={path} href={path} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}>
+              <Link key={path} href={pathWithWorkspace(path)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}>
                 <Icon className="h-4 w-4" />
                 <span>{label}</span>
               </Link>
