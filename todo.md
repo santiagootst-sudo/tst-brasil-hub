@@ -16,3 +16,9 @@
 - [ ] Registrar e testar o webhook em sandbox com um ciclo completo de assinatura.
 - [ ] Homologar checkout, webhook, cancelamento e bloqueio de acesso quando o sandbox Stripe estiver disponível.
 - [x] Evoluir os fluxos do PGR e dos ambientes de trabalho sem dependência da homologação de pagamentos.
+- [x] Criar os primeiros módulos compartilhados de Biblioteca e Certificados, conectados ao menu autenticado.
+- [x] Implementar fluxos mínimos funcionais para abrir materiais da Biblioteca e iniciar registros reais de Certificados.
+- [x] Criar o módulo de Treinamentos com cadastro real por ambiente, evitando conteúdos ou participantes fictícios.
+- [x] Substituir a Biblioteca provisória por referências oficiais com abertura funcional em nova aba.
+- [x] Adicionar testes para os procedimentos de Certificados, Treinamentos e fluxos protegidos por workspace.
+- [x] Cobrir leitura de Treinamentos e bloqueios para usuário sem vínculo ao ambiente.

@@ -1,4 +1,4 @@
-import { Bell, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, X } from "lucide-react";
+import { Bell, GraduationCap, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ type DashboardLayoutProps = {
 const menuItems = [
   { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
   { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+  { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
   { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
   { label: "Certificados", icon: Trophy, path: "/app/certificados" },
 ];

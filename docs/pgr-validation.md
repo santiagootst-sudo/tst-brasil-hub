@@ -13,3 +13,11 @@ A rota interna `/api/apps/pgr/:workspaceId` foi testada sem sessão e respondeu 
 ## Limites para homologação final
 
 A validação com usuário autenticado, ambiente criado e assinatura ativa depende da configuração final dos preços recorrentes e de uma conta de teste com acesso ao portal. Antes do lançamento, validar criação de ambiente, abertura do iframe autenticado, isolamento entre dois ambientes, autosave, geração Word/PDF e bloqueio após cancelamento de assinatura.
+
+## Validação visual dos módulos compartilhados
+
+As rotas autenticadas de Biblioteca e Certificados foram verificadas no preview. A Biblioteca apresenta a busca e seis materiais técnicos estruturais. Certificados mostra corretamente um estado vazio sem dados de usuários inventados e explica os próximos passos para registros reais. A navegação lateral não aparece nos screenshots de página inteira porque é um elemento fixo e a captura de página inteira o omite deliberadamente.
+
+Após a evolução dos fluxos, Biblioteca continuou renderizando corretamente com ações de abertura de material; Certificados mostrou corretamente o bloqueio orientado quando não há ambiente criado, evitando registros fora de contexto. O cadastro persistente de certificado será exercitado quando houver um ambiente real na conta autenticada.
+
+O módulo de Treinamentos foi incluído com persistência por ambiente, planejamento de cursos e estado vazio seguro. A validação visual confirmou que, sem ambiente criado, a tela apresenta o CTA `Criar ambiente` e mantém a navegação lateral disponível, sem criar registros fictícios.

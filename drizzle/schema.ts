@@ -65,7 +65,41 @@ export const pgrProjects = mysqlTable("pgr_projects", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("pgr_projects_workspace_idx").on(table.workspaceId)]);
 
+export const certificates = mysqlTable("certificates", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId"),
+  participantName: varchar("participantName", { length: 255 }).notNull(),
+  trainingName: varchar("trainingName", { length: 255 }).notNull(),
+  issuedAt: timestamp("issuedAt").notNull(),
+  expiresAt: timestamp("expiresAt"),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("certificates_workspace_idx").on(table.workspaceId),
+  index("certificates_company_idx").on(table.companyId),
+]);
+
+export const trainings = mysqlTable("trainings", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["planned", "completed"]).default("planned").notNull(),
+  scheduledAt: timestamp("scheduledAt"),
+  participantCount: int("participantCount").default(0).notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("trainings_workspace_idx").on(table.workspaceId),
+  index("trainings_company_idx").on(table.companyId),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
+export type Certificate = typeof certificates.$inferSelect;
+export type Training = typeof trainings.$inferSelect;

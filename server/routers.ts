@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { canUsePaidApps } from "./access";
-import { createCompanyForWorkspace, createPgrProjectForWorkspace, createWorkspaceForUser, getSubscriptionForUser, getWorkspaceForUser, listCompaniesForWorkspace, listPgrProjectsForWorkspace, listWorkspacesForUser } from "./db";
+import { createCertificateForWorkspace, createCompanyForWorkspace, createPgrProjectForWorkspace, createTrainingForWorkspace, createWorkspaceForUser, getSubscriptionForUser, getWorkspaceForUser, listCertificatesForWorkspace, listCompaniesForWorkspace, listPgrProjectsForWorkspace, listTrainingsForWorkspace, listWorkspacesForUser } from "./db";
 import { getSubscriptionPlan, subscriptionPlans, type PlanCode } from "./products";
 import { createCustomerBillingPortal, createSubscriptionCheckout } from "./stripe";
 import { canManageWorkspace } from "./workspaceAccess";
@@ -54,6 +54,39 @@ export const appRouter = router({
       if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
       const legacyStorageKey = `workspace-${input.workspaceId}-pgr-${crypto.randomUUID()}`;
       return createPgrProjectForWorkspace({ ...input, legacyStorageKey });
+    }),
+    certificates: protectedProcedure.input(z.object({ workspaceId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      const workspace = await getWorkspaceForUser(input.workspaceId, ctx.user.id);
+      if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
+      return listCertificatesForWorkspace(workspace.id);
+    }),
+    createCertificate: protectedProcedure.input(z.object({
+      workspaceId: z.number().int().positive(),
+      companyId: z.number().int().positive().optional(),
+      participantName: z.string().trim().min(2).max(255),
+      trainingName: z.string().trim().min(2).max(255),
+      issuedAt: z.coerce.date(),
+      expiresAt: z.coerce.date().nullable().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const workspace = await getWorkspaceForUser(input.workspaceId, ctx.user.id);
+      if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode registrar certificados neste ambiente." });
+      return createCertificateForWorkspace({ ...input, createdByUserId: ctx.user.id });
+    }),
+    trainings: protectedProcedure.input(z.object({ workspaceId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      const workspace = await getWorkspaceForUser(input.workspaceId, ctx.user.id);
+      if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
+      return listTrainingsForWorkspace(workspace.id);
+    }),
+    createTraining: protectedProcedure.input(z.object({
+      workspaceId: z.number().int().positive(),
+      companyId: z.number().int().positive().optional(),
+      title: z.string().trim().min(2).max(255),
+      scheduledAt: z.coerce.date().nullable().optional(),
+      participantCount: z.number().int().min(0).max(100_000).default(0),
+    })).mutation(async ({ ctx, input }) => {
+      const workspace = await getWorkspaceForUser(input.workspaceId, ctx.user.id);
+      if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode registrar treinamentos neste ambiente." });
+      return createTrainingForWorkspace({ ...input, createdByUserId: ctx.user.id });
     }),
   }),
   billing: router({

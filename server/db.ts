@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { companies, type InsertUser, pgrProjects, subscriptions, type Subscription, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { certificates, companies, type InsertUser, pgrProjects, subscriptions, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -124,6 +124,55 @@ export async function createPgrProjectForWorkspace(input: { workspaceId: number;
     companyId: input.companyId ?? null,
     name: input.name,
     legacyStorageKey: input.legacyStorageKey,
+  });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export async function listCertificatesForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(certificates).where(eq(certificates.workspaceId, workspaceId)).orderBy(desc(certificates.expiresAt), desc(certificates.updatedAt));
+}
+
+export async function createCertificateForWorkspace(input: {
+  workspaceId: number;
+  companyId?: number | null;
+  participantName: string;
+  trainingName: string;
+  issuedAt: Date;
+  expiresAt?: Date | null;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(certificates).values({
+    ...input,
+    companyId: input.companyId ?? null,
+    expiresAt: input.expiresAt ?? null,
+  });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export async function listTrainingsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(trainings).where(eq(trainings.workspaceId, workspaceId)).orderBy(desc(trainings.scheduledAt), desc(trainings.updatedAt));
+}
+
+export async function createTrainingForWorkspace(input: {
+  workspaceId: number;
+  companyId?: number | null;
+  title: string;
+  scheduledAt?: Date | null;
+  participantCount: number;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(trainings).values({
+    ...input,
+    companyId: input.companyId ?? null,
+    scheduledAt: input.scheduledAt ?? null,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
 }
