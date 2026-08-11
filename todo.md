@@ -22,3 +22,13 @@
 - [x] Substituir a Biblioteca provisória por referências oficiais com abertura funcional em nova aba.
 - [x] Adicionar testes para os procedimentos de Certificados, Treinamentos e fluxos protegidos por workspace.
 - [x] Cobrir leitura de Treinamentos e bloqueios para usuário sem vínculo ao ambiente.
+- [x] Criar um dashboard contextual por ambiente com indicadores reais de empresas, PGRs, treinamentos e certificados.
+- [x] Corrigir e retestar o runtime do projeto para eliminar qualquer falha de importação da camada de dados.
+- [x] Substituir a importação nomeada da camada de dados por acesso via namespace e retestar o runtime limpo.
+- [ ] Validar o dashboard contextual autenticado com um ambiente real e sem acesso ao ambiente.
+- [x] Reposicionar a mensagem da landing page para apresentar o Portal TST como ecossistema, não como ferramenta de PGR.
+- [x] Recriar a tela autenticada de escolha de ambientes com grupos Autônomo/CLT e recursos compartilhados.
+- [x] Manter PGR, Biblioteca, Materiais, Suporte, Treinamentos e Certificados como ferramentas disponíveis em ambos os contextos.
+- [x] Criar a página funcional de Materiais com registros reais e rota autenticada acessível em ambos os contextos.
+- [x] Criar a página funcional de Suporte/chamados com estado vazio, persistência e acesso em ambos os contextos.
+- [x] Adicionar Materiais e Suporte à navegação contextual e aos atalhos do dashboard para os dois tipos de ambiente.

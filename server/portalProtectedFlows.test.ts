@@ -4,14 +4,18 @@ import type { TrpcContext } from "./_core/context";
 const db = vi.hoisted(() => ({
   createCertificateForWorkspace: vi.fn(),
   createCompanyForWorkspace: vi.fn(),
+  createMaterialForWorkspace: vi.fn(),
   createPgrProjectForWorkspace: vi.fn(),
+  createSupportTicketForWorkspace: vi.fn(),
   createTrainingForWorkspace: vi.fn(),
   createWorkspaceForUser: vi.fn(),
   getSubscriptionForUser: vi.fn(),
   getWorkspaceForUser: vi.fn(),
   listCertificatesForWorkspace: vi.fn(),
   listCompaniesForWorkspace: vi.fn(),
+  listMaterialsForWorkspace: vi.fn(),
   listPgrProjectsForWorkspace: vi.fn(),
+  listSupportTicketsForWorkspace: vi.fn(),
   listTrainingsForWorkspace: vi.fn(),
   listWorkspacesForUser: vi.fn(),
 }));
@@ -57,11 +61,24 @@ describe("portal protected flows", () => {
     expect(db.listTrainingsForWorkspace).toHaveBeenCalledWith(7);
   });
 
+  it("permite que qualquer membro consulte materiais e chamados do próprio ambiente", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "member" });
+    db.listMaterialsForWorkspace.mockResolvedValue([{ id: 3, title: "Checklist de EPI" }]);
+    db.listSupportTicketsForWorkspace.mockResolvedValue([{ id: 4, subject: "Dúvida sobre PGR" }]);
+    const caller = appRouter.createCaller(createContext());
+    await expect(caller.portal.materials({ workspaceId: 7 })).resolves.toHaveLength(1);
+    await expect(caller.portal.supportTickets({ workspaceId: 7 })).resolves.toHaveLength(1);
+    expect(db.listMaterialsForWorkspace).toHaveBeenCalledWith(7);
+    expect(db.listSupportTicketsForWorkspace).toHaveBeenCalledWith(7);
+  });
+
   it("bloqueia leitura quando o usuário não pertence ao ambiente", async () => {
     db.getWorkspaceForUser.mockResolvedValue(undefined);
     const caller = appRouter.createCaller(createContext());
     await expect(caller.portal.certificates({ workspaceId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.portal.trainings({ workspaceId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.portal.materials({ workspaceId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.portal.supportTickets({ workspaceId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("bloqueia membro de registrar certificados ou treinamentos", async () => {
@@ -69,6 +86,7 @@ describe("portal protected flows", () => {
     const caller = appRouter.createCaller(createContext());
     await expect(caller.portal.createCertificate({ workspaceId: 7, participantName: "Ana", trainingName: "NR-35", issuedAt: new Date() })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.portal.createTraining({ workspaceId: 7, title: "Integração", participantCount: 4 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.portal.createMaterial({ workspaceId: 7, title: "Checklist de EPI", category: "checklist" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("permite que proprietário registre certificados e treinamentos", async () => {
@@ -80,5 +98,13 @@ describe("portal protected flows", () => {
     await caller.portal.createTraining({ workspaceId: 7, title: "Integração", participantCount: 4 });
     expect(db.createCertificateForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, createdByUserId: 12 }));
     expect(db.createTrainingForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, participantCount: 4, createdByUserId: 12 }));
+  });
+
+  it("permite que qualquer membro abra chamado, mas mantém o cadastro de materiais para gestores", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "member" });
+    db.createSupportTicketForWorkspace.mockResolvedValue({ id: 41 });
+    const caller = appRouter.createCaller(createContext());
+    await caller.portal.createSupportTicket({ workspaceId: 7, subject: "Acesso ao PGR", message: "Preciso de ajuda para abrir o projeto de PGR." });
+    expect(db.createSupportTicketForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, createdByUserId: 12 }));
   });
 });

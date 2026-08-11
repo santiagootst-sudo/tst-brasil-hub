@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { certificates, companies, type InsertUser, pgrProjects, subscriptions, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { certificates, companies, type InsertUser, materials, pgrProjects, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -175,4 +175,46 @@ export async function createTrainingForWorkspace(input: {
     scheduledAt: input.scheduledAt ?? null,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export async function listMaterialsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(materials).where(eq(materials.workspaceId, workspaceId)).orderBy(desc(materials.updatedAt));
+}
+
+export async function createMaterialForWorkspace(input: {
+  workspaceId: number;
+  title: string;
+  category: "modelo" | "checklist" | "procedimento" | "outro";
+  description?: string | null;
+  referenceUrl?: string | null;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(materials).values({
+    ...input,
+    description: input.description ?? null,
+    referenceUrl: input.referenceUrl ?? null,
+  });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export async function listSupportTicketsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(supportTickets).where(eq(supportTickets.workspaceId, workspaceId)).orderBy(desc(supportTickets.updatedAt));
+}
+
+export async function createSupportTicketForWorkspace(input: {
+  workspaceId: number;
+  subject: string;
+  message: string;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(supportTickets).values(input);
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, status: "open" as const };
 }

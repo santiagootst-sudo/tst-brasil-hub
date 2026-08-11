@@ -97,9 +97,34 @@ export const trainings = mysqlTable("trainings", {
   index("trainings_company_idx").on(table.companyId),
 ]);
 
+export const materials = mysqlTable("materials", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  category: mysqlEnum("category", ["modelo", "checklist", "procedimento", "outro"]).default("outro").notNull(),
+  description: varchar("description", { length: 1500 }),
+  referenceUrl: varchar("referenceUrl", { length: 2048 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("materials_workspace_idx").on(table.workspaceId)]);
+
+export const supportTickets = mysqlTable("support_tickets", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  message: varchar("message", { length: 2000 }).notNull(),
+  status: mysqlEnum("status", ["open", "in_progress", "resolved"]).default("open").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("support_tickets_workspace_idx").on(table.workspaceId)]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Training = typeof trainings.$inferSelect;
+export type Material = typeof materials.$inferSelect;
+export type SupportTicket = typeof supportTickets.$inferSelect;

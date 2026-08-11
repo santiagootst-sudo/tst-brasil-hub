@@ -1,4 +1,4 @@
-import { Bell, GraduationCap, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, X } from "lucide-react";
+import { Bell, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ const menuItems = [
   { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
   { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
   { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
+  { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
+  { label: "Suporte", icon: Headphones, path: "/app/suporte" },
   { label: "Certificados", icon: Trophy, path: "/app/certificados" },
 ];
 
