@@ -78,3 +78,10 @@
 - [x] Validar no navegador que o botão de retorno do PGR navega para o ambiente correto no Portal TST sem reexibir o login legado.
 - [x] Validar no navegador a abertura real do iframe do PGR após selecionar um projeto, registrando o conteúdo interno carregado.
 - [x] Navegar diretamente para uma URL autorizada recente do PGR e confirmar a resposta HTML válida do aplicativo legado.
+- [x] Corrigir o dimensionamento da abertura em tela cheia do PGR integrado para preservar a barra lateral e a área útil do aplicativo.
+- [x] Validar visualmente a abertura em tela cheia do PGR e o retorno ao Portal TST após o ajuste de dimensionamento.
+- [x] Validar no navegador o modo ampliado do PGR, confirmando que o iframe renderiza o conteúdo completo com a barra lateral interna visível e bem dimensionada.
+- [x] Validar no navegador, após abrir o PGR em modo ampliado, que o retorno à carteira e o retorno interno ao Portal TST não reexibem o login legado nem quebram o layout.
+- [x] Registrar evidência visual observável de que o iframe ampliado carregou o dashboard completo do PGR, com a barra lateral interna sem cortes horizontal ou vertical.
+- [x] Capturar uma evidência adicional do navegador que relacione o dashboard completo renderizado à instância de iframe do modo ampliado antes do próximo checkpoint.
+- [x] Exibir no modo ampliado um estado visual de carregamento concluído do iframe do PGR para tornar a validação observável no portal.

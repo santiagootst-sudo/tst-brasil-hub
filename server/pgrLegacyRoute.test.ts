@@ -89,6 +89,8 @@ describe("rota protegida do PGR", () => {
     expect(html).toContain("<html>PGR</html>");
     expect(html).toContain("portal-tst-embedded");
     expect(html).toContain("Voltar ao Portal TST");
+    expect(html).toContain("max-width: none !important");
+    expect(html).toContain("#pgrContainer .main-content { min-width: 0");
   });
 
   it("entrega o PGR com ticket temporário quando o iframe não possui cookie de sessão", async () => {

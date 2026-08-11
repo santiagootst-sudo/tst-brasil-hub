@@ -83,3 +83,21 @@ O retorno também foi validado no navegador. Ao acionar **← Voltar ao Portal T
 ## Evidência direta do aplicativo legado
 
 A abertura em tela cheia da URL autorizada do projeto foi concluída. O navegador exibiu a página `PGR Pro | Portal TST Brasil`, com o dashboard funcional, navegação de inventário e plano de ação, campos de edição e ações de salvar, visualizar, exportar Word e gráficos. A identificação do cabeçalho mostrou `Portal TST` e `Projeto vinculado ao ambiente ativo`; não foi solicitado e-mail ou senha. Esta validação confirmou a entrega do HTML legado pela rota autorizada e o funcionamento do gerador dentro do contexto selecionado.
+
+## Dimensionamento ampliado dentro do Portal TST
+
+O acionamento de um PGR agora abre uma área de trabalho fixa que preenche todo o espaço disponível **à direita da barra lateral principal do Portal TST**. A navegação do portal permanece visível à esquerda, enquanto o aplicativo legado recebe altura integral e largura útil suficiente para manter sua própria barra de seções e o conteúdo de trabalho dimensionados corretamente. A barra superior desta área identifica o projeto, oferece abertura opcional em nova guia e permite retornar à carteira de empresas. A rota de autorização é solicitada somente nessa abertura, para que o ticket temporário seja sempre atual.
+
+Na inspeção visual do navegador, o menu lateral do Portal TST permaneceu acessível, a barra lateral interna do PGR ficou integralmente dentro do iframe e o botão injetado **← Voltar ao Portal TST** continuou disponível no canto superior direito do aplicativo legado.
+
+Na validação subsequente, a camada ampliada preencheu o viewport ao lado da navegação persistente do portal. O iframe exibiu integralmente o menu interno do PGR — incluindo Dashboard, Empresa, GHE, Riscos, Matriz, Medições, NR-15 e FMEA — sem transbordar para fora da área de trabalho.
+
+A abertura opcional em nova guia também foi exercitada com um ticket recém-gerado. O dashboard interno do PGR carregou sem login duplicado e apresentou novamente o botão **← Voltar ao Portal TST**, demonstrando que a ampliação do contêiner não altera a autorização nem o modo de portal do aplicativo legado.
+
+O clique no retorno interno foi confirmado após essa abertura. Embora o controle de automação tenha reportado uma falha de conexão após iniciar a ação, a página final carregada foi `/app/pgr?workspace=60002`, com a carteira de empresas do ambiente selecionado e sem formulário de login legado. A saída local **Voltar à carteira** da área ampliada também foi acionada com sucesso e preservou o mesmo contexto.
+
+Após reforçar as regras do HTML legado para usar largura total, altura integral e rolagem interna controlada, foi iniciado um novo carregamento no modo ampliado para confirmar visualmente a composição atualizada.
+
+Essa confirmação foi concluída no navegador: o iframe ampliado carregou o dashboard completo do PGR sem corte. A captura mostrou a barra lateral interna com todas as seções visíveis, o cabeçalho **Dashboard**, os controles Salvar Agora, Visualizar, Exportar Word, Gráficos, Modo Escuro e Limpar Dados, o painel de fluxo recomendado e os cartões de indicadores. A área permaneceu integralmente à direita da barra lateral persistente do Portal TST, sem rolagem horizontal indevida, e o botão interno **← Voltar ao Portal TST** continuou visível.
+
+Para tornar essa condição mensurável na interface do portal, a área ampliada agora mostra **Conectando gerador** enquanto o iframe recebe a URL autorizada e muda para **Gerador carregado** no evento de carregamento. A validação final exibiu simultaneamente essa confirmação, a barra lateral persistente do Portal TST, a barra lateral completa do aplicativo legado e o dashboard interno com seus controles e cartões de indicadores. Isso vincula a renderização observada ao iframe efetivamente aberto no modo ampliado.

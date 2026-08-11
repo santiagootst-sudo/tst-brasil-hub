@@ -42,6 +42,8 @@ export default function PgrApp() {
   const [companyName, setCompanyName] = useState("");
   const [projectNames, setProjectNames] = useState<Record<number, string>>({});
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [isPgrFullscreen, setIsPgrFullscreen] = useState(false);
+  const [isIframeLoaded, setIsIframeLoaded] = useState(false);
 
   const createCompany = trpc.portal.createCompany.useMutation({
     onSuccess: async () => {
@@ -56,6 +58,8 @@ export default function PgrApp() {
     onSuccess: async project => {
       setProjectNames(current => ({ ...current, [project.companyId ?? 0]: "" }));
       setSelectedProjectId(project.id);
+      setIsIframeLoaded(false);
+      setIsPgrFullscreen(true);
       await utils.portal.workspace.invalidate({ workspaceId });
       toast.success("PGR criado e selecionado. O gerador está sendo preparado.");
     },
@@ -74,7 +78,7 @@ export default function PgrApp() {
   const selectedProject = availableProjects.find(project => project.id === selectedProjectId) ?? availableProjects[0] ?? null;
   const iframeAccess = trpc.portal.iframeAccess.useQuery(
     { workspaceId, projectId: selectedProject?.id ?? 0 },
-    { enabled: Boolean(selectedProject && billing.data?.hasPaidAccess) },
+    { enabled: Boolean(selectedProject && billing.data?.hasPaidAccess && isPgrFullscreen) },
   );
 
   const loading = workspace.isLoading || billing.isLoading;
@@ -202,10 +206,10 @@ export default function PgrApp() {
                     {companyProjects.length ? (
                       <div className="space-y-2">
                         {companyProjects.map(project => (
-                          <button key={project.id} type="button" onClick={() => setSelectedProjectId(project.id)} className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left transition ${selectedProject?.id === project.id ? "border-[#0c7474] bg-[#f1fcf7]" : "border-[#dcebe8] hover:border-[#9fd1c6]"}`}>
+                          <button key={project.id} type="button" onClick={() => { setSelectedProjectId(project.id); setIsIframeLoaded(false); setIsPgrFullscreen(true); }} className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left transition ${selectedProject?.id === project.id ? "border-[#0c7474] bg-[#f1fcf7]" : "border-[#dcebe8] hover:border-[#9fd1c6]"}`}>
                             <span>
                               <strong className="block text-sm">{project.name}</strong>
-                              <small className="mt-1 block text-xs text-[#6f858a]">Abrir gerador integrado</small>
+                              <small className="mt-1 block text-xs text-[#6f858a]">Abrir PGR em tela cheia</small>
                             </span>
                             <ExternalLink className="h-4 w-4 text-[#0c7474]" />
                           </button>
@@ -252,21 +256,47 @@ export default function PgrApp() {
             <div className="flex flex-col justify-between gap-3 border-b border-[#e7f1ef] bg-[#fbfefd] px-5 py-4 text-xs text-[#5d7479] md:flex-row md:items-center">
               <span className="inline-flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-[#39a77e]" />Projeto aberto: <strong>{selectedProject.name}</strong></span>
               <span className="inline-flex items-center gap-2 text-[#0c7474]"><Sparkles className="h-4 w-4" />Acesso integrado pelo Portal TST</span>
-              {iframeSource && <a href={iframeSource} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-bold text-[#0c7474]"><ExternalLink className="h-4 w-4" />Abrir em tela cheia</a>}
+              <Button type="button" onClick={() => { setIsIframeLoaded(false); setIsPgrFullscreen(true); }} className="h-9 rounded-xl bg-[#0c7474] px-4 text-xs font-bold text-white"><ExternalLink className="mr-2 h-4 w-4" />Abrir PGR em tela cheia</Button>
             </div>
-            {iframeAccess.isLoading ? (
-              <div className="grid min-h-[680px] place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>
-            ) : iframeSource ? (
-              <iframe title={`Gerador de PGR — ${selectedProject.name}`} src={iframeSource} className="h-[calc(100vh-17rem)] min-h-[680px] w-full bg-white" />
-            ) : (
-              <div className="min-h-[280px] p-10 text-center"><CircleAlert className="mx-auto h-8 w-8 text-[#e98766]" /><h3 className="mt-4 text-xl font-bold">Não foi possível autorizar a abertura deste PGR.</h3><p className="mt-2 text-sm text-[#668087]">Atualize a página ou verifique o acesso da assinatura.</p></div>
-            )}
+            <div className="flex min-h-[180px] flex-col items-center justify-center p-8 text-center">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><ExternalLink className="h-5 w-5" /></span>
+              <h3 className="mt-4 text-lg font-bold">Abra o PGR em uma área de trabalho ampliada.</h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[#668087]">O gerador ocupa toda a área útil ao lado do menu do Portal TST, mantendo a navegação principal sempre acessível.</p>
+            </div>
           </section>
         ) : (
           <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-[#fbfefd] p-10 text-center">
             <ClipboardPlus className="mx-auto h-9 w-9 text-[#0c7474]" />
             <h3 className="mt-4 text-xl font-bold">Selecione uma empresa e crie o PGR dela.</h3>
             <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#5d7479]">Depois disso, o gerador será aberto abaixo já conectado ao Portal TST e ao contexto do projeto.</p>
+          </section>
+        )}
+
+        {isPgrFullscreen && selectedProject && (
+          <section aria-label={`PGR em tela cheia: ${selectedProject.name}`} className="fixed inset-0 z-40 flex flex-col bg-[#edf5f3] lg:left-72">
+            <header className="flex min-h-[4.75rem] shrink-0 flex-col justify-between gap-3 border-b border-[#d5e7e3] bg-white px-4 py-3 sm:flex-row sm:items-center sm:px-6">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">PGR Pro integrado</p>
+                <h2 className="truncate text-base font-bold text-[#102b32]">{selectedProject.name}</h2>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span aria-live="polite" className={`hidden items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold md:inline-flex ${isIframeLoaded ? "bg-[#e8f6f1] text-[#087463]" : "bg-[#fff6e8] text-[#a76127]"}`}>
+                  {isIframeLoaded ? <BadgeCheck className="h-4 w-4" /> : <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isIframeLoaded ? "Gerador carregado" : "Conectando gerador"}
+                </span>
+                {iframeSource && <a href={iframeSource} target="_blank" rel="noreferrer" className="hidden items-center gap-2 rounded-xl border border-[#c9dfda] px-3 py-2 text-xs font-bold text-[#0c7474] transition hover:bg-[#f2faf7] sm:inline-flex"><ExternalLink className="h-4 w-4" />Nova guia</a>}
+                <Button type="button" variant="outline" onClick={() => { setIsPgrFullscreen(false); setIsIframeLoaded(false); }} className="h-9 rounded-xl border-[#c9dfda] bg-white px-3 text-xs font-bold text-[#0c7474]"><ArrowLeft className="mr-2 h-4 w-4" />Voltar à carteira</Button>
+              </div>
+            </header>
+            <div className="min-h-0 flex-1 p-2 sm:p-3">
+              {iframeAccess.isLoading ? (
+                <div className="grid h-full min-h-[420px] place-items-center rounded-2xl bg-white"><Loader2 className="animate-spin text-[#0c7474]" /></div>
+              ) : iframeSource ? (
+                <iframe title={`Gerador de PGR — ${selectedProject.name}`} src={iframeSource} onLoad={() => setIsIframeLoaded(true)} className="h-full min-h-[420px] w-full rounded-2xl border border-[#cfe3de] bg-white shadow-xl" />
+              ) : (
+                <div className="grid h-full min-h-[420px] place-items-center rounded-2xl bg-white p-10 text-center"><div><CircleAlert className="mx-auto h-8 w-8 text-[#e98766]" /><h3 className="mt-4 text-xl font-bold">Não foi possível autorizar a abertura deste PGR.</h3><p className="mt-2 text-sm text-[#668087]">Atualize a página ou verifique o acesso da assinatura.</p></div></div>
+              )}
+            </div>
           </section>
         )}
       </div>

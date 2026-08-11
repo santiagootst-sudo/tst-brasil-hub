@@ -20,7 +20,10 @@ async function getPgrHtml() {
 function withPortalShell(html: string, workspaceId: number) {
   const portalScript = `<style>
 html.portal-tst-embedded #loginContainer { display: none !important; }
-html.portal-tst-embedded #pgrContainer { display: block !important; }
+html.portal-tst-embedded, html.portal-tst-embedded body { width: 100%; height: 100%; overflow: hidden; }
+html.portal-tst-embedded #pgrContainer { display: flex !important; width: 100% !important; max-width: none !important; height: 100vh !important; min-height: 100vh !important; margin: 0 !important; border-radius: 0 !important; }
+html.portal-tst-embedded #pgrContainer .sidebar { height: 100vh !important; max-height: 100vh !important; }
+html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100vh !important; max-height: 100vh !important; }
 #portal-tst-back-link { position: fixed; top: 14px; right: 18px; z-index: 2147483647; display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; background: #063b43; color: #ffffff; padding: 10px 14px; font: 700 13px/1.1 Arial, sans-serif; text-decoration: none; box-shadow: 0 8px 22px rgba(6, 59, 67, .24); }
 #portal-tst-back-link:hover { background: #0c7474; }
 </style><script>
