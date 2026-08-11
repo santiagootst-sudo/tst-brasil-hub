@@ -34,3 +34,17 @@
 - [x] Criar a página funcional de Materiais com registros reais e rota autenticada acessível em ambos os contextos.
 - [x] Criar a página funcional de Suporte/chamados com estado vazio, persistência e acesso em ambos os contextos.
 - [x] Adicionar Materiais e Suporte à navegação contextual e aos atalhos do dashboard para os dois tipos de ambiente.
+- [x] Separar os procedimentos tRPC do portal em módulos por domínio, preservando os contratos de Workspace, PGR, capacitação, materiais, suporte e cobrança.
+- [x] Separar o router do portal em domínios Workspace, PGR, Capacitação, Materiais e Suporte, mantendo Billing isolado.
+- [x] Compor os routers de domínio sem alterar os caminhos tRPC existentes consumidos pela interface.
+- [x] Cobrir a composição por domínio preservando os contratos e fluxos protegidos atuais.
+- [x] Criar contratos Zod reutilizáveis para inputs e respostas dos módulos do portal, reduzindo duplicação de validações entre rotas e testes.
+- [x] Criar schemas Zod de resposta para Workspace, PGR, Treinamentos, Certificados, Materiais, Suporte e Billing.
+- [x] Aplicar schemas de resposta nos procedimentos tRPC e reutilizá-los nos testes de contratos do portal.
+- [x] Aplicar outputs compartilhados às mutações de criação de Workspace, Empresa, PGR, Certificados, Treinamentos, Materiais e Suporte.
+- [x] Criar contrato de resposta explícito para a criação de projeto PGR e validá-lo no procedimento próprio do domínio.
+- [x] Criar testes de contrato para respostas de Workspace, PGR, Billing e módulos compartilhados, incluindo rejeição de payload incompatível.
+- [x] Documentar a arquitetura do ecossistema, os limites entre contextos Autônomo/CLT e a matriz de permissão por papel.
+- [x] Documentar o modelo de assinatura, as transições de acesso e o roteiro de homologação Stripe para execução quando o sandbox estiver disponível.
+- [x] Criar um roteiro de qualidade local com critérios verificáveis para PGR, dashboards, Materiais, Suporte, Treinamentos e Certificados.
+- [x] Definir o backlog técnico de próximos módulos: empresas, equipe, inventário de riscos, plano de ação, indicadores e marketplace futuro.
