@@ -63,3 +63,19 @@ A emissão do ticket agora exige que o projeto pertença ao ambiente informado. 
 O erro de console reportado foi identificado como `Rendered more hooks than during the previous render`. A consulta de autorização do iframe era executada somente depois de retornos condicionais de carregamento, ambiente e assinatura, o que alterava a ordem de hooks entre renderizações. A consulta foi movida para a seção estável de hooks do componente e é apenas habilitada quando existe um projeto PGR e acesso pago.
 
 Após a correção, a página de PGR voltou a carregar o fluxo de empresa e projeto no ambiente selecionado sem a exceção React. A validação visual do iframe legado permanece pendente de um projeto PGR real, sem criação automática de dados de demonstração.
+
+## Fluxo por empresa e entrada integrada
+
+O PGR foi reorganizado para que a empresa atendida seja o ponto de partida. No ambiente validado, o card da empresa `pepsico` apresentou seu projeto PGR vinculado, a ação de envio de logo e o botão de abertura do gerador. A área de iframe começou a renderizar abaixo do card do projeto e a interface comunica que a entrada ocorre pelo Portal TST, sem um segundo login.
+
+A nova versão do HTML legado foi enviada ao armazenamento do projeto e, quando recebe `portalAuth=1`, oculta a tela de e-mail e senha e inicia o container de PGR diretamente. A validação final deve confirmar o conteúdo completo do iframe após o carregamento da página, incluindo isolamento entre projetos e persistência do logo enviado pelo usuário.
+
+Após o reinício do servidor, o iframe do projeto vinculado carregou o dashboard interno do PGR e exibiu `Portal TST` como contexto de acesso. A tela de e-mail e senha não apareceu no carregamento do aplicativo legado, confirmando a entrada integrada pelo portal.
+
+Na inspeção visual do iframe, foi possível identificar o cabeçalho do aplicativo legado com o título `Dashboard` e a identificação `Portal TST`, sem o formulário de login. A ação interna de saída passou a ser ocultada no modo `portalAuth` e, caso seja chamada por uma interação antiga, não pode voltar a expor a tela de e-mail e senha.
+
+A abertura da URL temporária do PGR diretamente no navegador encontrou uma indisponibilidade transitória do conector. Por isso, a última validação do iframe seguirá buscando uma resposta direta da rota e uma captura do conteúdo interno carregado; essa etapa permanece pendente no checklist.
+
+## Evidência direta do aplicativo legado
+
+A abertura em tela cheia da URL autorizada do projeto foi concluída. O navegador exibiu a página `PGR Pro | Portal TST Brasil`, com o dashboard funcional, navegação de inventário e plano de ação, campos de edição e ações de salvar, visualizar, exportar Word e gráficos. A identificação do cabeçalho mostrou `Portal TST` e `Projeto vinculado ao ambiente ativo`; não foi solicitado e-mail ou senha. Esta validação confirmou a entrega do HTML legado pela rota autorizada e o funcionamento do gerador dentro do contexto selecionado.

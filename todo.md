@@ -55,11 +55,22 @@
 - [x] Propagar o ambiente ativo pela navegação lateral para que os módulos não retornem ao estado de seleção.
 - [x] Fazer Materiais, Suporte, Treinamentos e Certificados respeitarem o ambiente recebido pela URL e refletirem a troca de contexto.
 - [x] Extrair e testar o helper de leitura e propagação de `workspace` para impedir regressão da navegação por contexto.
-- [ ] Reproduzir e corrigir a abertura funcional do Gerador de PGR no ambiente selecionado.
+- [x] Reproduzir e corrigir a abertura funcional do Gerador de PGR no ambiente selecionado.
 - [ ] Validar o cadastro inicial de empresa e projeto PGR antes da abertura do aplicativo legado.
-- [ ] Validar o carregamento do aplicativo legado do PGR dentro do contexto e projeto selecionados.
+- [x] Validar o carregamento do aplicativo legado do PGR dentro do contexto e projeto selecionados.
 - [x] Criar uma autorização temporária e restrita para o iframe do PGR quando a sessão chegar ao portal por cabeçalho, sem expor acesso irrestrito ao aplicativo legado.
 - [x] Cobrir em testes a emissão e validação da autorização temporária do PGR, incluindo escopo de usuário e ambiente.
 - [x] Validar que a autorização do iframe só é emitida para projeto PGR pertencente ao ambiente selecionado.
 - [x] Diagnosticar e corrigir a exceção React reportada durante o fluxo do Gerador de PGR.
 - [x] Validar que a página de PGR não viola a ordem de hooks ao alternar entre estados de ambiente, assinatura e projeto.
+- [x] Remover o login interno duplicado do aplicativo legado quando ele for aberto pelo Portal TST.
+- [x] Impedir que o controle interno de saída do PGR reabra a tela de login quando o acesso for gerenciado pelo portal.
+- [x] Adicionar logo opcional às empresas com upload seguro e persistência por ambiente.
+- [x] Reorganizar a página de PGR para criar e abrir projetos a partir do card de cada empresa.
+- [x] Exibir no card da empresa os PGRs vinculados, o status de criação e as ações de abertura do gerador.
+- [ ] Validar a jornada completa empresa-logo-projeto-PGR sem criar dados fictícios.
+- [ ] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes.
+- [x] Comprovar o carregamento do app legado do PGR por evidência observável após a atualização da storage key integrada.
+- [x] Adicionar teste automatizado que verifica o modo `portalAuth` e a ocultação do login interno no HTML legado publicado.
+- [ ] Validar no navegador a abertura real do iframe do PGR após selecionar um projeto, registrando o conteúdo interno carregado.
+- [ ] Navegar diretamente para uma URL autorizada recente do PGR e confirmar a resposta HTML válida do aplicativo legado.

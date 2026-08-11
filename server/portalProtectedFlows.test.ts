@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   createSupportTicketForWorkspace: vi.fn(),
   createTrainingForWorkspace: vi.fn(),
   createWorkspaceForUser: vi.fn(),
+  getCompanyForWorkspace: vi.fn(),
   getPgrProjectForWorkspace: vi.fn(),
   getSubscriptionForUser: vi.fn(),
   getWorkspaceForUser: vi.fn(),
@@ -20,11 +21,14 @@ const db = vi.hoisted(() => ({
   listSupportTicketsForWorkspace: vi.fn(),
   listTrainingsForWorkspace: vi.fn(),
   listWorkspacesForUser: vi.fn(),
+  updateCompanyLogoForWorkspace: vi.fn(),
 }));
 const pgrTicket = vi.hoisted(() => ({ createPgrIframeTicket: vi.fn() }));
+const storage = vi.hoisted(() => ({ storagePut: vi.fn() }));
 
 vi.mock("./db", () => db);
 vi.mock("./pgrIframeTicket", () => pgrTicket);
+vi.mock("./storage", () => storage);
 
 import { appRouter } from "./routers";
 
@@ -142,6 +146,24 @@ describe("portal protected flows", () => {
 
     await expect(appRouter.createCaller(createContext()).portal.iframeAccess({ workspaceId: 7, projectId: 999 })).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(pgrTicket.createPgrIframeTicket).not.toHaveBeenCalled();
+  });
+
+  it("permite que gestor envie o logo da empresa do próprio ambiente", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "manager" });
+    db.getCompanyForWorkspace.mockResolvedValue({ id: 5, workspaceId: 7, name: "Unidade A" });
+    storage.storagePut.mockResolvedValue({ key: "company-logos/workspace-7/company-5/logo.png", url: "/manus-storage/company-logo.png" });
+    db.updateCompanyLogoForWorkspace.mockResolvedValue({ id: 5, workspaceId: 7, logoKey: "company-logos/workspace-7/company-5/logo.png", logoUrl: "/manus-storage/company-logo.png" });
+
+    await expect(appRouter.createCaller(createContext()).portal.uploadCompanyLogo({ workspaceId: 7, companyId: 5, dataUrl: "data:image/png;base64,aGVsbG8gd29ybGQgaGVsbG8gd29ybGQgaGVsbG8gd29ybGQ=" })).resolves.toEqual({ id: 5, workspaceId: 7, logoKey: "company-logos/workspace-7/company-5/logo.png", logoUrl: "/manus-storage/company-logo.png" });
+    expect(db.getCompanyForWorkspace).toHaveBeenCalledWith(5, 7);
+    expect(storage.storagePut).toHaveBeenCalledWith(expect.stringContaining("workspace-7/company-5"), expect.any(Buffer), "image/png");
+    expect(db.updateCompanyLogoForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ companyId: 5, workspaceId: 7 }));
+  });
+
+  it("bloqueia membro de enviar logo de empresa", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "member" });
+    await expect(appRouter.createCaller(createContext()).portal.uploadCompanyLogo({ workspaceId: 7, companyId: 5, dataUrl: "data:image/png;base64,aGVsbG8gd29ybGQgaGVsbG8gd29ybGQgaGVsbG8gd29ybGQ=" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(storage.storagePut).not.toHaveBeenCalled();
   });
 
   it("permite que qualquer membro abra chamado, mas mantém o cadastro de materiais para gestores", async () => {

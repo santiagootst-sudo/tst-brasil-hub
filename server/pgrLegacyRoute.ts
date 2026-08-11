@@ -5,7 +5,7 @@ import { verifyPgrIframeTicket } from "./pgrIframeTicket";
 import { sdk } from "./_core/sdk";
 import { storageGetSignedUrl } from "./storage";
 
-const PGR_STORAGE_KEY = "pgr-pro-portal-tst_532e13e7.html";
+const PGR_STORAGE_KEY = "pgr-pro-portal-integrado_2fdf701f.html";
 let cachedPgrHtml: string | null = null;
 
 async function getPgrHtml() {

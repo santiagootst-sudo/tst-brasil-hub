@@ -37,6 +37,8 @@ export const companies = mysqlTable("companies", {
   workspaceId: int("workspaceId").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   document: varchar("document", { length: 32 }),
+  logoKey: varchar("logoKey", { length: 512 }),
+  logoUrl: varchar("logoUrl", { length: 1024 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("companies_workspace_idx").on(table.workspaceId)]);

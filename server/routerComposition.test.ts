@@ -16,6 +16,7 @@ describe("composição de routers do portal", () => {
       "materials",
       "supportTickets",
       "trainings",
+      "uploadCompanyLogo",
       "workspace",
       "workspaces",
     ]);

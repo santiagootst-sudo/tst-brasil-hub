@@ -12,6 +12,11 @@ export const createCompanyInput = workspaceIdInput.extend({
   document: z.string().trim().max(32).optional(),
 });
 
+export const uploadCompanyLogoInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  dataUrl: z.string().min(32).max(3_500_000),
+});
+
 export const createPgrProjectInput = workspaceIdInput.extend({
   companyId: z.number().int().positive().optional(),
   name: z.string().trim().min(2).max(255),
@@ -66,6 +71,8 @@ export const companySchema = z.object({
   workspaceId: z.number().int().positive(),
   name: z.string(),
   document: z.string().nullable(),
+  logoKey: z.string().nullable(),
+  logoUrl: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -180,6 +187,13 @@ export const companyCreatedSchema = z.object({
   workspaceId: z.number().int().positive(),
   name: z.string(),
   document: z.string().nullable().optional(),
+});
+
+export const companyLogoUpdatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  logoKey: z.string(),
+  logoUrl: z.string(),
 });
 
 export const pgrProjectCreatedSchema = z.object({

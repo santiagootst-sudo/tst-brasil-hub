@@ -89,6 +89,26 @@ export async function createCompanyForWorkspace(input: { workspaceId: number; na
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
 }
 
+export async function getCompanyForWorkspace(companyId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db
+    .select()
+    .from(companies)
+    .where(and(eq(companies.id, companyId), eq(companies.workspaceId, workspaceId)))
+    .limit(1))[0];
+}
+
+export async function updateCompanyLogoForWorkspace(input: { companyId: number; workspaceId: number; logoKey: string; logoUrl: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db
+    .update(companies)
+    .set({ logoKey: input.logoKey, logoUrl: input.logoUrl, updatedAt: new Date() })
+    .where(and(eq(companies.id, input.companyId), eq(companies.workspaceId, input.workspaceId)));
+  return getCompanyForWorkspace(input.companyId, input.workspaceId);
+}
+
 export async function getSubscriptionForUser(userId: number): Promise<Subscription | undefined> {
   const db = await getDb();
   if (!db) return undefined;
