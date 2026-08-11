@@ -91,3 +91,7 @@
 - [x] Validar no navegador uma reabertura após retorno, confirmando que o ErrorBoundary não é acionado e que não há novo erro `insertBefore` no console.
 - [x] Executar no navegador, após a refatoração, o ciclo completo abrir → voltar à carteira → reabrir e registrar a ausência do ErrorBoundary.
 - [x] Registrar um trecho de console pós-ciclo que comprove a ausência de novo `insertBefore` após a reabertura manual.
+- [x] Reorganizar o dashboard TST Autônomo para priorizar carteira de empresas, entregas PGR, pendências de clientes e ações de atendimento.
+- [x] Reorganizar o dashboard TST CLT para priorizar pessoas, conformidade, treinamentos, certificados e alertas operacionais.
+- [x] Tornar a barra lateral contextual, destacando os atalhos e informações mais relevantes em cada ambiente sem remover as ferramentas compartilhadas.
+- [x] Validar visualmente os dashboards Autônomo e CLT com a nova hierarquia de informações e ações.

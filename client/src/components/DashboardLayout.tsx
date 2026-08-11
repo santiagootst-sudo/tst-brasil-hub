@@ -1,7 +1,8 @@
-import { Bell, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 
 type DashboardLayoutProps = {
@@ -9,21 +10,43 @@ type DashboardLayoutProps = {
   title?: string;
 };
 
-const menuItems = [
-  { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
-  { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
-  { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
-  { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
-  { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
-  { label: "Suporte", icon: Headphones, path: "/app/suporte" },
-  { label: "Certificados", icon: Trophy, path: "/app/certificados" },
-];
-
 export default function DashboardLayout({ children, title = "Portal TST Brasil" }: DashboardLayoutProps) {
   const [location] = useLocation();
   const search = useSearch();
   const collapsed = false;
   const workspaceId = workspaceIdFromSearch(search);
+  const workspace = trpc.portal.workspace.useQuery(
+    { workspaceId: workspaceId ?? 0 },
+    { enabled: Boolean(workspaceId && workspaceId > 0) },
+  );
+  const currentWorkspace = workspace.data;
+  const isAutonomo = currentWorkspace?.kind === "autonomo";
+  const isClt = currentWorkspace?.kind === "clt";
+  const menuItems = isAutonomo ? [
+    { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
+    { label: "Carteira e PGR", icon: BriefcaseBusiness, path: "/app/pgr" },
+    { label: "Materiais de atendimento", icon: FolderKanban, path: "/app/materiais" },
+    { label: "Agenda de clientes", icon: GraduationCap, path: "/app/treinamentos" },
+    { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
+    { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+    { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+  ] : isClt ? [
+    { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
+    { label: "Capacitação da equipe", icon: UsersRound, path: "/app/treinamentos" },
+    { label: "Conformidade documental", icon: Trophy, path: "/app/certificados" },
+    { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
+    { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },
+    { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+    { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+  ] : [
+    { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
+    { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+    { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
+    { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
+    { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
+    { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+    { label: "Certificados", icon: Trophy, path: "/app/certificados" },
+  ];
   const pathWithWorkspace = (path: string) => {
     if (path === "/app") return withWorkspaceContext("/app/visao", workspaceId);
     return withWorkspaceContext(path, workspaceId);
@@ -31,7 +54,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
 
   return (
     <div className="min-h-screen bg-[#f6faf9] text-[#102b32]">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col bg-[#063b43] px-3 py-5 text-[#d9eeea] shadow-2xl lg:flex">
+      <aside className={`fixed inset-y-0 left-0 z-30 hidden w-72 flex-col px-3 py-5 text-[#d9eeea] shadow-2xl lg:flex ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
         <div className="mb-7 flex items-center gap-3 px-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#77cdb2]/15 text-[#88ddc4]">
             <ShieldCheck className="h-6 w-6" />
@@ -43,7 +66,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
         </div>
 
         <nav className="flex-1 space-y-1">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">Aplicativos</p>
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{isAutonomo ? "Rotina de atendimento" : isClt ? "Rotina de conformidade" : "Aplicativos"}</p>
           {menuItems.map(({ label, icon: Icon, path }) => {
             const active = path === "/app" ? location === "/app" || location === "/app/visao" : location === path;
             return (
@@ -56,8 +79,15 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
         </nav>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs font-semibold text-white">Ambiente protegido</p>
-          <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>
+          {currentWorkspace ? <>
+            <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">{isAutonomo ? "TST Autônomo" : "TST CLT"}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
+            <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
+            <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Trocar ambiente</Link>
+          </> : <>
+            <p className="text-xs font-semibold text-white">Ambiente protegido</p>
+            <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>
+          </>}
         </div>
       </aside>
 
@@ -68,7 +98,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <p className="text-xs font-medium text-[#668087]">Área autenticada</p>
+              <p className="text-xs font-medium text-[#668087]">{currentWorkspace ? `${isAutonomo ? "TST Autônomo" : "TST CLT"} · ${currentWorkspace.name}` : "Área autenticada"}</p>
               <h1 className="font-display text-lg font-bold tracking-tight text-[#102b32]">{title}</h1>
             </div>
           </div>
