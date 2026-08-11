@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
 const categoryLabels = { modelo: "Modelo", checklist: "Checklist", procedimento: "Procedimento", outro: "Outro" } as const;
 type MaterialCategory = keyof typeof categoryLabels;
@@ -17,8 +18,8 @@ export default function Materials() {
   const search = useSearch();
   const utils = trpc.useUtils();
   const workspaces = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
-  const requestedWorkspaceId = Number(new URLSearchParams(search).get("workspace"));
-  const activeWorkspace = Number.isInteger(requestedWorkspaceId) && requestedWorkspaceId > 0 ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
+  const requestedWorkspaceId = workspaceIdFromSearch(search);
+  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
   const materials = trpc.portal.materials.useQuery({ workspaceId: activeWorkspace?.id ?? 0 }, { enabled: Boolean(activeWorkspace) });
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState("");

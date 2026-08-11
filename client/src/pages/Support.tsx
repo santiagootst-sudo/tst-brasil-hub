@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
 const ticketStatus = { open: { label: "Aberto", className: "bg-[#fff7dd] text-[#9a6d0b]", icon: CircleAlert }, in_progress: { label: "Em atendimento", className: "bg-[#eaf4ff] text-[#2165a9]", icon: Headphones }, resolved: { label: "Resolvido", className: "bg-[#e8f6f1] text-[#0c7474]", icon: CheckCircle2 } } as const;
 
@@ -16,8 +17,8 @@ export default function Support() {
   const search = useSearch();
   const utils = trpc.useUtils();
   const workspaces = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
-  const requestedWorkspaceId = Number(new URLSearchParams(search).get("workspace"));
-  const activeWorkspace = Number.isInteger(requestedWorkspaceId) && requestedWorkspaceId > 0 ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
+  const requestedWorkspaceId = workspaceIdFromSearch(search);
+  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
   const tickets = trpc.portal.supportTickets.useQuery({ workspaceId: activeWorkspace?.id ?? 0 }, { enabled: Boolean(activeWorkspace) });
   const [formOpen, setFormOpen] = useState(false);
   const [subject, setSubject] = useState("");

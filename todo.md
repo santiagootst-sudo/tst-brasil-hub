@@ -54,3 +54,4 @@
 - [x] Corrigir a leitura do parâmetro `workspace` no dashboard e no PGR para que ambientes existentes sejam abertos corretamente.
 - [x] Propagar o ambiente ativo pela navegação lateral para que os módulos não retornem ao estado de seleção.
 - [x] Fazer Materiais, Suporte, Treinamentos e Certificados respeitarem o ambiente recebido pela URL e refletirem a troca de contexto.
+- [x] Extrair e testar o helper de leitura e propagação de `workspace` para impedir regressão da navegação por contexto.

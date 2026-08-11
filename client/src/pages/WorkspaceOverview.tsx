@@ -2,6 +2,7 @@ import { ArrowRight, Award, BookOpen, Building2, CalendarClock, CheckCircle2, Ci
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
 function daysUntil(date: Date | string | null) {
   if (!date) return null;
@@ -10,7 +11,7 @@ function daysUntil(date: Date | string | null) {
 
 export default function WorkspaceOverview() {
   const search = useSearch();
-  const workspaceId = Number(new URLSearchParams(search).get("workspace"));
+  const workspaceId = workspaceIdFromSearch(search) ?? 0;
   const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: Number.isInteger(workspaceId) && workspaceId > 0 });
   const certificates = trpc.portal.certificates.useQuery({ workspaceId }, { enabled: Number.isInteger(workspaceId) && workspaceId > 0 });
   const trainings = trpc.portal.trainings.useQuery({ workspaceId }, { enabled: Number.isInteger(workspaceId) && workspaceId > 0 });

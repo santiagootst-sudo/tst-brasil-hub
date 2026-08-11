@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
 function formatDate(value: Date | string | null | undefined) {
   return value ? new Date(value).toLocaleDateString("pt-BR") : "Data não definida";
@@ -18,8 +19,8 @@ export default function Trainings() {
   const search = useSearch();
   const utils = trpc.useUtils();
   const workspaces = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
-  const requestedWorkspaceId = Number(new URLSearchParams(search).get("workspace"));
-  const activeWorkspace = Number.isInteger(requestedWorkspaceId) && requestedWorkspaceId > 0 ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
+  const requestedWorkspaceId = workspaceIdFromSearch(search);
+  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
   const trainings = trpc.portal.trainings.useQuery({ workspaceId: activeWorkspace?.id ?? 0 }, { enabled: Boolean(activeWorkspace) });
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState("");

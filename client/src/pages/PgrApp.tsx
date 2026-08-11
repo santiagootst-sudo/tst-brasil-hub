@@ -6,10 +6,11 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
 export default function PgrApp() {
   const search = useSearch();
-  const workspaceId = Number(new URLSearchParams(search).get("workspace"));
+  const workspaceId = workspaceIdFromSearch(search) ?? 0;
   const utils = trpc.useUtils();
   const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: Number.isInteger(workspaceId) && workspaceId > 0 });
   const billing = trpc.billing.status.useQuery();

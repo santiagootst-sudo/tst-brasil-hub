@@ -2,6 +2,7 @@ import { Bell, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Library
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -22,11 +23,10 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   const [location] = useLocation();
   const search = useSearch();
   const collapsed = false;
-  const workspaceId = Number(new URLSearchParams(search).get("workspace"));
+  const workspaceId = workspaceIdFromSearch(search);
   const pathWithWorkspace = (path: string) => {
-    if (!Number.isInteger(workspaceId) || workspaceId <= 0) return path;
-    if (path === "/app") return `/app/visao?workspace=${workspaceId}`;
-    return `${path}?workspace=${workspaceId}`;
+    if (path === "/app") return withWorkspaceContext("/app/visao", workspaceId);
+    return withWorkspaceContext(path, workspaceId);
   };
 
   return (
