@@ -14,6 +14,7 @@ const db = vi.hoisted(() => ({
   getWorkspaceForUser: vi.fn(),
   listEpiItemsForWorkspace: vi.fn(),
   listEpiDeliveriesForWorkspace: vi.fn(),
+  listEpiReturnsForWorkspace: vi.fn(),
   listEpiRequirementsForWorkspace: vi.fn(),
   listSstOccurrencesForWorkspace: vi.fn(),
 }));
@@ -40,9 +41,10 @@ describe("operationsRouter", () => {
     db.getWorkspaceForUser.mockResolvedValue(workspace("member"));
     db.listEpiItemsForWorkspace.mockResolvedValue([]);
     db.listEpiDeliveriesForWorkspace.mockResolvedValue([]);
+    db.listEpiReturnsForWorkspace.mockResolvedValue([]);
     db.listEpiRequirementsForWorkspace.mockResolvedValue([]);
     db.listSstOccurrencesForWorkspace.mockResolvedValue([]);
-    await expect(operationsRouter.createCaller(context()).operations({ workspaceId: 9 })).resolves.toEqual({ epiItems: [], epiRequirements: [], epiDeliveries: [], occurrences: [] });
+    await expect(operationsRouter.createCaller(context()).operations({ workspaceId: 9 })).resolves.toEqual({ epiItems: [], epiRequirements: [], epiDeliveries: [], epiReturns: [], occurrences: [] });
   });
 
   it("bloqueia membro de registrar item de EPI", async () => {

@@ -16,6 +16,7 @@ describe("composição de routers do portal", () => {
       "createEpiDelivery",
       "createEpiItem",
       "createEpiRequirement",
+      "createEpiReturn",
       "createInspection",
       "createInspectionTemplate",
       "createJobRole",

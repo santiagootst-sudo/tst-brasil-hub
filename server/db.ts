@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -419,13 +419,56 @@ export async function listEpiDeliveriesForWorkspace(workspaceId: number) {
   if (!db) return [];
   return db.select().from(epiDeliveries).where(eq(epiDeliveries.workspaceId, workspaceId)).orderBy(desc(epiDeliveries.deliveredAt), desc(epiDeliveries.updatedAt));
 }
-export async function createEpiDeliveryForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; employeeId: number; quantity: number; deliveryKind: "initial" | "replacement"; deliveredAt: Date; replacementDueAt?: Date | null; notes?: string | null; createdByUserId: number }) {
+export async function createEpiDeliveryForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; employeeId: number; quantity: number; deliveryKind: "initial" | "replacement"; deliveredAt: Date; replacementDueAt?: Date | null; notes?: string | null; signedByName?: string | null; digitalSignature?: string | null; createdByUserId: number }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const values = { ...input, replacementDueAt: input.replacementDueAt ?? null, notes: input.notes ?? null };
+  const values = {
+    ...input,
+    replacementDueAt: input.replacementDueAt ?? null,
+    notes: input.notes ?? null,
+    signedByName: input.signedByName ?? "Responsável SST",
+    digitalSignature: input.digitalSignature ?? `TST-ACEITE-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+    returnStatus: "delivered" as const,
+  };
   return db.transaction(async tx => {
     await tx.update(epiItems).set({ stockQuantity: sql`${epiItems.stockQuantity} - ${input.quantity}` }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId)));
     const inserted = await tx.insert(epiDeliveries).values(values);
+    return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+  });
+}
+
+export async function listEpiReturnsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(epiReturns).where(eq(epiReturns.workspaceId, workspaceId)).orderBy(desc(epiReturns.returnedAt), desc(epiReturns.updatedAt));
+}
+
+export async function createEpiReturnForWorkspace(input: {
+  workspaceId: number;
+  companyId: number;
+  deliveryId?: number | null;
+  epiItemId: number;
+  employeeId: number;
+  returnedAt: Date;
+  condition: "good" | "damaged" | "expired" | "lost";
+  notes?: string | null;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = {
+    ...input,
+    deliveryId: input.deliveryId ?? null,
+    notes: input.notes ?? null,
+  };
+  return db.transaction(async tx => {
+    if (input.condition === "good") {
+      await tx.update(epiItems).set({ stockQuantity: sql`${epiItems.stockQuantity} + 1` }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId)));
+    }
+    if (input.deliveryId) {
+      await tx.update(epiDeliveries).set({ returnStatus: "returned" }).where(and(eq(epiDeliveries.id, input.deliveryId), eq(epiDeliveries.workspaceId, input.workspaceId)));
+    }
+    const inserted = await tx.insert(epiReturns).values(values);
     return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
   });
 }

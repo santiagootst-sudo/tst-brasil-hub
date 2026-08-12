@@ -176,6 +176,9 @@ export const epiDeliveries = mysqlTable("epi_deliveries", {
   deliveredAt: timestamp("deliveredAt").notNull(),
   replacementDueAt: timestamp("replacementDueAt"),
   notes: varchar("notes", { length: 1000 }),
+  signedByName: varchar("signedByName", { length: 255 }),
+  digitalSignature: varchar("digitalSignature", { length: 255 }),
+  returnStatus: mysqlEnum("returnStatus", ["delivered", "returned", "replaced"]).default("delivered").notNull(),
   createdByUserId: int("createdByUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -185,6 +188,25 @@ export const epiDeliveries = mysqlTable("epi_deliveries", {
   index("epi_deliveries_epi_idx").on(table.workspaceId, table.epiItemId),
   index("epi_deliveries_employee_idx").on(table.workspaceId, table.employeeId),
   index("epi_deliveries_replacement_idx").on(table.workspaceId, table.replacementDueAt),
+]);
+
+export const epiReturns = mysqlTable("epi_returns", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  deliveryId: int("deliveryId"),
+  epiItemId: int("epiItemId").notNull(),
+  employeeId: int("employeeId").notNull(),
+  returnedAt: timestamp("returnedAt").notNull(),
+  condition: mysqlEnum("condition", ["good", "damaged", "expired", "lost"]).notNull(),
+  notes: varchar("notes", { length: 1000 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("epi_returns_workspace_idx").on(table.workspaceId),
+  index("epi_returns_company_idx").on(table.companyId),
+  index("epi_returns_employee_idx").on(table.workspaceId, table.employeeId),
 ]);
 export const sstOccurrences = mysqlTable("sst_occurrences", {
   id: int("id").autoincrement().primaryKey(),

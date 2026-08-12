@@ -177,3 +177,4 @@
 - [x] Validar separadamente no navegador a alternância Autônomo/CLT como fluxo completo, incluindo carregamento, troca e persistência da navegação.
 - [ ] Promover a conta autenticada mais recente de Vanderson a administrador sem remover o administrador existente e validar o painel `/admin`.
 - [x] Diagnosticar e corrigir o erro React removeChild na reconciliação de componentes e portais.
+- [x] Evoluir o gerenciador de EPI do ambiente TST CLT com ficha individual por trabalhador, aceite digital na entrega, devolução com condição do equipamento, histórico consolidado e central de alertas operacionais.

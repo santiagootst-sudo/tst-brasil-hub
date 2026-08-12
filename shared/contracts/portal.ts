@@ -377,6 +377,18 @@ export const createEpiDeliveryInput = workspaceIdInput.extend({
   deliveredAt: z.coerce.date(),
   replacementDueAt: z.coerce.date().nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  signedByName: z.string().trim().min(2).max(255).nullable().optional(),
+  digitalSignature: z.string().trim().max(255).nullable().optional(),
+});
+
+export const createEpiReturnInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  deliveryId: z.number().int().positive().nullable().optional(),
+  epiItemId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  returnedAt: z.coerce.date(),
+  condition: z.enum(["good", "damaged", "expired", "lost"]),
+  notes: z.string().trim().max(1000).nullable().optional(),
 });
 
 export const createEpiRequirementInput = workspaceIdInput.extend({
@@ -420,6 +432,24 @@ export const epiDeliverySchema = z.object({
   deliveredAt: z.date(),
   replacementDueAt: z.date().nullable(),
   notes: z.string().nullable(),
+  signedByName: z.string().nullable(),
+  digitalSignature: z.string().nullable(),
+  returnStatus: z.enum(["delivered", "returned", "replaced"]),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const epiReturnSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  deliveryId: z.number().int().positive().nullable(),
+  epiItemId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  returnedAt: z.date(),
+  condition: z.enum(["good", "damaged", "expired", "lost"]),
+  notes: z.string().nullable(),
   createdByUserId: z.number().int().positive(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -455,7 +485,21 @@ export const operationalSafetySnapshotSchema = z.object({
   epiItems: z.array(epiItemSchema),
   epiRequirements: z.array(epiRequirementSchema),
   epiDeliveries: z.array(epiDeliverySchema),
+  epiReturns: z.array(epiReturnSchema),
   occurrences: z.array(sstOccurrenceSchema),
+});
+
+export const epiReturnCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  deliveryId: z.number().int().positive().nullable(),
+  epiItemId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  returnedAt: z.date(),
+  condition: z.enum(["good", "damaged", "expired", "lost"]),
+  notes: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
 });
 
 export const epiItemCreatedSchema = z.object({
