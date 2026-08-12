@@ -30,6 +30,10 @@ export type DashboardChartDatum = {
   helper?: string;
 };
 
+export type EmpresaPendingDatum = DashboardChartDatum & {
+  priority: "critical" | "attention";
+};
+
 export type ExecutionChartDatum = {
   label: string;
   concluídas: number;
@@ -94,6 +98,19 @@ export function buildAlertChartData(input: DashboardAnalyticsInput): DashboardCh
     { label: "Ocorrências", value: input.openOccurrences, fill: palette.navy, helper: "Ocorrências abertas" },
     { label: "Documentos", value: input.certificatesToAct, fill: palette.blue, helper: `${input.expiredCertificates} vencido(s) · ${input.expiringCertificates} próximos` },
     { label: "Ações", value: input.openActionItems, fill: palette.teal, helper: `${input.overdueActionItems} com prazo vencido` },
+  ];
+}
+
+export function buildEmpresaPendingData(input: DashboardAnalyticsInput): EmpresaPendingDatum[] {
+  return [
+    { label: "EPIs em risco", value: input.epiAlerts, fill: palette.coral, priority: "critical", helper: `${input.epiStockCritical} estoque crítico · ${input.epiExpiring} validade próxima` },
+    { label: "Ocorrências abertas", value: input.openOccurrences, fill: palette.navy, priority: "critical", helper: "Registros que ainda exigem acompanhamento" },
+    { label: "Ações atrasadas", value: input.overdueActionItems, fill: palette.coral, priority: "critical", helper: "Medidas preventivas fora do prazo" },
+    { label: "Documentos vencidos", value: input.expiredCertificates, fill: palette.blue, priority: "critical", helper: "Certificados que precisam de renovação" },
+    { label: "Ações em aberto", value: Math.max(input.openActionItems - input.overdueActionItems, 0), fill: palette.teal, priority: "attention", helper: "Medidas preventivas em acompanhamento" },
+    { label: "Documentos próximos", value: input.expiringCertificates, fill: palette.blue, priority: "attention", helper: "Vencimentos nos próximos 30 dias" },
+    { label: "Inspeções planejadas", value: input.plannedInspections, fill: palette.mint, priority: "attention", helper: "Rotinas já programadas" },
+    { label: "Treinamentos planejados", value: input.plannedTrainings, fill: palette.mint, priority: "attention", helper: "Capacitações registradas para execução" },
   ];
 }
 

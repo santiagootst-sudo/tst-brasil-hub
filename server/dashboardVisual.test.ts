@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = readFileSync(resolve(process.cwd(), "client/src/pages/WorkspaceOverview.tsx"), "utf8");
+const chartsSource = readFileSync(resolve(process.cwd(), "client/src/components/DashboardCharts.tsx"), "utf8");
 
 describe("direção visual do dashboard", () => {
   it("usa superfícies claras distintas para os contextos", () => {
@@ -19,5 +20,12 @@ describe("direção visual do dashboard", () => {
   it("evita a superfície tracejada no estado vazio principal", () => {
     expect(source).toContain("Escolha o ambiente para começar.");
     expect(source).not.toContain("border-dashed border-[#bddbd5]");
+  });
+
+  it("mantém o Controle de EPIs explícito no contexto Empresa", () => {
+    expect(source).toContain('title: "Controle de EPIs"');
+    expect(source).toContain('text: "Entrega, estoque e ocorrências SST"');
+    expect(chartsSource).toContain('title="Central de Pendências"');
+    expect(chartsSource).toContain('Prioridade operacional');
   });
 });

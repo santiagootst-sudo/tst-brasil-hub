@@ -254,3 +254,8 @@
 - [x] Impedir redirecionamento infinito quando a sessão ou o callback falhar.
 - [x] Cobrir com testes o fluxo de login, logout, callback e erro de autenticação.
 - [ ] Validar no navegador a entrada do portal após autenticação e salvar checkpoint da correção.
+- [ ] Confirmar no ambiente TST Empresa a visibilidade do módulo Controle de EPIs na barra lateral e nos atalhos do dashboard.
+- [x] Mapear os indicadores reais do ambiente Empresa para uma visão operacional inspirada no dashboard Excel enviado.
+- [x] Adicionar gráficos dinâmicos de status, pendências, treinamentos, inspeções e ações no dashboard Empresa sem inventar métricas.
+- [x] Validar filtros, interações, estados sem dados, responsividade e acessibilidade dos novos gráficos.
+- [x] Executar testes e salvar checkpoint da evolução do dashboard Empresa.

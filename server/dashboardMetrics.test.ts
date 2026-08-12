@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAlertChartData,
   buildAutonomoPortfolioData,
+  buildEmpresaPendingData,
   buildEmpresaStructureData,
   buildExecutionChartData,
   safeCompletionRate,
@@ -63,6 +64,17 @@ describe("dashboardMetrics", () => {
     const alerts = buildAlertChartData(baseInput);
     expect(alerts.map(item => item.value)).toEqual([3, 2, 2, 3]);
     expect(totalOf(alerts)).toBe(10);
+  });
+
+  it("organiza a Central de Pendências por severidade sem inventar registros", () => {
+    const pending = buildEmpresaPendingData(baseInput);
+    expect(pending.map(item => item.value)).toEqual([3, 2, 1, 1, 2, 1, 3, 2]);
+    expect(pending.filter(item => item.priority === "critical").map(item => item.label)).toEqual([
+      "EPIs em risco",
+      "Ocorrências abertas",
+      "Ações atrasadas",
+      "Documentos vencidos",
+    ]);
   });
 
   it("retorna estado neutro para taxas sem base de comparação", () => {

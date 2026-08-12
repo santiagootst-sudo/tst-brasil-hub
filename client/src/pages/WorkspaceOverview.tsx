@@ -1,4 +1,4 @@
-import { ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import InspectionActionSummary from "@/components/InspectionActionSummary";
@@ -33,9 +33,14 @@ export default function WorkspaceOverview() {
     { workspaceId },
     { enabled: Boolean(queryOptions.enabled && workspace.data?.kind === "autonomo") },
   );
+  const queryError = [workspace, certificates, trainings, organization, operations, planning, commercial].find((query) => query.isError)?.error;
 
   if (workspace.isLoading || certificates.isLoading || trainings.isLoading || organization.isLoading || operations.isLoading || planning.isLoading || (workspace.data?.kind === "autonomo" && commercial.isLoading)) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  }
+
+  if (queryError) {
+    return <DashboardLayout title="Visão geral"><div className="mx-auto grid min-h-[420px] max-w-2xl place-items-center"><div className="w-full rounded-[2rem] border border-[#f1d5c9] bg-gradient-to-br from-white to-[#fff9f5] p-8 text-center shadow-[0_18px_45px_rgba(28,74,77,0.08)]"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0e8] text-[#d67845]"><AlertTriangle className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#d67845]">Acesso ao ambiente</p><h2 className="mt-2 text-2xl font-bold text-[#173b43]">Não foi possível carregar este ambiente.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Selecione um ambiente pertencente à sua conta ou entre novamente no portal para atualizar a sessão.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#063b43]">Voltar à seleção <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
   }
 
   if (!workspaceId || !workspace.data) {
@@ -260,7 +265,7 @@ export default function WorkspaceOverview() {
 
         <InspectionActionSummary inspections={allInspections} actionItems={planning.data?.actionItems ?? []} />
 
-    <DashboardCharts isAutonomo={isAutonomo} input={dashboardAnalytics} />
+    <DashboardCharts isAutonomo={isAutonomo} workspaceId={current.id} input={dashboardAnalytics} />
 
     <section className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm">
 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Indicadores de SST</p><h3 className="mt-1 text-xl font-bold">Cobertura atual de prevenção</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Snapshot calculado exclusivamente dos registros deste ambiente. Tendências históricas serão exibidas quando houver histórico suficiente de períodos anteriores.</p></div><Link href={appHref("/app/inspecoes")} className="text-sm font-bold text-[#0c7474] hover:text-[#063b43]">Abrir módulo →</Link></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#d6e4f0] bg-[#f8fbff] p-4 transition hover:border-[#9cc0df]"><ClipboardCheck className="h-5 w-5 text-[#3173a8]" /><b className="mt-3 block text-2xl">{allInspections.length}</b><span className="text-xs text-[#668087]">Inspeções registradas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#b9e3d7] bg-[#f7fcfa] p-4 transition hover:border-[#8dcfb9]"><CheckCircle2 className="h-5 w-5 text-[#0c7474]" /><b className="mt-3 block text-2xl">{inspectionCompletionRate === null ? "—" : `${inspectionCompletionRate}%`}</b><span className="text-xs text-[#668087]">Inspeções concluídas</span></Link><Link href={appHref("/app/inspecoes")} className={`rounded-2xl border p-4 transition ${overdueInspections ? "border-[#f1d5c9] bg-[#fff9f5] hover:border-[#e6af96]" : "border-[#dcebe8] bg-white hover:border-[#a9d4c8]"}`}><CalendarClock className={`h-5 w-5 ${overdueInspections ? "text-[#d67845]" : "text-[#0c7474]"}`} /><b className="mt-3 block text-2xl">{overdueInspections}</b><span className="text-xs text-[#668087]">Inspeções atrasadas</span></Link><Link href={appHref("/app/inspecoes")} className={`rounded-2xl border p-4 transition ${overdueActionItems ? "border-[#f1d5c9] bg-[#fff9f5] hover:border-[#e6af96]" : "border-[#dcebe8] bg-white hover:border-[#a9d4c8]"}`}><CircleAlert className={`h-5 w-5 ${overdueActionItems ? "text-[#d67845]" : "text-[#0c7474]"}`} /><b className="mt-3 block text-2xl">{overdueActionItems}</b><span className="text-xs text-[#668087]">Ações atrasadas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#dcebe8] bg-white p-4 transition hover:border-[#a9d4c8]"><CheckSquare2 className="h-5 w-5 text-[#0c7474]" /><b className="mt-3 block text-2xl">{actionCompletionRate === null ? "—" : `${actionCompletionRate}%`}</b><span className="text-xs text-[#668087]">Ações concluídas</span></Link></div></section>

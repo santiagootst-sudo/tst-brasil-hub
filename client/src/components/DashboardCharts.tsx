@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
+import { ArrowUpRight, SlidersHorizontal } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -24,16 +26,19 @@ import {
 import {
   buildAlertChartData,
   buildAutonomoPortfolioData,
+  buildEmpresaPendingData,
   buildEmpresaStructureData,
   buildExecutionChartData,
   totalOf,
   type DashboardAnalyticsInput,
   type DashboardChartDatum,
+  type EmpresaPendingDatum,
 } from "@/lib/dashboardMetrics";
 
 type DashboardChartsProps = {
   isAutonomo: boolean;
   input: DashboardAnalyticsInput;
+  workspaceId: number;
 };
 
 const chartConfig = {
@@ -87,6 +92,42 @@ function ChartCard({
       </div>
       <div className="mt-4">{children}</div>
     </article>
+  );
+}
+
+function EmpresaPendingPanel({ data, workspaceId }: { data: EmpresaPendingDatum[]; workspaceId: number }) {
+  const [filter, setFilter] = useState<"all" | "critical" | "attention">("all");
+  const filtered = data.filter((item) => filter === "all" || item.priority === filter);
+  const maxValue = Math.max(...data.map((item) => item.value), 0);
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const critical = data.filter((item) => item.priority === "critical").reduce((sum, item) => sum + item.value, 0);
+  const attention = data.filter((item) => item.priority === "attention").reduce((sum, item) => sum + item.value, 0);
+  const hrefFor = (label: string) => label.includes("EPI") || label.includes("Ocorr") ? `/app/operacao?workspace=${workspaceId}` : label.includes("Inspe") || label.includes("Aç") ? `/app/inspecoes?workspace=${workspaceId}` : label.includes("Trein") ? `/app/treinamentos?workspace=${workspaceId}` : `/app/certificados?workspace=${workspaceId}`;
+
+  if (total === 0) return <EmptyChart label="A Central de Pendências será preenchida pelos registros reais de EPIs, documentos, inspeções, ações e treinamentos." />;
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/80 bg-white/55 p-2 shadow-inner backdrop-blur-md">
+        <div className="flex items-center gap-2 px-2 text-xs font-bold text-[#315158]"><SlidersHorizontal className="h-3.5 w-3.5 text-[#0c8c89]" />Prioridade operacional</div>
+        <div className="flex items-center gap-1 rounded-xl bg-[#eaf4f1]/80 p-1" role="tablist" aria-label="Filtrar pendências">
+          {(["all", "critical", "attention"] as const).map((value) => {
+            const label = value === "all" ? `Todas ${total}` : value === "critical" ? `Críticas ${critical}` : `Atenção ${attention}`;
+            return <button key={value} type="button" role="tab" aria-selected={filter === value} onClick={() => setFilter(value)} className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${filter === value ? "bg-white text-[#0c7474] shadow-sm" : "text-[#668087] hover:text-[#102b32]"}`}>{label}</button>;
+          })}
+        </div>
+      </div>
+      {filtered.length === 0 ? <div className="grid h-40 place-items-center rounded-2xl border border-dashed border-[#cfe3dd] bg-white/45 text-center text-xs text-[#668087]">Nenhuma pendência nesta categoria.</div> : <div className="grid gap-3 sm:grid-cols-2">{filtered.map((item) => {
+        const width = item.value === 0 ? 3 : Math.max((item.value / Math.max(maxValue, 1)) * 100, 8);
+        const criticalStyle = item.priority === "critical";
+        return <Link key={item.label} href={hrefFor(item.label)} className={`group rounded-2xl border p-3.5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_25px_rgba(28,74,77,0.10)] ${criticalStyle ? "border-[#f1d5c9] bg-gradient-to-br from-[#fff9f5] to-white hover:border-[#e6af96]" : "border-[#d6e9e3] bg-gradient-to-br from-[#f7fcfa] to-white hover:border-[#9fd0c0]"}`}>
+          <div className="flex items-center justify-between gap-2"><span className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-[.1em] ${criticalStyle ? "bg-[#ffe9df] text-[#bd643d]" : "bg-[#e5f5ef] text-[#0c7474]"}`}>{criticalStyle ? "Crítico" : "Atenção"}</span><ArrowUpRight className={`h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${criticalStyle ? "text-[#d67845]" : "text-[#0c8c89]"}`} /></div>
+          <div className="mt-3 flex items-end justify-between gap-3"><strong className="text-3xl font-bold tabular-nums tracking-tight text-[#102b32]">{item.value}</strong><span className="text-right text-[11px] font-bold leading-4 text-[#315158]">{item.label}</span></div>
+          <p className="mt-1.5 min-h-8 text-[10px] leading-4 text-[#668087]">{item.helper}</p>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#e6f0ee]"><div className={`h-full rounded-full transition-[width] duration-700 ease-out ${criticalStyle ? "bg-gradient-to-r from-[#d67845] to-[#f3b18d]" : "bg-gradient-to-r from-[#0c8c89] to-[#8edec7]"}`} style={{ width: `${width}%` }} /></div>
+        </Link>;
+      })}</div>}
+    </div>
   );
 }
 
@@ -160,11 +201,12 @@ function AlertDonut({ data }: { data: DashboardChartDatum[] }) {
   );
 }
 
-export default function DashboardCharts({ isAutonomo, input }: DashboardChartsProps) {
+export default function DashboardCharts({ isAutonomo, input, workspaceId }: DashboardChartsProps) {
   const executionData = useMemo(() => buildExecutionChartData(input), [input]);
   const portfolioData = useMemo(() => buildAutonomoPortfolioData(input), [input]);
   const structureData = useMemo(() => buildEmpresaStructureData(input), [input]);
   const alertData = useMemo(() => buildAlertChartData(input), [input]);
+  const pendingData = useMemo(() => buildEmpresaPendingData(input), [input]);
 
   return (
     <section className="space-y-5" aria-label={`Gráficos do dashboard ${isAutonomo ? "Prestador de Serviço" : "Empresa"}`}>
@@ -176,6 +218,12 @@ export default function DashboardCharts({ isAutonomo, input }: DashboardChartsPr
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.12em] text-[#0c7474] shadow-sm backdrop-blur-md"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0c8c89] motion-reduce:animate-none" />Atualização automática</span>
       </div>
+
+      {!isAutonomo && (
+        <ChartCard eyebrow="Centro de controle" title="Central de Pendências" description="Uma leitura priorizada do que pede decisão na operação, com acesso direto ao módulo responsável.">
+          <EmpresaPendingPanel data={pendingData} workspaceId={workspaceId} />
+        </ChartCard>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <ChartCard
