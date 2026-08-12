@@ -263,3 +263,7 @@
 - [x] Redesenhar a entrada com diferenças claras entre Prestador de Serviço e Empresa, usando transparência, profundidade e cores confortáveis.
 - [x] Adicionar microinterações, ações de escolha e responsividade sem transformar a tela em dashboard.
 - [x] Validar visualmente a nova entrada em desktop e mobile e salvar checkpoint.
+- [x] Adicionar transições suaves e efeitos de hover/seleção aos cartões de perfil.
+- [x] Implementar a opção opcional de lembrar a escolha do perfil no navegador, com possibilidade de alterar ou limpar a preferência.
+- [x] Validar acessibilidade, responsividade, reduced motion e persistência da preferência.
+- [x] Executar testes e salvar checkpoint da melhoria da entrada de perfis.

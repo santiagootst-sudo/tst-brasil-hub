@@ -15,13 +15,14 @@ import {
   UserRoundCheck,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { clearRememberedProfile, readRememberedProfile, rememberProfile } from "@/lib/profilePreference";
 
 type WorkspaceKind = "autonomo" | "clt";
 
@@ -80,10 +81,25 @@ export default function WorkspaceHub() {
   const { data: workspaces, isLoading } = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
   const billing = trpc.billing.status.useQuery(undefined, { enabled: Boolean(user) });
   const [form, setForm] = useState<{ kind: WorkspaceKind; name: string } | null>(null);
+  const [rememberChoice, setRememberChoice] = useState(false);
+  const [rememberedKind, setRememberedKind] = useState<WorkspaceKind | null>(null);
+  const autoOpened = useRef(false);
+
+  useEffect(() => {
+    const stored = readRememberedProfile(window.localStorage);
+    if (stored) {
+      setRememberedKind(stored);
+      setRememberChoice(true);
+    }
+  }, []);
 
   const createWorkspace = trpc.portal.createWorkspace.useMutation({
     onSuccess: workspace => {
       utils.portal.workspaces.invalidate();
+      if (rememberChoice && (workspace.kind === "autonomo" || workspace.kind === "clt")) {
+        rememberProfile(window.localStorage, workspace.kind);
+        setRememberedKind(workspace.kind);
+      }
       setForm(null);
       setLocation(`/app/visao?workspace=${workspace.id}`);
       toast.success("Ambiente criado. Seu painel já está pronto para começar.");
@@ -95,13 +111,42 @@ export default function WorkspaceHub() {
     onError: error => toast.error(error.message),
   });
 
-  if (loading || isLoading) {
-    return <div className="grid min-h-screen place-items-center bg-[#edf5f4] text-[#0c7474]"><Loader2 className="h-7 w-7 animate-spin" /></div>;
-  }
-
   const billingSuccess = new URLSearchParams(window.location.search).get("billing") === "success";
   const openWorkspace = (workspaceId: number) => setLocation(`/app/visao?workspace=${workspaceId}`);
   const getWorkspace = (kind: WorkspaceKind) => workspaces?.find(item => item.kind === kind);
+
+  useEffect(() => {
+    if (!rememberedKind || autoOpened.current) return;
+    const rememberedWorkspace = getWorkspace(rememberedKind);
+    if (rememberedWorkspace) {
+      autoOpened.current = true;
+      openWorkspace(rememberedWorkspace.id);
+    }
+  }, [rememberedKind, workspaces]);
+
+  const toggleRememberChoice = (checked: boolean) => {
+    setRememberChoice(checked);
+    if (!checked) {
+      setRememberedKind(null);
+      clearRememberedProfile(window.localStorage);
+    }
+  };
+
+  const handleProfileAction = (profile: ProfileDefinition, workspace?: { id: number }) => {
+    if (rememberChoice) {
+      rememberProfile(window.localStorage, profile.kind);
+      setRememberedKind(profile.kind);
+    }
+    if (workspace) {
+      openWorkspace(workspace.id);
+      return;
+    }
+    setForm({ kind: profile.kind, name: profile.kind === "autonomo" ? "Meu ambiente Autônomo" : "Minha empresa" });
+  };
+
+  if (loading || isLoading) {
+    return <div className="grid min-h-screen place-items-center bg-[#edf5f4] text-[#0c7474]"><Loader2 className="h-7 w-7 animate-spin" /></div>;
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#edf5f4] text-[#102f36]">
@@ -128,7 +173,7 @@ export default function WorkspaceHub() {
             <div className="pointer-events-none absolute right-[-5rem] top-[-6rem] h-64 w-64 rounded-full bg-[#8edec7]/25 blur-3xl" />
             <div className="pointer-events-none absolute bottom-[-8rem] left-1/2 h-52 w-52 rounded-full bg-[#b9defc]/25 blur-3xl" />
             <div className="relative max-w-3xl"><span className="inline-flex items-center gap-2 rounded-full border border-[#b7ded5] bg-white/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89] shadow-sm"><Sparkles className="h-3.5 w-3.5" />Escolha sua jornada</span><h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-[-.045em] text-[#123f46] sm:text-5xl lg:text-6xl">Um portal. <span className="bg-gradient-to-r from-[#0c7474] to-[#43bda2] bg-clip-text text-transparent">duas formas de atuar.</span></h1><p className="mt-5 max-w-2xl text-base leading-7 text-[#5a7379] sm:text-lg">Escolha o ambiente que combina com sua rotina de Segurança e Saúde do Trabalho. Você pode alternar entre os dois contextos de criação sem misturar dados.</p></div>
-            <div className="relative mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-semibold text-[#527078]"><span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#0c8c89]" />Dados isolados por ambiente</span><span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#0c8c89]" />Ferramentas compartilhadas</span><span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#0c8c89]" />Acesso profissional</span></div>
+            <div className="relative mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-semibold text-[#527078]"><span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#0c8c89]" />Dados isolados por ambiente</span><span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#0c8c89]" />Ferramentas compartilhadas</span><span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#0c8c89]" />Acesso profissional</span></div><label className="relative mt-7 inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-white/80 bg-white/60 px-4 py-3 text-sm font-semibold text-[#315158] shadow-sm backdrop-blur-md transition hover:bg-white/85 motion-reduce:transition-none"><input type="checkbox" checked={rememberChoice} onChange={event => toggleRememberChoice(event.target.checked)} className="peer sr-only" /><span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded-md border border-[#a8cbc3] bg-white text-white transition peer-checked:border-[#0c7474] peer-checked:bg-[#0c7474] motion-reduce:transition-none"><Check className="h-3.5 w-3.5 opacity-0 transition peer-checked:opacity-100 motion-reduce:transition-none" /></span><span>Lembrar minha escolha neste navegador</span><span className="hidden text-xs font-normal text-[#789095] sm:inline">{rememberedKind ? "Abertura automática ativada" : "Você pode mudar depois"}</span></label>
           </section>
 
           <section className="mt-9" aria-labelledby="profiles-title">
@@ -138,9 +183,9 @@ export default function WorkspaceHub() {
                 const workspace = getWorkspace(profile.kind);
                 const isMint = profile.tone === "mint";
                 const Icon = profile.icon;
-                return <article key={profile.kind} className={`group relative overflow-hidden rounded-[2rem] border bg-white/55 shadow-[0_18px_50px_rgba(28,74,77,0.08)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_65px_rgba(28,74,77,0.14)] ${isMint ? "border-[#b9e3d7] hover:border-[#76c6b0]" : "border-[#c7def2] hover:border-[#8db9df]"}`}>
-                  <div className={`relative overflow-hidden px-6 pb-6 pt-7 sm:px-8 sm:pt-8 ${isMint ? "bg-gradient-to-br from-[#e6f8f0]/90 via-white/50 to-[#d9f1e7]/70" : "bg-gradient-to-br from-[#eaf4fc]/95 via-white/50 to-[#dbeeff]/70"}`}><div className={`pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full blur-3xl ${isMint ? "bg-[#8edec7]/35" : "bg-[#b9defc]/40"}`} /><div className="relative flex items-start justify-between gap-4"><div><span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${isMint ? "bg-[#ccefe1] text-[#0c7474]" : "bg-[#d7ebfc] text-[#28699d]"}`}>{profile.label}</span><p className={`mt-4 text-xs font-bold uppercase tracking-[.13em] ${isMint ? "text-[#0c8c89]" : "text-[#3173a8]"}`}>{profile.eyebrow}</p><h3 className="mt-2 max-w-md text-2xl font-bold tracking-[-.03em] text-[#173b43] sm:text-3xl">{profile.title}</h3><p className="mt-3 max-w-md text-sm leading-6 text-[#5d7479]">{profile.description}</p></div><span className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-white/80 bg-white/55 shadow-sm backdrop-blur-md ${isMint ? "text-[#0c7474]" : "text-[#3173a8]"}`}><Icon className="h-7 w-7" /></span></div></div>
-                  <div className="p-6 sm:p-8"><div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">{profile.features.map(feature => <div key={feature} className="flex items-start gap-2 text-sm text-[#49666d]"><CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${isMint ? "text-[#0c8c89]" : "text-[#3173a8]"}`} /><span>{feature}</span></div>)}</div><div className={`mt-7 rounded-2xl border p-4 ${isMint ? "border-[#cfe9df] bg-[#f4fcf8]/75" : "border-[#d4e5f3] bg-[#f5faff]/75"}`}><div className="flex items-center gap-2">{workspace ? <CheckCircle2 className={`h-4 w-4 ${isMint ? "text-[#0c8c89]" : "text-[#3173a8]"}`} /> : <span className={`h-2.5 w-2.5 rounded-full ${isMint ? "bg-[#43bda2]" : "bg-[#75aede]"}`} />}<p className="text-xs font-bold text-[#315158]">{workspace ? `Ambiente configurado · ${workspace.name}` : "Pronto para começar"}</p></div><p className="mt-1.5 text-xs leading-5 text-[#668087]">{workspace ? "Abra seu ambiente para continuar de onde parou." : `Crie seu ambiente de ${isMint ? "prestador de serviço" : "empresa"} e organize a operação desde o início.`}</p></div><Button type="button" onClick={() => workspace ? openWorkspace(workspace.id) : setForm({ kind: profile.kind, name: isMint ? "Meu ambiente Autônomo" : "Minha empresa" })} className={`mt-4 h-12 w-full rounded-xl text-sm font-bold text-white shadow-[0_10px_24px_rgba(28,74,77,0.12)] transition duration-200 hover:-translate-y-0.5 ${isMint ? "bg-[#0c7474] hover:bg-[#063b43]" : "bg-[#3173a8] hover:bg-[#205681]"}`}><Icon className="mr-2 h-4 w-4" />{workspace ? profile.existingAction : profile.action}<ArrowRight className="ml-auto h-4 w-4 transition group-hover:translate-x-0.5" /></Button></div>
+                return <article key={profile.kind} className={`group relative overflow-hidden rounded-[2rem] border bg-white/55 shadow-[0_18px_50px_rgba(28,74,77,0.08)] backdrop-blur-2xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_65px_rgba(28,74,77,0.14)] motion-reduce:transform-none motion-reduce:transition-none ${rememberedKind === profile.kind ? "ring-2 ring-[#0c8c89]/35 ring-offset-2 ring-offset-[#edf5f4]" : ""} ${isMint ? "border-[#b9e3d7] hover:border-[#76c6b0]" : "border-[#c7def2] hover:border-[#8db9df]"}`}>
+                  <div className={`relative overflow-hidden px-6 pb-6 pt-7 sm:px-8 sm:pt-8 ${isMint ? "bg-gradient-to-br from-[#e6f8f0]/90 via-white/50 to-[#d9f1e7]/70" : "bg-gradient-to-br from-[#eaf4fc]/95 via-white/50 to-[#dbeeff]/70"}`}><div className={`pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full blur-3xl ${isMint ? "bg-[#8edec7]/35" : "bg-[#b9defc]/40"}`} /><div className="relative flex items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${isMint ? "bg-[#ccefe1] text-[#0c7474]" : "bg-[#d7ebfc] text-[#28699d]"}`}>{profile.label}</span>{rememberedKind === profile.kind && <span className="inline-flex items-center gap-1 rounded-full border border-[#b9e3d7] bg-white/70 px-2.5 py-1 text-[10px] font-bold text-[#0c7474]"><CheckCircle2 className="h-3 w-3" />Escolha lembrada</span>}</div><p className={`mt-4 text-xs font-bold uppercase tracking-[.13em] ${isMint ? "text-[#0c8c89]" : "text-[#3173a8]"}`}>{profile.eyebrow}</p><h3 className="mt-2 max-w-md text-2xl font-bold tracking-[-.03em] text-[#173b43] sm:text-3xl">{profile.title}</h3><p className="mt-3 max-w-md text-sm leading-6 text-[#5d7479]">{profile.description}</p></div><span className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-white/80 bg-white/55 shadow-sm backdrop-blur-md ${isMint ? "text-[#0c7474]" : "text-[#3173a8]"}`}><Icon className="h-7 w-7" /></span></div></div>
+                  <div className="p-6 sm:p-8"><div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">{profile.features.map(feature => <div key={feature} className="flex items-start gap-2 text-sm text-[#49666d]"><CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${isMint ? "text-[#0c8c89]" : "text-[#3173a8]"}`} /><span>{feature}</span></div>)}</div><div className={`mt-7 rounded-2xl border p-4 ${isMint ? "border-[#cfe9df] bg-[#f4fcf8]/75" : "border-[#d4e5f3] bg-[#f5faff]/75"}`}><div className="flex items-center gap-2">{workspace ? <CheckCircle2 className={`h-4 w-4 ${isMint ? "text-[#0c8c89]" : "text-[#3173a8]"}`} /> : <span className={`h-2.5 w-2.5 rounded-full ${isMint ? "bg-[#43bda2]" : "bg-[#75aede]"}`} />}<p className="text-xs font-bold text-[#315158]">{workspace ? `Ambiente configurado · ${workspace.name}` : "Pronto para começar"}</p></div><p className="mt-1.5 text-xs leading-5 text-[#668087]">{workspace ? "Abra seu ambiente para continuar de onde parou." : `Crie seu ambiente de ${isMint ? "prestador de serviço" : "empresa"} e organize a operação desde o início.`}</p></div><Button type="button" onClick={() => handleProfileAction(profile, workspace)} className={`mt-4 h-12 w-full rounded-xl text-sm font-bold text-white shadow-[0_10px_24px_rgba(28,74,77,0.12)] transition duration-200 hover:-translate-y-0.5 active:scale-[.985] motion-reduce:transform-none motion-reduce:transition-none ${isMint ? "bg-[#0c7474] hover:bg-[#063b43]" : "bg-[#3173a8] hover:bg-[#205681]"}`}><Icon className="mr-2 h-4 w-4 transition duration-200 group-hover:scale-105 motion-reduce:transition-none" />{workspace ? profile.existingAction : profile.action}<ArrowRight className="ml-auto h-4 w-4 transition duration-200 group-hover:translate-x-1 motion-reduce:transition-none" /></Button></div>
                 </article>;
               })}
             </div>
