@@ -209,3 +209,6 @@
 - [x] Criar painel de destaque na tela principal com alertas visuais para riscos médios e altos.
 - [x] Analisar a referência da EasySST (gestão CIPA) e estruturar o novo módulo para o Portal TST Brasil.
 - [x] Desenvolver o módulo CIPA integrado com eleições, atas de reunião, membros, calendário e plano de ação.
+- [x] Criar painel de destaque no módulo CIPA com alertas visuais para eleições e reuniões pendentes.
+- [x] Adicionar exportação em PDF formatado para atas de reuniões e calendário da CIPA.
+- [x] Implementar análise de atas por IA para sugerir itens ao plano de ação com revisão humana.
