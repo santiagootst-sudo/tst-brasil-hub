@@ -773,3 +773,56 @@ export const clientVisitCreatedSchema = z.object({
 });
 
 export const clientVisitUpdatedSchema = clientVisitSchema;
+
+// Módulo COPSOQ-III (Avaliação de Riscos Psicossociais)
+export const psychosocialRiskLevelSchema = z.enum(["low", "medium", "high"]);
+export const psychosocialAppStatusSchema = z.enum(["draft", "active", "completed"]);
+
+export const createPsychosocialApplicationInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().min(3).max(255),
+  minRespondents: z.number().int().min(1).default(10),
+});
+
+export const submitPsychosocialResponseInput = z.object({
+  applicationId: z.number().int().positive(),
+  respondentHash: z.string().min(8).max(128),
+  answers: z.record(z.string(), z.number().int().min(0).max(100)),
+});
+
+export const psychosocialApplicationSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  title: z.string(),
+  status: psychosocialAppStatusSchema,
+  minRespondents: z.number().int(),
+  respondentCount: z.number().int(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const psychosocialResultSchema = z.object({
+  id: z.number().int().positive(),
+  applicationId: z.number().int().positive(),
+  dimensionKey: z.string(),
+  dimensionName: z.string(),
+  domainName: z.string(),
+  score: z.number().int(),
+  riskLevel: psychosocialRiskLevelSchema,
+  exportedToPgr: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const psychosocialSnapshotSchema = z.object({
+  applications: z.array(psychosocialApplicationSchema),
+  results: z.array(psychosocialResultSchema),
+});
+
+export const exportPsychosocialToPgrInput = workspaceIdInput.extend({
+  applicationId: z.number().int().positive(),
+});

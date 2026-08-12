@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import { portalRouter } from "./routers/portalRouter";
 
 describe("composição de routers do portal", () => {
@@ -22,15 +22,19 @@ describe("composição de routers do portal", () => {
       "createJobRole",
       "createMaterial",
       "createPgrProject",
+      "createPsychosocialApplication",
       "createSstOccurrence",
       "createSupportTicket",
       "createTraining",
       "createWorkspace",
+      "exportPsychosocialToPgr",
       "iframeAccess",
       "materials",
       "operations",
       "organization",
       "planning",
+      "psychosocial",
+      "submitPsychosocialResponse",
       "supportTickets",
       "trainings",
       "updateClientVisitStatus",

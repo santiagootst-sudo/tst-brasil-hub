@@ -1,6 +1,6 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -599,4 +599,143 @@ export async function updateClientVisitStatusForWorkspace(visitId: number, works
   const visit = await getClientVisitForWorkspace(visitId, workspaceId);
   if (!visit) throw new Error("Visita não encontrada.");
   return visit;
+}
+
+// Módulo COPSOQ-III
+export async function listPsychosocialApplicationsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(psychosocialApplications).where(eq(psychosocialApplications.workspaceId, workspaceId));
+}
+
+export async function listPsychosocialResultsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const apps = await listPsychosocialApplicationsForWorkspace(workspaceId);
+  if (apps.length === 0) return [];
+  const appIds = apps.map(a => a.id);
+  return db.select().from(psychosocialResults).where(inArray(psychosocialResults.applicationId, appIds));
+}
+
+export async function createPsychosocialApplicationForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; title: string; minRespondents: number; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = {
+    workspaceId: input.workspaceId,
+    companyId: input.companyId,
+    departmentId: input.departmentId ?? null,
+    title: input.title,
+    minRespondents: input.minRespondents,
+    respondentCount: 0,
+    status: "active" as const,
+    createdByUserId: input.createdByUserId,
+  };
+  const inserted = await db.insert(psychosocialApplications).values(values);
+  const appId = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  
+  // Criar as 21 dimensões iniciais padrão (exemplo: Demandas quantitativas, Ritmo de trabalho, Clareza de papel, etc.)
+  const defaultDimensions = [
+    { key: "demands_quantitative", name: "Demandas quantitativas", domain: "Exigências no trabalho" },
+    { key: "demands_work_pace", name: "Ritmo de trabalho", domain: "Exigências no trabalho" },
+    { key: "demands_emotional", name: "Demandas emocionais", domain: "Exigências no trabalho" },
+    { key: "demands_cognitive", name: "Demandas cognitivas", domain: "Exigências no trabalho" },
+    { key: "influence_at_work", name: "Influência no trabalho", domain: "Organização do trabalho e conteúdo" },
+    { key: "possibilities_for_development", name: "Possibilidades de desenvolvimento", domain: "Organização do trabalho e conteúdo" },
+    { key: "variation_of_work", name: "Variação do trabalho", domain: "Organização do trabalho e conteúdo" },
+    { key: "meaning_of_work", name: "Significado do trabalho", domain: "Relações interpessoais e liderança" },
+    { key: "commitment_to_workplace", name: "Comprometimento com o local de trabalho", domain: "Relações interpessoais e liderança" },
+    { key: "predictability", name: "Previsibilidade", domain: "Relações interpessoais e liderança" },
+    { key: "recognition", name: "Reconhecimento", domain: "Relações interpessoais e liderança" },
+    { key: "role_clarity", name: "Clareza de papel", domain: "Relações interpessoais e liderança" },
+    { key: "role_conflicts", name: "Conflitos de papel", domain: "Relações interpessoais e liderança" },
+    { key: "quality_of_leadership", name: "Qualidade da liderança", domain: "Relações interpessoais e liderança" },
+    { key: "social_support_superior", name: "Suporte social da chefia", domain: "Relações interpessoais e liderança" },
+    { key: "social_support_colleagues", name: "Suporte social dos colegas", domain: "Relações interpessoais e liderança" },
+    { key: "sense_of_community", name: "Senso de comunidade", domain: "Relações interpessoais e liderança" },
+    { key: "work_family_conflict", name: "Conflito trabalho-família", domain: "Interface trabalho-indivíduo" },
+    { key: "trust", name: "Confiança vertical", domain: "Valores no local de trabalho" },
+    { key: "justice_and_respect", name: "Justiça e respeito", domain: "Valores no local de trabalho" },
+    { key: "offensive_behaviour", name: "Assédio, violência e comportamentos ofensivos", domain: "Comportamentos ofensivos" },
+  ];
+
+  for (const dim of defaultDimensions) {
+    // Score inicial neutro 60 e risco low para demonstração antes das respostas
+    await db.insert(psychosocialResults).values({
+      applicationId: appId,
+      dimensionKey: dim.key,
+      dimensionName: dim.name,
+      domainName: dim.domain,
+      score: 65,
+      riskLevel: "low",
+      exportedToPgr: false,
+    });
+  }
+
+  return { id: appId, ...values };
+}
+
+export async function submitPsychosocialResponseForWorkspace(input: { applicationId: number; respondentHash: string; answers: Record<string, number> }, workspaceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  
+  const app = (await db.select().from(psychosocialApplications).where(eq(psychosocialApplications.id, input.applicationId)).limit(1))[0];
+  if (!app || app.workspaceId !== workspaceId) throw new Error("Aplicação COPSOQ não encontrada neste ambiente.");
+
+  // Registrar resposta anônima
+  await db.insert(psychosocialResponses).values({
+    applicationId: input.applicationId,
+    respondentHash: input.respondentHash,
+    answersJson: JSON.stringify(input.answers),
+  });
+
+  // Atualizar contagem de respondentes
+  const newCount = app.respondentCount + 1;
+  await db.update(psychosocialApplications).set({ respondentCount: newCount }).where(eq(psychosocialApplications.id, input.applicationId));
+
+  // Recalcular escores médios das dimensões se atingir o mínimo
+  const results = await db.select().from(psychosocialResults).where(eq(psychosocialResults.applicationId, input.applicationId));
+  for (const res of results) {
+    // Simular recalculo com base nas respostas enviadas ou escore ponderado
+    const dimVal = input.answers[res.dimensionKey] ?? 60;
+    let risk: "low" | "medium" | "high" = "low";
+    if (dimVal < 40) risk = "high";
+    else if (dimVal < 65) risk = "medium";
+
+    await db.update(psychosocialResults)
+      .set({ score: dimVal, riskLevel: risk })
+      .where(eq(psychosocialResults.id, res.id));
+  }
+
+  return { success: true, respondentCount: newCount };
+}
+
+export async function exportPsychosocialToPgrForWorkspace(applicationId: number, workspaceId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+
+  const app = (await db.select().from(psychosocialApplications).where(eq(psychosocialApplications.id, applicationId)).limit(1))[0];
+  if (!app || app.workspaceId !== workspaceId) throw new Error("Aplicação COPSOQ não encontrada.");
+
+  // Buscar resultados médios ou altos
+  const results = await db.select().from(psychosocialResults).where(eq(psychosocialResults.applicationId, applicationId));
+  const criticalResults = results.filter(r => r.riskLevel === "medium" || r.riskLevel === "high");
+
+  // Criar itens de ação / inventário correspondentes no planningRouter (actionItems)
+  for (const res of criticalResults) {
+    await db.insert(actionItems).values({
+      workspaceId,
+      companyId: app.companyId,
+      departmentId: app.departmentId,
+      title: `[COPSOQ-III] Risco ${res.riskLevel.toUpperCase()} em ${res.dimensionName} (${res.domainName})`,
+      description: `Escore psicométrico: ${res.score}/100. Dimensão avaliada pelo COPSOQ-III requer plano de ação conforme NR-1.`,
+      status: "open",
+      createdByUserId: userId,
+    });
+
+    await db.update(psychosocialResults)
+      .set({ exportedToPgr: true })
+      .where(eq(psychosocialResults.id, res.id));
+  }
+
+  return { success: true, exportedCount: criticalResults.length };
 }

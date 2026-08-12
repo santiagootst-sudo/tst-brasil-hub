@@ -8,6 +8,7 @@ import { planningRouter } from "./planningRouter";
 import { pgrRouter } from "./pgrRouter";
 import { supportRouter } from "./supportRouter";
 import { workspaceRouter } from "./workspaceRouter";
+import { psychosocialRouter } from "./psychosocialRouter";
 
 export const portalRouter = router({
   ...workspaceRouter._def.record,
@@ -19,4 +20,5 @@ export const portalRouter = router({
   ...commercialRouter._def.record,
   ...planningRouter._def.record,
   ...supportRouter._def.record,
+  ...psychosocialRouter._def.record,
 });
