@@ -160,8 +160,10 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
           </div>
         </header>
 
-        <main className="p-6 lg:p-9">
-          {children}
+        <main className="relative overflow-hidden p-6 lg:p-9">
+          <div className="pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full bg-[#8edec7]/10 blur-3xl" />
+          <div className="pointer-events-none absolute right-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-[#b9defc]/10 blur-3xl" />
+          <div className="relative">{children}</div>
         </main>
       </div>
 

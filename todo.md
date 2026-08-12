@@ -246,3 +246,7 @@
 - [x] Reestruturar os cartões de indicadores com hierarquia, contraste e densidade mais equilibrados.
 - [x] Validar a revisão visual em desktop e mobile, incluindo contraste e estados sem dados.
 - [x] Atualizar os testes e salvar checkpoint da nova direção visual.
+- [x] Criar gradientes ricos, transparências em vidro (backdrop-blur) e cartões com profundidade dinâmica para o dashboard.
+- [x] Adicionar indicadores de tendência, microinterações e gráficos imersivos.
+- [x] Validar a nova experiência visual em desktop e mobile e cobrir com testes.
+- [x] Salvar checkpoint e disponibilizar a nova versão imersiva do portal.

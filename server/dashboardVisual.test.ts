@@ -6,14 +6,14 @@ const source = readFileSync(resolve(process.cwd(), "client/src/pages/WorkspaceOv
 
 describe("direção visual do dashboard", () => {
   it("usa superfícies claras distintas para os contextos", () => {
-    expect(source).toContain('color: "bg-[#eef8f5] border-[#cfe7df]"');
-    expect(source).toContain('color: "bg-[#f1f7fc] border-[#d3e4f0]"');
+    expect(source).toContain('color: "bg-gradient-to-br from-[#effbf7] via-white to-[#dff5ee] border-[#cfe7df]"');
+    expect(source).toContain('color: "bg-gradient-to-br from-[#f3f8fd] via-white to-[#e1effb] border-[#d3e4f0]"');
   });
 
   it("mantém contraste explícito no título e nos indicadores", () => {
     expect(source).toContain("text-[#173b43]");
     expect(source).toContain("text-[#668087]");
-    expect(source).toContain("bg-white/80");
+    expect(source).toContain("bg-white/55");
   });
 
   it("evita a superfície tracejada no estado vazio principal", () => {
