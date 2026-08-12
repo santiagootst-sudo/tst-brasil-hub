@@ -154,3 +154,8 @@
 - [x] Organizar Documentos Legais e Certificados por tipo (NR-09/PGR, LTCAT, OS, PCMAT) vinculados à empresa.
 - [x] Criar modelos reutilizáveis de checklist de inspeção e conectar inspeções ao plano de ação.
 - [x] Ampliar indicadores de SST com tendências e pendências reais nos dashboards.
+
+
+- [x] Validar visualmente os novos módulos de SST nos ambientes Autônomo e CLT com estados reais existentes.
+- [x] Confirmar que os estados vazios dos módulos não exibem métricas ou registros fictícios.
+- [x] Registrar as evidências da validação local sem sandbox Stripe em docs/local-validation-2026-08-12.md.
