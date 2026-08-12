@@ -125,6 +125,8 @@
 - [x] Cobrir e validar no navegador a gestão de status de visitas e os vencimentos documentais da carteira comercial.
 - [ ] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência.
 - [ ] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente.
+- [ ] Validar separadamente os fluxos críticos restantes: dashboard com e sem acesso, jornada empresa → logo → projeto → PGR e alternância Autônomo/CLT.
+- [ ] Confirmar no navegador a persistência do status de uma visita real após recarregar ou retornar à agenda.
 - [x] Adicionar cobertura automatizada da lógica de resumo de vencimentos documentais por cliente na visão comercial do TST Autônomo.
 - [x] Implementar regra de ambiente único por usuário, permitindo a escolha inicial entre TST Autônomo e TST CLT, sem criação de ambientes adicionais.
 - [x] Remover da tela de entrada a listagem e os controles que exibem múltiplos ambientes para o mesmo usuário.
