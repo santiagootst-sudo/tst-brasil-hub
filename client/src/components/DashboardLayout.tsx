@@ -19,6 +19,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { workspaceId: workspaceId ?? 0 },
     { enabled: Boolean(workspaceId && workspaceId > 0) },
   );
+  const developmentWorkspaces = trpc.portal.workspaces.useQuery();
   const currentWorkspace = workspace.data;
   const isAutonomo = currentWorkspace?.kind === "autonomo";
   const isClt = currentWorkspace?.kind === "clt";
@@ -102,7 +103,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
             <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">{isAutonomo ? "TST Autônomo" : "TST CLT"}</p>
             <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
             <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
-            <p className="mt-3 text-xs font-bold text-[#8edec7]">Ambiente principal da conta</p>
+            {developmentWorkspaces.data && developmentWorkspaces.data.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{developmentWorkspaces.data.map(item => <Link key={item.id} href={`/app/visao?workspace=${item.id}`} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.kind === "autonomo" ? "Autônomo" : "CLT"}</Link>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
           </> : <>
             <p className="text-xs font-semibold text-white">Ambiente protegido</p>
             <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>

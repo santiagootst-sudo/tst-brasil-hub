@@ -1,4 +1,4 @@
-import { Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
@@ -211,7 +211,7 @@ export default function WorkspaceOverview() {
 
   return <DashboardLayout title="Visão geral"><div className="mx-auto max-w-7xl space-y-7">
     <section className={`overflow-hidden rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${context.color}`}>
-      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start"><div><span className={`rounded-lg bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.label}</span><p className={`mt-5 text-xs font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.eyebrow}</p><h2 className="mt-2 max-w-3xl text-3xl font-bold tracking-tight lg:text-4xl">{context.headline}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">{context.description}</p></div><span className="inline-flex items-center rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white/85">Ambiente principal</span></div>
+      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start"><div><span className={`rounded-lg bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.label}</span><p className={`mt-5 text-xs font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.eyebrow}</p><h2 className="mt-2 max-w-3xl text-3xl font-bold tracking-tight lg:text-4xl">{context.headline}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">{context.description}</p></div><Link href="/app" className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">Alternar contexto <ArrowRight className="h-4 w-4" /></Link></div>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">{context.stats.map(({ label, value, icon: Icon, tone }) => <div key={label} className="rounded-2xl border border-white/10 bg-white/8 p-4"><span className={`grid h-9 w-9 place-items-center rounded-xl ${tone === "coral" ? "bg-[#e98766]/15 text-[#ffb69d]" : tone === "blue" ? "bg-[#b9defc]/15 text-[#b9defc]" : "bg-[#8edec7]/15 text-[#8edec7]"}`}><Icon className="h-4 w-4" /></span><p className="mt-4 text-3xl font-bold">{value}</p><p className="mt-1 text-xs text-white/70">{label}</p></div>)}</div>
     </section>
 

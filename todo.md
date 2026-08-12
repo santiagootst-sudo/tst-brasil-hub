@@ -139,3 +139,7 @@
 - [x] Remover os ambientes e registros de teste duplicados autorizados, mantendo apenas o ambiente principal atual da conta.
 - [x] Aplicar restrição de unicidade do proprietário na base de dados após a limpeza dos ambientes duplicados.
 - [x] Validar no navegador a conta consolidada em Empresas, PGR e Certificados, confirmando que o ambiente principal remanescente funciona sem dependência dos ambientes de teste removidos.
+- [x] Permitir temporariamente, durante a criação do produto, um ambiente TST Autônomo e um ambiente TST CLT por usuário.
+- [x] Impedir a criação de ambientes duplicados do mesmo tipo para o mesmo usuário.
+- [x] Reintroduzir uma alternância explícita entre os dois contextos de desenvolvimento na interface autenticada.
+- [x] Restaurar e validar o ambiente CLT de desenvolvimento, mantendo o Autônomo já existente.

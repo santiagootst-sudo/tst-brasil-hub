@@ -6,14 +6,11 @@ import { canManageWorkspace } from "../workspaceAccess";
 import { protectedProcedure, router } from "../_core/trpc";
 
 export const workspaceRouter = router({
-  workspaces: protectedProcedure.output(workspaceSummarySchema.array()).query(async ({ ctx }) => {
-    const primaryWorkspace = await portalDb.getPrimaryWorkspaceForUser(ctx.user.id);
-    return primaryWorkspace ? [primaryWorkspace] : [];
-  }),
+  workspaces: protectedProcedure.output(workspaceSummarySchema.array()).query(({ ctx }) => portalDb.listDevelopmentWorkspacesForUser(ctx.user.id)),
   createWorkspace: protectedProcedure.input(workspaceInput).output(workspaceCreatedSchema).mutation(async ({ ctx, input }) => {
-    const primaryWorkspace = await portalDb.getPrimaryWorkspaceForUser(ctx.user.id);
-    if (primaryWorkspace) {
-      throw new TRPCError({ code: "CONFLICT", message: "Sua conta já possui um ambiente principal. Empresas e clientes devem ser cadastrados dentro dele." });
+    const developmentWorkspaces = await portalDb.listDevelopmentWorkspacesForUser(ctx.user.id);
+    if (developmentWorkspaces.some(workspace => workspace.kind === input.kind)) {
+      throw new TRPCError({ code: "CONFLICT", message: `Sua conta já possui um ambiente TST ${input.kind === "autonomo" ? "Autônomo" : "CLT"}. Durante a criação, mantenha apenas um de cada tipo.` });
     }
     return portalDb.createWorkspaceForUser({ userId: ctx.user.id, ...input });
   }),

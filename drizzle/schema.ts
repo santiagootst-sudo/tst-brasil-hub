@@ -19,7 +19,7 @@ export const workspaces = mysqlTable("workspaces", {
   ownerUserId: int("ownerUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [uniqueIndex("workspaces_owner_unique").on(table.ownerUserId)]);
+}, table => [uniqueIndex("workspaces_owner_kind_unique").on(table.ownerUserId, table.kind)]);
 
 export const workspaceMembers = mysqlTable("workspace_members", {
   id: int("id").autoincrement().primaryKey(),

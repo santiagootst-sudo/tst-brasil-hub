@@ -51,6 +51,17 @@ export async function listWorkspacesForUser(userId: number) {
     .orderBy(desc(workspaces.updatedAt));
 }
 
+export async function listDevelopmentWorkspacesForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const ownedWorkspaces = await db
+    .select({ id: workspaces.id, name: workspaces.name, kind: workspaces.kind, updatedAt: workspaces.updatedAt })
+    .from(workspaces)
+    .where(eq(workspaces.ownerUserId, userId))
+    .orderBy(workspaces.kind, desc(workspaces.updatedAt));
+  return ownedWorkspaces.map(workspace => ({ ...workspace, role: "owner" as const }));
+}
+
 export async function getPrimaryWorkspaceForUser(userId: number) {
   const db = await getDb();
   if (!db) return undefined;
@@ -82,10 +93,7 @@ export async function getWorkspaceForUser(workspaceId: number, userId: number) {
     .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
     .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.workspaceId, workspaceId)))
     .limit(1))[0];
-  if (!workspace) return undefined;
-  if (workspace.role !== "owner") return workspace;
-  const primaryWorkspace = await getPrimaryWorkspaceForUser(userId);
-  return primaryWorkspace?.id === workspace.id ? workspace : undefined;
+  return workspace;
 }
 
 export async function listCompaniesForWorkspace(workspaceId: number) {

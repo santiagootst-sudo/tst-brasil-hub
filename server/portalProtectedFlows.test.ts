@@ -10,11 +10,11 @@ const db = vi.hoisted(() => ({
   createSupportTicketForWorkspace: vi.fn(),
   createTrainingForWorkspace: vi.fn(),
   createWorkspaceForUser: vi.fn(),
-  getPrimaryWorkspaceForUser: vi.fn(),
   getCompanyForWorkspace: vi.fn(),
   getPgrProjectForWorkspace: vi.fn(),
   getSubscriptionForUser: vi.fn(),
   getWorkspaceForUser: vi.fn(),
+  listDevelopmentWorkspacesForUser: vi.fn(),
   listCertificatesForWorkspace: vi.fn(),
   listCompaniesForWorkspace: vi.fn(),
   listMaterialsForWorkspace: vi.fn(),
@@ -61,16 +61,25 @@ function createContext(): TrpcContext {
 describe("portal protected flows", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("expõe somente o ambiente principal na entrada autenticada", async () => {
-    const primaryWorkspace = { id: 7, name: "Operação SST", kind: "clt" as const, role: "owner" as const, updatedAt: fixtureDate };
-    db.getPrimaryWorkspaceForUser.mockResolvedValue(primaryWorkspace);
-    await expect(appRouter.createCaller(createContext()).portal.workspaces()).resolves.toEqual([primaryWorkspace]);
+  it("expõe um ambiente Autônomo e um CLT na fase de criação", async () => {
+    const workspaces = [
+      { id: 7, name: "Carteira SST", kind: "autonomo" as const, role: "owner" as const, updatedAt: fixtureDate },
+      { id: 8, name: "Operação interna", kind: "clt" as const, role: "owner" as const, updatedAt: fixtureDate },
+    ];
+    db.listDevelopmentWorkspacesForUser.mockResolvedValue(workspaces);
+    await expect(appRouter.createCaller(createContext()).portal.workspaces()).resolves.toEqual(workspaces);
   });
 
-  it("impede a criação de outro ambiente quando a conta já possui um contexto principal", async () => {
-    db.getPrimaryWorkspaceForUser.mockResolvedValue({ id: 7, name: "Operação SST", kind: "clt", role: "owner" });
-    await expect(appRouter.createCaller(createContext()).portal.createWorkspace({ name: "Outro ambiente", kind: "autonomo" })).rejects.toMatchObject({ code: "CONFLICT" });
+  it("impede a criação de outro ambiente do mesmo tipo", async () => {
+    db.listDevelopmentWorkspacesForUser.mockResolvedValue([{ id: 7, name: "Carteira SST", kind: "autonomo", role: "owner" }]);
+    await expect(appRouter.createCaller(createContext()).portal.createWorkspace({ name: "Outra carteira", kind: "autonomo" })).rejects.toMatchObject({ code: "CONFLICT" });
     expect(db.createWorkspaceForUser).not.toHaveBeenCalled();
+  });
+
+  it("permite criar o contexto que ainda não existe", async () => {
+    db.listDevelopmentWorkspacesForUser.mockResolvedValue([{ id: 7, name: "Carteira SST", kind: "autonomo", role: "owner" }]);
+    db.createWorkspaceForUser.mockResolvedValue({ id: 8, name: "Operação interna", kind: "clt", role: "owner" });
+    await expect(appRouter.createCaller(createContext()).portal.createWorkspace({ name: "Operação interna", kind: "clt" })).resolves.toMatchObject({ id: 8, kind: "clt" });
   });
 
   it("permite que qualquer membro consulte certificados do próprio ambiente", async () => {
