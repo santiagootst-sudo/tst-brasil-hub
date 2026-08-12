@@ -193,3 +193,9 @@
 - [x] Implementar gráficos de radar e visualizações interativas das 21 dimensões psicométricas.
 - [x] Implementar filtros agregados por departamento e grupo demográfico com blindagem de anonimato.
 - [x] Implementar filtros agregados por departamento e grupo demográfico com blindagem de anonimato.
+- [x] Adicionar tooltips explicativos ao gráfico de radar detalhando o significado de cada dimensão psicométrica.
+- [x] Incluir seção de recomendações automáticas e planos de ação baseados nas menores pontuações no relatório PDF.
+- [x] Implementar funcionalidade de comparação agregada entre períodos e benchmarks internos.
+- [x] Adicionar tooltips explicativos ao gráfico de radar detalhando o significado de cada dimensão psicométrica.
+- [x] Incluir seção de recomendações automáticas e planos de ação baseados nas menores pontuações no relatório PDF.
+- [x] Implementar funcionalidade de comparação agregada entre períodos e benchmarks internos.
