@@ -73,6 +73,72 @@ html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100
       }, 3500);
     }
 
+    // Injetar barra de progresso no topo do conteúdo principal
+    var mainContent = document.querySelector('.main-content') || document.body;
+    var progressBarContainer = document.createElement('div');
+    progressBarContainer.id = 'tst-progress-bar-container';
+    progressBarContainer.innerHTML = '<div style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-family: system-ui, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100;">' +
+        '<div style="display: flex; align-items: center; gap: 10px;">' +
+          '<div style="width: 28px; height: 28px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">📊</div>' +
+          '<div>' +
+            '<span style="font-size: 13px; font-weight: 700; color: #091e22; display: block;">Progresso do PGR</span>' +
+            '<span id="tst-progress-text" style="font-size: 11px; color: #64748b; font-weight: 500;">0% preenchido</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="flex: 1; max-width: 320px; background: #f1f5f9; height: 8px; border-radius: 999px; overflow: hidden; position: relative;">' +
+          '<div id="tst-progress-fill" style="background: linear-gradient(90deg, #0c7474, #14b8a6); width: 0%; height: 100%; border-radius: 999px; transition: width 0.3s ease;"></div>' +
+        '</div>' +
+        '<div id="tst-progress-badge" style="background: #f0fdf4; color: #15803d; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid #bbf7d0;">Em andamento</div>' +
+      '</div>';
+    if (mainContent.firstChild) {
+      mainContent.insertBefore(progressBarContainer, mainContent.firstChild);
+    } else {
+      mainContent.appendChild(progressBarContainer);
+    }
+
+    function updateProgress() {
+      var inputs = document.querySelectorAll('#pgrContainer input:not([type="hidden"]):not([type="submit"]):not([type="button"]), #pgrContainer select, #pgrContainer textarea');
+      if (!inputs.length) return;
+      var filled = 0;
+      var total = inputs.length;
+      for (var i = 0; i < total; i++) {
+        var el = inputs[i];
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          if (el.checked) filled++;
+        } else if (el.value && el.value.trim() !== '') {
+          filled++;
+        }
+      }
+      var pct = Math.min(100, Math.round((filled / total) * 100));
+      var fillEl = document.getElementById('tst-progress-fill');
+      var textEl = document.getElementById('tst-progress-text');
+      var badgeEl = document.getElementById('tst-progress-badge');
+      if (fillEl) fillEl.style.width = pct + '%';
+      if (textEl) textEl.textContent = pct + '% preenchido (' + filled + '/' + total + ' campos)';
+      if (badgeEl) {
+        if (pct === 100) {
+          badgeEl.textContent = 'Concluído 100%';
+          badgeEl.style.background = '#f0fdf4';
+          badgeEl.style.color = '#15803d';
+          badgeEl.style.borderColor = '#bbf7d0';
+        } else if (pct > 50) {
+          badgeEl.textContent = 'Avançado';
+          badgeEl.style.background = '#fef9c3';
+          badgeEl.style.color = '#a16207';
+          badgeEl.style.borderColor = '#fef08a';
+        } else {
+          badgeEl.textContent = 'Em andamento';
+          badgeEl.style.background = '#f0fdf4';
+          badgeEl.style.color = '#15803d';
+          badgeEl.style.borderColor = '#bbf7d0';
+        }
+      }
+    }
+
+    document.addEventListener('input', updateProgress);
+    document.addEventListener('change', updateProgress);
+    setTimeout(updateProgress, 500);
+
     window.clearData = window.limparDados = function () {
       var oldOverlay = document.getElementById('tst-modal-overlay');
       if (oldOverlay) oldOverlay.remove();
