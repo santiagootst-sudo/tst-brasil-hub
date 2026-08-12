@@ -17,5 +17,6 @@ export function hasAdministrativeAccess(input: AdministrativeAccessInput) {
 export function canUsePaidApps(input: AdministrativeAccessInput & { subscriptionStatus?: string | null }) {
   if (!hasAdministrativeAccess(input)) return false;
   if (input.userRole === "admin") return true;
+  if (input.accessExpiresAt && input.accessExpiresAt.getTime() > (input.now ?? new Date()).getTime()) return true;
   return Boolean(input.subscriptionStatus && activeSubscriptionStatuses.has(input.subscriptionStatus));
 }

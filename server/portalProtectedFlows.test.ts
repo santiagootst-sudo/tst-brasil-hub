@@ -40,7 +40,7 @@ const materialFixture = () => materialSchema.parse({ id: 3, workspaceId: 7, titl
 const supportTicketFixture = () => supportTicketSchema.parse({ id: 4, workspaceId: 7, subject: "Dúvida sobre PGR", message: "Preciso de orientação sobre o ambiente de trabalho.", status: "open", createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const subscriptionFixture = (status: "active" | "past_due") => subscriptionSchema.parse({ id: 1, userId: 12, stripeCustomerId: null, stripeSubscriptionId: null, stripePriceId: null, planCode: "autonomo", status, currentPeriodEnd: null, cancelAtPeriodEnd: false, updatedAt: fixtureDate });
 
-function createContext(): TrpcContext {
+function createContext(userOverrides: Partial<NonNullable<TrpcContext["user"]>> = {}): TrpcContext {
   return {
     user: {
       id: 12,
@@ -52,9 +52,10 @@ function createContext(): TrpcContext {
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
+      ...userOverrides,
     },
     req: { protocol: "https", headers: {}, get: () => "localhost" } as TrpcContext["req"],
-    res: { clearCookie: () => undefined } as TrpcContext["res"],
+    res: { clearCookie: () => undefined },
   };
 }
 
@@ -203,5 +204,9 @@ describe("portal protected flows", () => {
     db.getSubscriptionForUser.mockResolvedValue(subscriptionFixture("past_due"));
     const pastDue = await appRouter.createCaller(createContext()).billing.status();
     expect(pastDue.hasPaidAccess).toBe(false);
+
+    db.getSubscriptionForUser.mockResolvedValue(undefined);
+    const manualAccess = await appRouter.createCaller(createContext({ accessStatus: "active", accessExpiresAt: new Date("2026-09-11T12:00:00.000Z") })).billing.status();
+    expect(manualAccess.hasPaidAccess).toBe(true);
   });
 });

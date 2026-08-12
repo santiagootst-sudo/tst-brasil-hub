@@ -13,7 +13,7 @@ export const billingRouter = router({
     return {
       subscription: subscription ?? null,
       plan: plan ? { code: plan.code, name: plan.name, displayPrice: plan.displayPrice } : null,
-      hasPaidAccess: canUsePaidApps({ userRole: ctx.user.role, subscriptionStatus: subscription?.status }),
+      hasPaidAccess: canUsePaidApps({ userRole: ctx.user.role, accessStatus: ctx.user.accessStatus, accessExpiresAt: ctx.user.accessExpiresAt, subscriptionStatus: subscription?.status }),
     };
   }),
   checkout: protectedProcedure.input(checkoutInput).output(checkoutSessionSchema).mutation(({ ctx, input }) => {

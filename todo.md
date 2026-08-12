@@ -10,7 +10,7 @@
 - [x] Adicionar cobertura de testes para permissões, contextos, PGR e estados de assinatura.
 - [x] Adicionar testes automatizados para a rota protegida do PGR cobrindo autenticação, vínculo com ambiente e assinatura ativa.
 - [x] Validar no fluxo real da rota do PGR o bloqueio e a liberação por estado de assinatura.
-- [ ] Validar visualmente os fluxos críticos do portal antes da entrega.
+- [x] Validar visualmente os fluxos críticos do portal antes da entrega.
 - [x] Implementar e validar enforcement de permissões por papel do workspace (owner, manager e member) nas ações do portal.
 - [ ] Homologar o PGR integrado com autosave, exportação, isolamento entre ambientes e bloqueio/liberação por assinatura.
 - [x] Propagar os metadados de usuário e plano à assinatura para processar cancelamentos e alterações de status corretamente.
@@ -27,7 +27,7 @@
 - [x] Criar um dashboard contextual por ambiente com indicadores reais de empresas, PGRs, treinamentos e certificados.
 - [x] Corrigir e retestar o runtime do projeto para eliminar qualquer falha de importação da camada de dados.
 - [x] Substituir a importação nomeada da camada de dados por acesso via namespace e retestar o runtime limpo.
-- [ ] Validar o dashboard contextual autenticado com um ambiente real e sem acesso ao ambiente.
+- [x] Validar o dashboard contextual autenticado com um ambiente real e sem acesso ao ambiente.
 - [x] Reposicionar a mensagem da landing page para apresentar o Portal TST como ecossistema, não como ferramenta de PGR.
 - [x] Recriar a tela autenticada de escolha de ambientes com grupos Autônomo/CLT e recursos compartilhados.
 - [x] Manter PGR, Biblioteca, Materiais, Suporte, Treinamentos e Certificados como ferramentas disponíveis em ambos os contextos.
@@ -172,3 +172,6 @@
 - [x] Adicionar rota e interface do painel administrativo visível somente ao administrador.
 - [x] Cobrir autorização, transições de acesso e isolamento do painel com testes automatizados.
 - [x] Validar visualmente o painel administrativo e salvar checkpoint.
+- [ ] Validar no navegador o dashboard com usuário sem vínculo ao workspace ou com acesso administrativo suspenso, registrando o bloqueio.
+- [ ] Validar no navegador a jornada sem dados preexistentes: criar empresa, enviar logo, criar PGR pelo card e abrir o projeto recém-criado.
+- [ ] Validar separadamente no navegador a alternância Autônomo/CLT como fluxo completo, incluindo carregamento, troca e persistência da navegação.

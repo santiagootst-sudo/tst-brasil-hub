@@ -11,6 +11,9 @@ const db = vi.hoisted(() => ({
 vi.mock("./db", () => db);
 
 import { adminRouter } from "./routers/adminRouter";
+import { protectedProcedure, router } from "./_core/trpc";
+
+const protectedProbe = router({ probe: protectedProcedure.query(() => ({ ok: true })) });
 
 const now = new Date("2026-08-12T00:00:00.000Z");
 const adminUser = { id: 1, openId: "owner", email: "owner@example.com", name: "Proprietário", loginMethod: "manus", role: "admin" as const, accessStatus: "active" as const, accessExpiresAt: null, createdAt: now, updatedAt: now, lastSignedIn: now };
@@ -59,6 +62,11 @@ describe("adminRouter", () => {
 
     db.getUserById.mockResolvedValueOnce(adminUser);
     await expect(adminRouter.createCaller(context()).disable({ targetUserId: adminUser.id })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("bloqueia procedimento protegido para usuário suspenso", async () => {
+    const suspendedUser = { ...regularUser, accessStatus: "suspended" as const };
+    await expect(protectedProbe.createCaller(context(suspendedUser)).probe()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("bloqueia usuários não administradores e reativa com período definido", async () => {
