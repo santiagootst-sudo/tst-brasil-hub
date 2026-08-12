@@ -5,8 +5,8 @@ import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 
 const steps = [
-  { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente com sua conta para desbloquear o acesso aos ambientes especializados de SST." },
-  { num: "02", title: "Escolha o seu contexto", text: "Selecione entre TST Autônomo para gerenciar sua carteira e PGR, ou TST CLT para a rotina corporativa." },
+  { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente para desbloquear o acesso aos ambientes especializados de gestão em segurança do trabalho." },
+  { num: "02", title: "Escolha o seu contexto", text: "Selecione entre Prestador de serviço para gerenciar sua carteira e PGR, ou Empresa para a rotina corporativa." },
   { num: "03", title: "Use as ferramentas", text: "Tenha em mãos PGR integrado, controle de EPIs com CA, certificados, inspeções e suporte contínuo." },
 ];
 
@@ -36,9 +36,8 @@ export default function Home() {
         </Button>
       </nav>
 
-      {/* Hero Section idêntico à referência: Gradiente Teal Escuro Luminoso à Esquerda */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-r from-[#072d32] via-[#0b484e] to-[#0c7474] text-white py-20 lg:py-28">
-        {/* Atmosfera Luminosa / Glow */}
         <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-[#14a095]/30 blur-[140px] pointer-events-none" />
         <div className="absolute right-0 bottom-0 h-[400px] w-[400px] rounded-full bg-[#39a77e]/20 blur-[120px] pointer-events-none" />
 
@@ -51,7 +50,7 @@ export default function Home() {
               A PLATAFORMA PARA PROFISSIONAIS DE <span className="text-[#64e2d1]">SST QUE QUEREM EVOLUIR</span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-[#d0e6e1]">
-              Conteúdo, networking, ferramentas operacionais e oportunidades para TSTs autônomos e CLT escalarem sua atuação com método e conformidade.
+              Conteúdo, networking, ferramentas operacionais e oportunidades para prestadores de serviço e empresas escalarem sua atuação com método e conformidade.
             </p>
             <div className="mt-9 flex flex-col gap-4 sm:flex-row">
               <Button onClick={enter} size="lg" className="h-14 rounded-2xl bg-[#0c7474] px-8 text-base text-white hover:bg-[#095a5a] shadow-xl shadow-black/20 border border-[#23b3a6]/40">
@@ -68,7 +67,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Card Flutuante de Escolha de Ambiente (Choice Hub) idêntico à referência */}
+          {/* Choice Hub com Prestador de serviço e Empresa */}
           <div className="rounded-[2.5rem] border border-white/20 bg-white p-7 text-[#0d2227] shadow-2xl shadow-black/30 backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-[#eaf2ef] pb-5">
               <div className="flex items-center gap-3">
@@ -86,7 +85,7 @@ export default function Home() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c68b48]/15 text-[#a46d32] mb-3">
                   <UsersRound className="h-5 w-5" />
                 </div>
-                <span className="rounded-md bg-[#f3e4d4] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#915a24]">Autônomo</span>
+                <span className="rounded-md bg-[#f3e4d4] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#915a24]">Prestador de serviço</span>
                 <h4 className="mt-3 text-lg font-bold text-[#0d2227]">Preste serviços.</h4>
                 <p className="mt-1 text-xs leading-5 text-[#526b73]">Clientes, empresas, PGR e materiais em um ambiente exclusivo.</p>
                 <div className="mt-4 inline-flex items-center text-xs font-bold text-[#915a24] group-hover:translate-x-1 transition-transform">
@@ -98,7 +97,7 @@ export default function Home() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c7474]/15 text-[#0c7474] mb-3">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
-                <span className="rounded-md bg-[#d9f1e7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#0c7474]">CLT</span>
+                <span className="rounded-md bg-[#d9f1e7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#0c7474]">Empresa</span>
                 <h4 className="mt-3 text-lg font-bold text-[#0d2227]">Cuide da rotina.</h4>
                 <p className="mt-1 text-xs leading-5 text-[#526b73]">Indicadores, treinamentos, documentos e PGR da empresa ativa.</p>
                 <div className="mt-4 inline-flex items-center text-xs font-bold text-[#0c7474] group-hover:translate-x-1 transition-transform">
@@ -110,7 +109,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Seção de Destaques / Excelência Profissional */}
+      {/* Seção de Destaques */}
       <section id="produto" className="bg-[#f8fcfb] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
@@ -126,7 +125,7 @@ export default function Home() {
               </span>
               <h3 className="text-xl font-bold text-[#0d2227]">Ambientes especializados</h3>
               <p className="mt-3 text-sm leading-6 text-[#526b73]">
-                Experiência dedicada para TST Autônomo na gestão de carteira e PGR, e para TST CLT no acompanhamento da rotina interna corporativa.
+                Experiência dedicada para prestadores de serviço na gestão de carteira e PGR, e para empresas no acompanhamento da rotina corporativa.
               </p>
             </article>
 
@@ -146,14 +145,14 @@ export default function Home() {
               </span>
               <h3 className="text-xl font-bold text-[#0d2227]">Biblioteca e suporte técnico</h3>
               <p className="mt-3 text-sm leading-6 text-[#526b73]">
-                Normas regulamentadoras, materiais de apoio e suporte contínuo para elevar o padrão da segurança do trabalho na sua empresa ou carteira.
+                Normas regulamentadoras, materiais de apoio e suporte contínuo para elevar o padrão da segurança do trabalho na sua operação.
               </p>
             </article>
           </div>
         </div>
       </section>
 
-      {/* Seção de Passos (Com conteúdos únicos e sem duplicação) */}
+      {/* Seção de Passos */}
       <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="rounded-[2.5rem] bg-[#072d32] px-8 py-14 text-white lg:px-16 shadow-2xl relative overflow-hidden">
           <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-[#14a095]/20 blur-[100px] pointer-events-none" />
