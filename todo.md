@@ -236,3 +236,6 @@
 - [x] Diferenciar as visualizações prioritárias dos ambientes Prestador de Serviço e Empresa.
 - [x] Validar responsividade, estados vazios, tooltips, interações e acessibilidade dos gráficos.
 - [x] Criar testes automatizados para os cálculos e a apresentação dos indicadores do dashboard.
+- [x] Analisar a referência Excel do dashboard de Empresa e registrar os padrões visuais, indicadores e interações relevantes.
+- [x] Mapear quais elementos da referência podem ser incorporados ao Portal TST usando somente dados reais do ambiente Empresa.
+- [x] Implementar, após validação da referência, os aprimoramentos selecionados no dashboard Empresa.
