@@ -34,7 +34,7 @@ vi.mock("./storage", () => storage);
 import { appRouter } from "./routers";
 
 const fixtureDate = new Date("2026-08-11T12:00:00.000Z");
-const certificateFixture = () => certificateSchema.parse({ id: 1, workspaceId: 7, companyId: null, participantName: "Ana", trainingName: "NR-35", issuedAt: fixtureDate, expiresAt: null, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
+const certificateFixture = () => certificateSchema.parse({ id: 1, workspaceId: 7, companyId: null, category: "certificate", participantName: "Ana", trainingName: "NR-35", issuedAt: fixtureDate, expiresAt: null, referenceUrl: null, notes: null, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const trainingFixture = () => trainingSchema.parse({ id: 2, workspaceId: 7, companyId: null, title: "Integração", status: "planned", scheduledAt: null, participantCount: 0, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const materialFixture = () => materialSchema.parse({ id: 3, workspaceId: 7, title: "Checklist de EPI", category: "checklist", description: null, referenceUrl: null, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const supportTicketFixture = () => supportTicketSchema.parse({ id: 4, workspaceId: 7, subject: "Dúvida sobre PGR", message: "Preciso de orientação sobre o ambiente de trabalho.", status: "open", createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
@@ -130,7 +130,7 @@ describe("portal protected flows", () => {
 
   it("permite que proprietário registre certificados e treinamentos", async () => {
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "owner" });
-    db.createCertificateForWorkspace.mockResolvedValue(certificateCreatedSchema.parse({ id: 31, workspaceId: 7, participantName: "Ana", trainingName: "NR-35", issuedAt: fixtureDate, createdByUserId: 12 }));
+    db.createCertificateForWorkspace.mockResolvedValue(certificateCreatedSchema.parse({ id: 31, workspaceId: 7, category: "certificate", participantName: "Ana", trainingName: "NR-35", issuedAt: fixtureDate, referenceUrl: null, notes: null, createdByUserId: 12 }));
     db.createTrainingForWorkspace.mockResolvedValue(trainingCreatedSchema.parse({ id: 32, workspaceId: 7, title: "Integração", participantCount: 4, createdByUserId: 12 }));
     const caller = appRouter.createCaller(createContext());
     await caller.portal.createCertificate({ workspaceId: 7, participantName: "Ana", trainingName: "NR-35", issuedAt: new Date("2026-08-11") });

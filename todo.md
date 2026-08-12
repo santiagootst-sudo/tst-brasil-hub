@@ -149,3 +149,8 @@
 - [x] Criar painel de resumo na página inicial com gráficos dinâmicos mostrando o status de inspeções e planos de ação.
 - [x] Implementar animações de carregamento e notificações visuais de sucesso ao alternar entre os perfis Autônomo e CLT.
 - [x] Adicionar funcionalidade de exportar relatórios do Gerador de PGR e das Inspeções diretamente para o formato PDF.
+
+- [x] Evoluir Controle Operacional de EPI com CA, validade, reposição e histórico de entrega por trabalhador.
+- [x] Organizar Documentos Legais e Certificados por tipo (NR-09/PGR, LTCAT, OS, PCMAT) vinculados à empresa.
+- [x] Criar modelos reutilizáveis de checklist de inspeção e conectar inspeções ao plano de ação.
+- [x] Ampliar indicadores de SST com tendências e pendências reais nos dashboards.

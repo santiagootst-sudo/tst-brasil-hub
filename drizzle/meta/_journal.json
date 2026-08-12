@@ -78,6 +78,27 @@
       "when": 1786500514335,
       "tag": "0010_large_jocasta",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1786502981375,
+      "tag": "0011_normal_wolf_cub",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1786504941541,
+      "tag": "0012_light_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "5",
+      "when": 1786505142740,
+      "tag": "0013_flippant_shatterstar",
+      "breakpoints": true
     }
   ]
 }

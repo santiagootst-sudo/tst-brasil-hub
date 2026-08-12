@@ -163,6 +163,27 @@ export const epiRequirements = mysqlTable("epi_requirements", {
   index("epi_requirements_company_idx").on(table.companyId),
 ]);
 
+export const epiDeliveries = mysqlTable("epi_deliveries", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  epiItemId: int("epiItemId").notNull(),
+  employeeId: int("employeeId").notNull(),
+  quantity: int("quantity").default(1).notNull(),
+  deliveryKind: mysqlEnum("deliveryKind", ["initial", "replacement"]).default("initial").notNull(),
+  deliveredAt: timestamp("deliveredAt").notNull(),
+  replacementDueAt: timestamp("replacementDueAt"),
+  notes: varchar("notes", { length: 1000 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("epi_deliveries_workspace_idx").on(table.workspaceId),
+  index("epi_deliveries_company_idx").on(table.companyId),
+  index("epi_deliveries_epi_idx").on(table.workspaceId, table.epiItemId),
+  index("epi_deliveries_employee_idx").on(table.workspaceId, table.employeeId),
+  index("epi_deliveries_replacement_idx").on(table.workspaceId, table.replacementDueAt),
+]);
 export const sstOccurrences = mysqlTable("sst_occurrences", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
@@ -183,11 +204,47 @@ export const sstOccurrences = mysqlTable("sst_occurrences", {
   index("sst_occurrences_occurred_at_idx").on(table.workspaceId, table.occurredAt),
 ]);
 
+export const inspectionTemplates = mysqlTable("inspection_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  name: varchar("name", { length: 255 }).notNull(),
+  riskType: varchar("riskType", { length: 120 }).notNull(),
+  routineType: varchar("routineType", { length: 120 }).notNull(),
+  description: varchar("description", { length: 1500 }),
+  active: boolean("active").default(true).notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("inspection_templates_workspace_idx").on(table.workspaceId),
+  index("inspection_templates_company_idx").on(table.companyId),
+  index("inspection_templates_department_idx").on(table.departmentId),
+  index("inspection_templates_active_idx").on(table.workspaceId, table.active),
+]);
+
+export const inspectionTemplateItems = mysqlTable("inspection_template_items", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  templateId: int("templateId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  guidance: varchar("guidance", { length: 1000 }),
+  required: boolean("required").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("inspection_template_items_workspace_idx").on(table.workspaceId),
+  index("inspection_template_items_template_idx").on(table.templateId, table.sortOrder),
+]);
+
 export const inspections = mysqlTable("inspections", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
   companyId: int("companyId").notNull(),
   departmentId: int("departmentId"),
+  templateId: int("templateId"),
   title: varchar("title", { length: 255 }).notNull(),
   dueAt: timestamp("dueAt"),
   completedAt: timestamp("completedAt"),
@@ -252,16 +309,20 @@ export const certificates = mysqlTable("certificates", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
   companyId: int("companyId"),
+  category: mysqlEnum("category", ["certificate", "pgr", "ltcat", "os", "pcmat", "laudo", "other"]).default("certificate").notNull(),
   participantName: varchar("participantName", { length: 255 }).notNull(),
   trainingName: varchar("trainingName", { length: 255 }).notNull(),
   issuedAt: timestamp("issuedAt").notNull(),
   expiresAt: timestamp("expiresAt"),
+  referenceUrl: varchar("referenceUrl", { length: 2048 }),
+  notes: varchar("notes", { length: 1500 }),
   createdByUserId: int("createdByUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [
   index("certificates_workspace_idx").on(table.workspaceId),
   index("certificates_company_idx").on(table.companyId),
+  index("certificates_category_idx").on(table.workspaceId, table.category),
 ]);
 
 export const trainings = mysqlTable("trainings", {
@@ -316,7 +377,10 @@ export type JobRole = typeof jobRoles.$inferSelect;
 export type Employee = typeof employees.$inferSelect;
 export type EpiItem = typeof epiItems.$inferSelect;
 export type EpiRequirement = typeof epiRequirements.$inferSelect;
+export type EpiDelivery = typeof epiDeliveries.$inferSelect;
 export type SstOccurrence = typeof sstOccurrences.$inferSelect;
+export type InspectionTemplate = typeof inspectionTemplates.$inferSelect;
+export type InspectionTemplateItem = typeof inspectionTemplateItems.$inferSelect;
 export type Inspection = typeof inspections.$inferSelect;
 export type ActionItem = typeof actionItems.$inferSelect;
 export type ClientEngagement = typeof clientEngagements.$inferSelect;

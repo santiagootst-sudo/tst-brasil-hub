@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { actionItemCreatedSchema, createActionItemInput, createInspectionInput, inspectionCreatedSchema, planningSnapshotSchema, workspaceIdInput } from "@shared/contracts/portal";
+import { actionItemCreatedSchema, createActionItemInput, createInspectionInput, createInspectionTemplateInput, inspectionCreatedSchema, inspectionTemplateCreatedSchema, planningSnapshotSchema, workspaceIdInput } from "@shared/contracts/portal";
 import * as portalDb from "../db";
 import { canManageWorkspace } from "../workspaceAccess";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -27,15 +27,25 @@ async function validateCompanyDepartment(workspaceId: number, companyId: number,
 export const planningRouter = router({
   planning: protectedProcedure.input(workspaceIdInput).output(planningSnapshotSchema).query(async ({ ctx, input }) => {
     await requireWorkspaceAccess(ctx.user.id, input.workspaceId);
-    const [inspections, actionItems] = await Promise.all([
+    const [inspections, actionItems, templates] = await Promise.all([
       portalDb.listInspectionsForWorkspace(input.workspaceId),
       portalDb.listActionItemsForWorkspace(input.workspaceId),
+      portalDb.listInspectionTemplatesForWorkspace(input.workspaceId),
     ]);
-    return { inspections, actionItems };
+    return { inspections, actionItems, templates };
+  }),
+  createInspectionTemplate: protectedProcedure.input(createInspectionTemplateInput).output(inspectionTemplateCreatedSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    await validateCompanyDepartment(input.workspaceId, input.companyId, input.departmentId);
+    return portalDb.createInspectionTemplateForWorkspace({ ...input, createdByUserId: ctx.user.id });
   }),
   createInspection: protectedProcedure.input(createInspectionInput).output(inspectionCreatedSchema).mutation(async ({ ctx, input }) => {
     await requireManagedWorkspace(ctx.user.id, input.workspaceId);
     await validateCompanyDepartment(input.workspaceId, input.companyId, input.departmentId);
+    if (input.templateId) {
+      const template = await portalDb.getInspectionTemplateForWorkspace(input.templateId, input.workspaceId);
+      if (!template || template.companyId !== input.companyId || (template.departmentId && template.departmentId !== input.departmentId)) throw new TRPCError({ code: "BAD_REQUEST", message: "O modelo de checklist não pertence à empresa ou setor selecionado." });
+    }
     return portalDb.createInspectionForWorkspace({ ...input, createdByUserId: ctx.user.id });
   }),
   createActionItem: protectedProcedure.input(createActionItemInput).output(actionItemCreatedSchema).mutation(async ({ ctx, input }) => {

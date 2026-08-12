@@ -43,12 +43,18 @@ export const createPgrProjectInput = workspaceIdInput.extend({
   name: z.string().trim().min(2).max(255),
 });
 
+export const certificateCategories = ["certificate", "pgr", "ltcat", "os", "pcmat", "laudo", "other"] as const;
+export const certificateCategorySchema = z.enum(certificateCategories);
+
 export const createCertificateInput = workspaceIdInput.extend({
   companyId: z.number().int().positive().optional(),
+  category: certificateCategorySchema.default("certificate"),
   participantName: z.string().trim().min(2).max(255),
   trainingName: z.string().trim().min(2).max(255),
   issuedAt: z.coerce.date(),
   expiresAt: z.coerce.date().nullable().optional(),
+  referenceUrl: z.string().trim().url().max(2048).nullable().optional(),
+  notes: z.string().trim().max(1500).nullable().optional(),
 });
 
 export const createTrainingInput = workspaceIdInput.extend({
@@ -164,10 +170,13 @@ export const certificateSchema = z.object({
   id: z.number().int().positive(),
   workspaceId: z.number().int().positive(),
   companyId: z.number().int().positive().nullable(),
+  category: certificateCategorySchema,
   participantName: z.string(),
   trainingName: z.string(),
   issuedAt: z.date(),
   expiresAt: z.date().nullable(),
+  referenceUrl: z.string().nullable(),
+  notes: z.string().nullable(),
   createdByUserId: z.number().int().positive(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -302,10 +311,13 @@ export const certificateCreatedSchema = z.object({
   id: z.number().int().positive(),
   workspaceId: z.number().int().positive(),
   companyId: z.number().int().positive().nullable().optional(),
+  category: certificateCategorySchema,
   participantName: z.string(),
   trainingName: z.string(),
   issuedAt: z.date(),
   expiresAt: z.date().nullable().optional(),
+  referenceUrl: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   createdByUserId: z.number().int().positive(),
 });
 
@@ -356,6 +368,17 @@ export const createEpiItemInput = workspaceIdInput.extend({
   expiresAt: z.coerce.date().nullable().optional(),
 });
 
+export const createEpiDeliveryInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  epiItemId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  quantity: z.number().int().positive().max(1000).default(1),
+  deliveryKind: z.enum(["initial", "replacement"]).default("initial"),
+  deliveredAt: z.coerce.date(),
+  replacementDueAt: z.coerce.date().nullable().optional(),
+  notes: z.string().trim().max(1000).nullable().optional(),
+});
+
 export const createEpiRequirementInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   jobRoleId: z.number().int().positive(),
@@ -382,6 +405,22 @@ export const epiItemSchema = z.object({
   minimumStock: z.number().int().nonnegative(),
   expiresAt: z.date().nullable(),
   active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const epiDeliverySchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  epiItemId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  deliveryKind: z.enum(["initial", "replacement"]),
+  deliveredAt: z.date(),
+  replacementDueAt: z.date().nullable(),
+  notes: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -415,6 +454,7 @@ export const sstOccurrenceSchema = z.object({
 export const operationalSafetySnapshotSchema = z.object({
   epiItems: z.array(epiItemSchema),
   epiRequirements: z.array(epiRequirementSchema),
+  epiDeliveries: z.array(epiDeliverySchema),
   occurrences: z.array(sstOccurrenceSchema),
 });
 
@@ -429,6 +469,20 @@ export const epiItemCreatedSchema = z.object({
   minimumStock: z.number().int().nonnegative(),
   expiresAt: z.date().nullable(),
   active: z.literal(true),
+});
+
+export const epiDeliveryCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  epiItemId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  quantity: z.number().int().positive(),
+  deliveryKind: z.enum(["initial", "replacement"]),
+  deliveredAt: z.date(),
+  replacementDueAt: z.date().nullable(),
+  notes: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
 });
 
 export const epiRequirementCreatedSchema = z.object({
@@ -458,9 +512,25 @@ export const actionItemStatuses = ["open", "in_progress", "completed"] as const;
 export const inspectionStatusSchema = z.enum(inspectionStatuses);
 export const actionItemStatusSchema = z.enum(actionItemStatuses);
 
+export const createInspectionTemplateInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  name: z.string().trim().min(3).max(255),
+  riskType: z.string().trim().min(2).max(120),
+  routineType: z.string().trim().min(2).max(120),
+  description: z.string().trim().max(1500).nullable().optional(),
+  items: z.array(z.object({
+    title: z.string().trim().min(2).max(255),
+    guidance: z.string().trim().max(1000).nullable().optional(),
+    required: z.boolean().default(true),
+    sortOrder: z.number().int().min(0).default(0),
+  })).min(1).max(100),
+});
+
 export const createInspectionInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   departmentId: z.number().int().positive().nullable().optional(),
+  templateId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().min(3).max(255),
   dueAt: z.coerce.date().nullable().optional(),
   notes: z.string().trim().max(1500).nullable().optional(),
@@ -476,11 +546,40 @@ export const createActionItemInput = workspaceIdInput.extend({
   dueAt: z.coerce.date().nullable().optional(),
 });
 
+export const inspectionTemplateItemSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  templateId: z.number().int().positive(),
+  title: z.string(),
+  guidance: z.string().nullable(),
+  required: z.boolean(),
+  sortOrder: z.number().int().nonnegative(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const inspectionTemplateSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  name: z.string(),
+  riskType: z.string(),
+  routineType: z.string(),
+  description: z.string().nullable(),
+  active: z.boolean(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  items: z.array(inspectionTemplateItemSchema),
+});
+
 export const inspectionSchema = z.object({
   id: z.number().int().positive(),
   workspaceId: z.number().int().positive(),
   companyId: z.number().int().positive(),
   departmentId: z.number().int().positive().nullable(),
+  templateId: z.number().int().positive().nullable(),
   title: z.string(),
   dueAt: z.date().nullable(),
   completedAt: z.date().nullable(),
@@ -510,6 +609,21 @@ export const actionItemSchema = z.object({
 export const planningSnapshotSchema = z.object({
   inspections: z.array(inspectionSchema),
   actionItems: z.array(actionItemSchema),
+  templates: z.array(inspectionTemplateSchema),
+});
+
+export const inspectionTemplateCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  name: z.string(),
+  riskType: z.string(),
+  routineType: z.string(),
+  description: z.string().nullable(),
+  active: z.literal(true),
+  createdByUserId: z.number().int().positive(),
+  items: z.array(inspectionTemplateItemSchema),
 });
 
 export const inspectionCreatedSchema = z.object({
@@ -517,6 +631,7 @@ export const inspectionCreatedSchema = z.object({
   workspaceId: z.number().int().positive(),
   companyId: z.number().int().positive(),
   departmentId: z.number().int().positive().nullable(),
+  templateId: z.number().int().positive().nullable(),
   title: z.string(),
   dueAt: z.date().nullable(),
   notes: z.string().nullable(),
