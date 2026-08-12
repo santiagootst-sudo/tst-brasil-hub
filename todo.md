@@ -227,3 +227,6 @@
 - [x] Adicionar painel de controle para monitorar validade de EPIs com alertas visuais de reposição ou troca.
 - [x] Criar wireframes iniciais do módulo de Saúde Ocupacional para exames médicos periódicos e emissão de ASO.
 - [x] Adicionar opção de gerar QR Code na entrega de EPI para funcionários assinarem diretamente pelo celular.
+- [x] Criar painel visual no módulo de saúde ocupacional com alertas de exames e ASOs pendentes.
+- [x] Adicionar sugestão automática de periodicidade de exames com base nos riscos da função.
+- [x] Implementar tela de confirmação no celular após leitura do QR Code com detalhes de EPIs antes da assinatura.
