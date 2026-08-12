@@ -259,3 +259,7 @@
 - [x] Adicionar gráficos dinâmicos de status, pendências, treinamentos, inspeções e ações no dashboard Empresa sem inventar métricas.
 - [x] Validar filtros, interações, estados sem dados, responsividade e acessibilidade dos novos gráficos.
 - [x] Executar testes e salvar checkpoint da evolução do dashboard Empresa.
+- [x] Remover a barra lateral de módulos da tela de escolha de perfil e ambiente.
+- [x] Redesenhar a entrada com diferenças claras entre Prestador de Serviço e Empresa, usando transparência, profundidade e cores confortáveis.
+- [x] Adicionar microinterações, ações de escolha e responsividade sem transformar a tela em dashboard.
+- [x] Validar visualmente a nova entrada em desktop e mobile e salvar checkpoint.
