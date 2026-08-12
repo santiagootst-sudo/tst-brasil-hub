@@ -182,3 +182,4 @@
 - [x] Corrigir profundamente a direção visual da landing page para refletir com exatidão a referência enviada (hero escuro em teal com atmosfera luminosa, tipografia com contraste ideal, Choice Hub com cartões dourado-acobreado/teal e seções alinhadas).
 - [x] Atualizar a terminologia pública da landing page de TST Autônomo / TST CLT para Prestador de serviço / Empresa, mantendo os fluxos técnicos inalterados.
 - [x] Adicionar efeito de hover suave e destaque de seleção nos cartões do Choice Hub, incluir botões de chamada para ação claros e criar uma seção de benefícios detalhados para Prestador de serviço e Empresa.
+- [x] Executar testes de eficiência máxima no Gerador de PGR (persistência, reabertura em tela cheia, exportação em PDF e validação de dados do prestador de serviço).
