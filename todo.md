@@ -225,3 +225,5 @@
 - [x] Criar histórico detalhado no perfil de cada funcionário com todos os EPIs recebidos, devolvidos ou substituídos.
 - [x] Implementar recurso de assinatura digital para os funcionários assinarem fichas de EPI diretamente na plataforma.
 - [x] Adicionar painel de controle para monitorar validade de EPIs com alertas visuais de reposição ou troca.
+- [x] Criar wireframes iniciais do módulo de Saúde Ocupacional para exames médicos periódicos e emissão de ASO.
+- [x] Adicionar opção de gerar QR Code na entrega de EPI para funcionários assinarem diretamente pelo celular.
