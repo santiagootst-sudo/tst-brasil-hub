@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BrandLockup } from "@/components/BrandLockup";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -157,8 +158,8 @@ export default function WorkspaceHub() {
       <div className="relative mx-auto min-h-screen max-w-[1440px] px-4 py-4 sm:px-6 lg:px-10">
         <header className="mx-auto flex max-w-6xl items-center justify-between rounded-[1.5rem] border border-white/80 bg-white/65 px-4 py-3 shadow-[0_14px_40px_rgba(28,74,77,0.07)] backdrop-blur-2xl sm:px-5">
           <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-[#063b43] via-[#0c7474] to-[#8edec7] p-[1px] shadow-[0_8px_20px_rgba(12,116,116,0.18)]"><span className="grid h-full w-full place-items-center rounded-[0.9rem] bg-white/90"><ShieldCheck className="h-5 w-5 text-[#0c7474]" /></span></span>
-            <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#0c8c89]">Portal TST Brasil</p><p className="text-xs font-semibold text-[#547078]">Seu espaço de trabalho SST</p></div>
+            <BrandLockup aria-label="TST Brasil Hub" />
+            <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#0c8c89]">TST Brasil Hub</p><p className="text-xs font-semibold text-[#547078]">Seu espaço profissional de SST</p></div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {billing.data?.subscription && <Button onClick={() => manageSubscription.mutate()} variant="outline" className="hidden rounded-xl border-white/80 bg-white/45 text-xs font-bold text-[#0c7474] backdrop-blur-md hover:bg-white/80 sm:inline-flex">Gerenciar assinatura</Button>}
@@ -193,7 +194,7 @@ export default function WorkspaceHub() {
 
           <section className="mt-9 rounded-[1.75rem] border border-white/80 bg-white/45 p-5 shadow-[0_14px_35px_rgba(28,74,77,0.06)] backdrop-blur-xl sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">Em comum nos dois ambientes</p><h2 className="mt-1 text-lg font-bold text-[#173b43]">Ferramentas que acompanham sua atuação.</h2></div><p className="max-w-sm text-xs leading-5 text-[#668087]">A diferença está no foco da jornada. O ecossistema técnico continua conectado.</p></div><div className="mt-5 flex flex-wrap gap-2">{sharedHighlights.map(({ icon: Icon, label }) => <span key={label} className="inline-flex items-center gap-2 rounded-xl border border-white/85 bg-white/60 px-3 py-2 text-xs font-semibold text-[#49666d] shadow-sm backdrop-blur-md"><Icon className="h-3.5 w-3.5 text-[#0c8c89]" />{label}</span>)}</div></section>
 
-          <footer className="mt-8 flex flex-col justify-between gap-2 border-t border-white/70 pt-5 text-xs text-[#789095] sm:flex-row"><span>Portal TST Brasil · ambientes profissionais de SST</span><span>Escolha um perfil para continuar</span></footer>
+          <footer className="mt-8 flex flex-col justify-between gap-2 border-t border-white/70 pt-5 text-xs text-[#789095] sm:flex-row"><span>TST Brasil Hub · ambientes profissionais de SST</span><span>Escolha um perfil para continuar</span></footer>
         </main>
       </div>
 

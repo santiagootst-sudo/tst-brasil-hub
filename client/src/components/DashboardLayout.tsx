@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Link, useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BrandLockup } from "@/components/BrandLockup";
 import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
@@ -15,7 +16,7 @@ type DashboardLayoutProps = {
   title?: string;
 };
 
-export default function DashboardLayout({ children, title = "Portal TST Brasil" }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, title = "TST Brasil Hub" }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
   const search = useSearch();
   const collapsed = false;
@@ -115,7 +116,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     <div className="min-h-screen bg-[#f6faf9] text-[#102b32]">
       <aside className={`fixed inset-y-0 left-0 z-30 hidden w-72 flex-col px-3 py-5 text-[#d9eeea] shadow-2xl lg:flex ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
         <div className="mb-7 flex items-center px-3">
-          <img src="/manus-storage/portal-tst-logo-clean_28523a59.png" alt="Portal TST Brasil" className="h-14 w-[214px] object-contain object-left" />
+          <BrandLockup inverse aria-label="TST Brasil Hub" />
         </div>
 
         <nav className="flex-1 space-y-4 overflow-y-auto pr-1">

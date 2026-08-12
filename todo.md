@@ -271,3 +271,7 @@
 - [x] Redesenhar os gráficos do dashboard com uma composição visualmente rica, usando transparências em camadas, gradientes fluidos e indicadores de tendências e status.
 - [ ] Validar a interatividade, as microinterações e a responsividade em desktop e mobile.
 - [ ] Salvar checkpoint e entregar a nova experiência visual expressiva.
+- [x] Criar diretrizes de cores e kit de identidade visual para temas claro e escuro do TST Brasil Hub.
+- [x] Gerar versão simplificada do logotipo e favicon baseados na nova identidade.
+- [x] Atualizar a tela de login e escolha de perfil com a nova marca TST Brasil Hub.
+- [x] Validar responsividade, testes e salvar checkpoint final.

@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
+import { BrandLockup } from "@/components/BrandLockup";
 import { useState } from "react";
 
 const steps = [
@@ -26,7 +27,7 @@ export default function Home() {
       {/* Top Navbar */}
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8 bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-[#e5efe8]">
         <Link href="/" className="flex items-center">
-          <img src="/manus-storage/portal-tst-logo-clean_28523a59.png" alt="Portal do TST Brasil" className="h-12 w-[190px] object-contain object-left" />
+          <BrandLockup aria-label="TST Brasil Hub" />
         </Link>
         <div className="hidden items-center gap-8 text-sm font-semibold text-[#405c63] md:flex">
           <a href="#beneficios" className="hover:text-[#0c7474]">Benefícios</a>
@@ -47,7 +48,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10 grid gap-12 lg:grid-cols-[1.1fr_.9fr] items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#48c7b8]/40 bg-[#063b43]/60 px-4 py-2 text-xs font-bold text-[#88ddc4] backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5" /> O maior portal de segurança do trabalho do Brasil
+              <Sparkles className="h-3.5 w-3.5" /> TST Brasil Hub · ecossistema profissional de SST
             </span>
             <h1 className="mt-6 font-display text-4xl sm:text-6xl font-extrabold leading-[1.08] tracking-[-.03em] text-white">
               A PLATAFORMA PARA PROFISSIONAIS DE <span className="text-[#64e2d1]">SST QUE QUEREM EVOLUIR</span>.
@@ -70,13 +71,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Choice Hub Aprimorado com Hover Suave, Seleção e CTAs */}
+          {/* Workspace Hub Aprimorado com Hover Suave, Seleção e CTAs */}
           <div className="rounded-[2.5rem] border border-white/20 bg-white p-7 text-[#0d2227] shadow-2xl shadow-black/30 backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-[#eaf2ef] pb-5">
               <div className="flex items-center gap-3">
-                <img src="/manus-storage/portal-tst-logo-clean_28523a59.png" alt="Logo" className="h-10 w-auto object-contain" />
+                <BrandLockup compact aria-label="TST Brasil Hub" />
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#0c8c89]">Choice Hub</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#0c8c89]">Workspace Hub</span>
                   <h3 className="text-base font-bold text-[#0d2227]">Escolha seu ambiente de trabalho</h3>
                 </div>
               </div>
@@ -147,7 +148,7 @@ export default function Home() {
               Benefícios exclusivos para cada modelo de atuação.
             </h2>
             <p className="mt-4 text-base text-[#526b73]">
-              Seja prestando consultoria para múltiplas empresas ou gerindo a segurança interna de uma organização, o Portal TST entrega a ferramenta certa.
+              Seja prestando consultoria para múltiplas empresas ou gerindo a segurança interna de uma organização, o TST Brasil Hub entrega a ferramenta certa.
             </p>
           </div>
 
