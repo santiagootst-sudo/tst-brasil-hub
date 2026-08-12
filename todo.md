@@ -179,3 +179,4 @@
 - [x] Diagnosticar e corrigir o erro React removeChild na reconciliação de componentes e portais.
 - [x] Evoluir o gerenciador de EPI do ambiente TST CLT com ficha individual por trabalhador, aceite digital na entrega, devolução com condição do equipamento, histórico consolidado e central de alertas operacionais.
 - [x] Reconstruir a landing page do Portal TST Brasil alinhada à referência visual (hero com gradiente teal e atmosfera luminosa, cards de ambiente estilizados, seções de recursos e 3 passos com conteúdos exclusivos sem duplicação).
+- [x] Corrigir profundamente a direção visual da landing page para refletir com exatidão a referência enviada (hero escuro em teal com atmosfera luminosa, tipografia com contraste ideal, Choice Hub com cartões dourado-acobreado/teal e seções alinhadas).
