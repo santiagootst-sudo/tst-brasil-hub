@@ -1,8 +1,9 @@
-import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, FileCheck2, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, FileCheck2, ShieldCheck, Sparkles, UsersRound, Layers, Briefcase, Building2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const steps = [
   { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente para desbloquear o acesso aos ambientes especializados de gestão em segurança do trabalho." },
@@ -13,6 +14,8 @@ const steps = [
 export default function Home() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
+  const [selectedHub, setSelectedHub] = useState<"prestador" | "empresa">("prestador");
+
   const enter = () => {
     if (isAuthenticated) setLocation("/app");
     else startLogin();
@@ -26,10 +29,10 @@ export default function Home() {
           <img src="/manus-storage/portal-tst-logo-clean_28523a59.png" alt="Portal do TST Brasil" className="h-12 w-[190px] object-contain object-left" />
         </Link>
         <div className="hidden items-center gap-8 text-sm font-semibold text-[#405c63] md:flex">
-          <a href="#sobre" className="hover:text-[#0c7474]">Sobre Nós</a>
+          <a href="#beneficios" className="hover:text-[#0c7474]">Benefícios</a>
           <a href="#produto" className="hover:text-[#0c7474]">Produto</a>
           <Link href="/planos" className="hover:text-[#0c7474]">Planos</Link>
-          <a href="#funcionalidades" className="hover:text-[#0c7474]">Funcionalidades</a>
+          <a href="#como-funciona" className="hover:text-[#0c7474]">Como Funciona</a>
         </div>
         <Button onClick={enter} className="rounded-full bg-[#0c7474] px-7 py-2.5 text-sm text-white hover:bg-[#063b43] font-bold shadow-md shadow-[#0c7474]/15">
           {loading ? "Carregando" : isAuthenticated ? "Acessar portal" : "Portal de Acesso"}
@@ -67,7 +70,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Choice Hub com Prestador de serviço e Empresa */}
+          {/* Choice Hub Aprimorado com Hover Suave, Seleção e CTAs */}
           <div className="rounded-[2.5rem] border border-white/20 bg-white p-7 text-[#0d2227] shadow-2xl shadow-black/30 backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-[#eaf2ef] pb-5">
               <div className="flex items-center gap-3">
@@ -81,35 +84,142 @@ export default function Home() {
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div onClick={enter} className="group cursor-pointer rounded-2xl border border-[#d2a366]/40 bg-gradient-to-b from-[#fbf6f0] to-[#f7f0e8] p-5 transition-all hover:border-[#c68b48] hover:shadow-lg">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c68b48]/15 text-[#a46d32] mb-3">
-                  <UsersRound className="h-5 w-5" />
+              <div
+                onClick={() => setSelectedHub("prestador")}
+                onMouseEnter={() => setSelectedHub("prestador")}
+                className={`group cursor-pointer rounded-2xl border p-5 transition-all duration-300 transform hover:-translate-y-1 ${
+                  selectedHub === "prestador"
+                    ? "border-[#c68b48] bg-gradient-to-b from-[#fbf6f0] to-[#f7f0e8] ring-2 ring-[#c68b48]/40 shadow-xl"
+                    : "border-[#e5d5c5] bg-[#fbf6f0]/50 hover:border-[#c68b48] hover:shadow-md"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c68b48]/15 text-[#a46d32]">
+                    <Briefcase className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-md bg-[#f3e4d4] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#915a24]">Prestador</span>
                 </div>
-                <span className="rounded-md bg-[#f3e4d4] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#915a24]">Prestador de serviço</span>
-                <h4 className="mt-3 text-lg font-bold text-[#0d2227]">Preste serviços.</h4>
+                <h4 className="text-lg font-bold text-[#0d2227]">Preste serviços.</h4>
                 <p className="mt-1 text-xs leading-5 text-[#526b73]">Clientes, empresas, PGR e materiais em um ambiente exclusivo.</p>
-                <div className="mt-4 inline-flex items-center text-xs font-bold text-[#915a24] group-hover:translate-x-1 transition-transform">
-                  Abrir ambiente <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </div>
+                <Button
+                  onClick={enter}
+                  className="mt-5 w-full rounded-xl bg-[#a46d32] text-white text-xs font-bold hover:bg-[#855523] shadow-sm"
+                >
+                  Acessar Prestador <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
               </div>
 
-              <div onClick={enter} className="group cursor-pointer rounded-2xl border border-[#0c7474]/30 bg-gradient-to-b from-[#f0f9f8] to-[#eaf5f3] p-5 transition-all hover:border-[#0c7474] hover:shadow-lg">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c7474]/15 text-[#0c7474] mb-3">
-                  <ShieldCheck className="h-5 w-5" />
+              <div
+                onClick={() => setSelectedHub("empresa")}
+                onMouseEnter={() => setSelectedHub("empresa")}
+                className={`group cursor-pointer rounded-2xl border p-5 transition-all duration-300 transform hover:-translate-y-1 ${
+                  selectedHub === "empresa"
+                    ? "border-[#0c7474] bg-gradient-to-b from-[#f0f9f8] to-[#eaf5f3] ring-2 ring-[#0c7474]/40 shadow-xl"
+                    : "border-[#cce5e0] bg-[#f0f9f8]/50 hover:border-[#0c7474] hover:shadow-md"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c7474]/15 text-[#0c7474]">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-md bg-[#d9f1e7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#0c7474]">Empresa</span>
                 </div>
-                <span className="rounded-md bg-[#d9f1e7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#0c7474]">Empresa</span>
-                <h4 className="mt-3 text-lg font-bold text-[#0d2227]">Cuide da rotina.</h4>
+                <h4 className="text-lg font-bold text-[#0d2227]">Cuide da rotina.</h4>
                 <p className="mt-1 text-xs leading-5 text-[#526b73]">Indicadores, treinamentos, documentos e PGR da empresa ativa.</p>
-                <div className="mt-4 inline-flex items-center text-xs font-bold text-[#0c7474] group-hover:translate-x-1 transition-transform">
-                  Abrir ambiente <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                </div>
+                <Button
+                  onClick={enter}
+                  className="mt-5 w-full rounded-xl bg-[#0c7474] text-white text-xs font-bold hover:bg-[#063b43] shadow-sm"
+                >
+                  Acessar Empresa <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Seção de Destaques */}
+      {/* Seção Detalhada de Benefícios e Recursos por Perfil */}
+      <section id="beneficios" className="py-20 bg-white border-b border-[#e1ede8]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Recursos sob medida</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-[-.03em] text-[#0d2227]">
+              Benefícios exclusivos para cada modelo de atuação.
+            </h2>
+            <p className="mt-4 text-base text-[#526b73]">
+              Seja prestando consultoria para múltiplas empresas ou gerindo a segurança interna de uma organização, o Portal TST entrega a ferramenta certa.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-10 lg:grid-cols-2">
+            {/* Bloco Prestador de Serviço */}
+            <div className="rounded-3xl border border-[#d2a366]/30 bg-gradient-to-b from-[#fbf6f0] to-white p-8 shadow-sm">
+              <div className="flex items-center gap-4">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f3e4d4] text-[#915a24]">
+                  <Briefcase className="h-6 w-6" />
+                </span>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-[.15em] text-[#915a24]">Para Prestadores de Serviço</span>
+                  <h3 className="text-2xl font-bold text-[#0d2227]">Gestão ágil de carteira e clientes</h3>
+                </div>
+              </div>
+              <ul className="mt-8 space-y-4 text-sm text-[#405c63]">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#915a24] shrink-0 mt-0.5" />
+                  <span><b>Multi-empresas isoladas:</b> Gerencie diferentes clientes e filiais sem misturar dados ou logos.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#915a24] shrink-0 mt-0.5" />
+                  <span><b>Gerador de PGR e LTCAT:</b> Crie documentações técnicas profissionais com exportação instantânea em PDF.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#915a24] shrink-0 mt-0.5" />
+                  <span><b>Agenda de visitas e contratos:</b> Acompanhe status de visitas, honorários e entregas de forma centralizada.</span>
+                </li>
+              </ul>
+              <div className="mt-8 pt-6 border-t border-[#f3e4d4]">
+                <Button onClick={enter} className="rounded-xl bg-[#a46d32] text-white font-bold hover:bg-[#855523] px-6">
+                  Começar como Prestador <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Bloco Empresa */}
+            <div className="rounded-3xl border border-[#0c7474]/30 bg-gradient-to-b from-[#f0f9f8] to-white p-8 shadow-sm">
+              <div className="flex items-center gap-4">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#d9f1e7] text-[#0c7474]">
+                  <Building2 className="h-6 w-6" />
+                </span>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-[.15em] text-[#0c8c89]">Para Empresas e Corporativo</span>
+                  <h3 className="text-2xl font-bold text-[#0d2227]">Controle total da rotina interna</h3>
+                </div>
+              </div>
+              <ul className="mt-8 space-y-4 text-sm text-[#405c63]">
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#0c7474] shrink-0 mt-0.5" />
+                  <span><b>Controle avançado de EPIs:</b> Estoque mínimo, CA, validades, fichas individuais e aceite digital.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#0c7474] shrink-0 mt-0.5" />
+                  <span><b>Inspeções e Planos de Ação:</b> Checklists reutilizáveis por setor e acompanhamento de pendências críticas.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-[#0c7474] shrink-0 mt-0.5" />
+                  <span><b>Treinamentos e Indicadores:</b> Acompanhe capacitações, ocorrências SST e conformidade em tempo real.</span>
+                </li>
+              </ul>
+              <div className="mt-8 pt-6 border-t border-[#d9f1e7]">
+                <Button onClick={enter} className="rounded-xl bg-[#0c7474] text-white font-bold hover:bg-[#063b43] px-6">
+                  Começar como Empresa <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Seção de Destaques / Excelência Profissional */}
       <section id="produto" className="bg-[#f8fcfb] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
