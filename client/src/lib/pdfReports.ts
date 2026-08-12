@@ -197,3 +197,70 @@ export function downloadInspectionReportPdf(input: InspectionReportInput) {
 
 export { formatDate, safeFileName };
 export type { InspectionRecord, ActionRecord, InspectionReportInput, PgrReportInput };
+type EpiReceiptInput = {
+  workspaceName: string;
+  companyName: string;
+  employeeName: string;
+  epiName: string;
+  caNumber?: string | null;
+  manufacturer?: string | null;
+  quantity: number;
+  deliveryKind: "initial" | "replacement";
+  deliveredAt: PdfDate;
+  replacementDueAt?: PdfDate;
+  signedByName: string;
+  deliveryId: number;
+};
+
+export function buildEpiReceiptPdf(input: EpiReceiptInput) {
+  const document = setupDocument("Comprovante Digital de Entrega de EPI", input.workspaceName, new Date());
+  document.setFont("helvetica", "bold");
+  document.setFontSize(11);
+  document.text("Empresa", 16, 62);
+  document.setFont("helvetica", "normal");
+  document.text(input.companyName, 55, 62);
+  document.setFont("helvetica", "bold");
+  document.text("Trabalhador", 16, 70);
+  document.setFont("helvetica", "normal");
+  document.text(input.employeeName, 55, 70);
+  document.setFont("helvetica", "bold");
+  document.text("Equipamento (EPI)", 16, 78);
+  document.setFont("helvetica", "normal");
+  document.text(input.epiName + (input.caNumber ? ` (CA ${input.caNumber})` : ""), 55, 78);
+  document.setFont("helvetica", "bold");
+  document.text("Quantidade", 16, 86);
+  document.setFont("helvetica", "normal");
+  document.text(`${input.quantity} unidade(s) · ${input.deliveryKind === "replacement" ? "Reposição / troca" : "Entrega inicial"}`, 55, 86);
+  document.setFont("helvetica", "bold");
+  document.text("Data de Entrega", 16, 94);
+  document.setFont("helvetica", "normal");
+  document.text(formatDate(input.deliveredAt), 55, 94);
+  document.setFont("helvetica", "bold");
+  document.text("Reposição Prevista", 16, 102);
+  document.setFont("helvetica", "normal");
+  document.text(formatDate(input.replacementDueAt), 55, 102);
+
+  document.setDrawColor(216, 235, 232);
+  document.line(16, 112, 194, 112);
+
+  let y = 124;
+  y = writeWrapped(document, `Declaro que recebi o EPI acima especificado em perfeitas condições de uso, comprometendo-me a usá-lo exclusivamente para a finalidade a que se destina, zelar pela sua guarda e conservação, bem como comunicar à empresa qualquer dano ou extravio, em conformidade com a Norma Regulamentadora NR-06.`, 16, y, 178);
+
+  y += 10;
+  document.setFillColor(232, 246, 241);
+  document.roundedRect(16, y, 178, 32, 4, 4, "F");
+  document.setTextColor(12, 116, 116);
+  document.setFont("helvetica", "bold");
+  document.text("Aceite Digital e Assinatura Móvel via QR Code", 24, y + 9);
+  document.setTextColor(71, 99, 106);
+  document.setFont("helvetica", "normal");
+  document.text(`Assinado por: ${input.signedByName}`, 24, y + 17);
+  document.text(`Autenticação: Assinatura eletrônica móvel (Registro ID #${input.deliveryId} · ${new Date().toLocaleString("pt-BR")})`, 24, y + 24);
+
+  return document;
+}
+
+export function downloadEpiReceiptPdf(input: EpiReceiptInput) {
+  const document = buildEpiReceiptPdf(input);
+  document.save(`comprovante-epi-${safeFileName(input.employeeName)}-${input.deliveryId}.pdf`);
+}

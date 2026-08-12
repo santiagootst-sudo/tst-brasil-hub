@@ -230,3 +230,5 @@
 - [x] Criar painel visual no módulo de saúde ocupacional com alertas de exames e ASOs pendentes.
 - [x] Adicionar sugestão automática de periodicidade de exames com base nos riscos da função.
 - [x] Implementar tela de confirmação no celular após leitura do QR Code com detalhes de EPIs antes da assinatura.
+- [x] Implementar animação de sucesso com ícone animado e feedback visual após a assinatura do EPI via QR Code no celular.
+- [x] Adicionar opção de baixar o comprovante digital oficial da entrega de EPI em formato PDF formatado diretamente pelo celular.
