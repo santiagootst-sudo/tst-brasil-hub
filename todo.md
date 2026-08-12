@@ -189,3 +189,7 @@
 - [x] Realizar a revisão técnica completa da especificação do módulo COPSOQ-III (riscos psicossociais) e registrar parecer em docs/parecer-tecnico-copsoq-iii.md.
 - [x] Implementar o módulo COPSOQ-III: questionário passo a passo anônimo, painel interativo das 21 dimensões e transferência automática de riscos psicossociais médios/altos para o inventário do PGR.
 - [x] Implementar o módulo COPSOQ-III: questionário passo a passo anônimo, painel interativo das 21 dimensões e transferência automática de riscos psicossociais médios/altos para o inventário do PGR.
+- [x] Adicionar exportação de resultados COPSOQ-III para CSV e PDF estruturado.
+- [x] Implementar gráficos de radar e visualizações interativas das 21 dimensões psicométricas.
+- [x] Implementar filtros agregados por departamento e grupo demográfico com blindagem de anonimato.
+- [x] Implementar filtros agregados por departamento e grupo demográfico com blindagem de anonimato.
