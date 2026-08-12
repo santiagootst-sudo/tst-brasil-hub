@@ -1,6 +1,7 @@
 import { Bell, BriefcaseBusiness, CalendarDays, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Loader2, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -153,7 +154,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
         <main className="px-5 py-7 lg:px-9 lg:py-9">{children}</main>
       </div>
       {switchingWorkspaceId && currentWorkspace?.id !== switchingWorkspaceId && <div className="fixed inset-0 z-50 grid place-items-center bg-[#062f35]/20 backdrop-blur-[2px]"><div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white px-5 py-4 text-sm font-bold text-[#21444b] shadow-2xl"><Loader2 className="h-5 w-5 animate-spin text-[#0c7474]" />Carregando contexto de trabalho...</div></div>}
-      {profileOpen && (
+      {profileOpen && typeof document !== "undefined" && document.getElementById("profile-overlay-root") && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062f35]/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[#deece9] pb-4">
@@ -180,7 +181,8 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.getElementById("profile-overlay-root")!,
       )}
       {collapsed ? <X className="hidden" /> : null}
     </div>

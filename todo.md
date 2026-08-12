@@ -175,3 +175,5 @@
 - [x] Validar no navegador o dashboard com usuário sem vínculo ao workspace ou com acesso administrativo suspenso, registrando o bloqueio.
 - [ ] Validar no navegador a jornada sem dados preexistentes: criar empresa, enviar logo, criar PGR pelo card e abrir o projeto recém-criado.
 - [x] Validar separadamente no navegador a alternância Autônomo/CLT como fluxo completo, incluindo carregamento, troca e persistência da navegação.
+- [ ] Promover a conta autenticada mais recente de Vanderson a administrador sem remover o administrador existente e validar o painel `/admin`.
+- [x] Diagnosticar e corrigir o erro React removeChild na reconciliação de componentes e portais.
