@@ -1,0 +1,75 @@
+import { AlertTriangle, ClipboardPlus, HardHat, Loader2, PackageCheck, Plus, ShieldAlert } from "lucide-react";
+import { useState } from "react";
+import { Link, useSearch } from "wouter";
+import { toast } from "sonner";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { trpc } from "@/lib/trpc";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
+
+const occurrenceLabels = { near_miss: "Quase acidente", incident: "Incidente", accident: "Acidente" } as const;
+
+export default function Operations() {
+  const search = useSearch();
+  const workspaceId = workspaceIdFromSearch(search) ?? 0;
+  const utils = trpc.useUtils();
+  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const organization = trpc.portal.organization.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const operations = trpc.portal.operations.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const [companyId, setCompanyId] = useState(0);
+  const [epiName, setEpiName] = useState("");
+  const [caNumber, setCaNumber] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("0");
+  const [minimumStock, setMinimumStock] = useState("0");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [requirementRoleId, setRequirementRoleId] = useState(0);
+  const [requirementEpiId, setRequirementEpiId] = useState(0);
+  const [occurrenceType, setOccurrenceType] = useState<keyof typeof occurrenceLabels>("near_miss");
+  const [occurrenceDepartmentId, setOccurrenceDepartmentId] = useState(0);
+  const [occurrenceEmployeeId, setOccurrenceEmployeeId] = useState(0);
+  const [occurredAt, setOccurredAt] = useState("");
+  const [occurrenceSummary, setOccurrenceSummary] = useState("");
+
+  const refresh = () => Promise.all([utils.portal.operations.invalidate({ workspaceId }), utils.portal.organization.invalidate({ workspaceId })]);
+  const createEpi = trpc.portal.createEpiItem.useMutation({ onSuccess: async () => { setEpiName(""); setCaNumber(""); setManufacturer(""); setStockQuantity("0"); setMinimumStock("0"); setExpiresAt(""); await refresh(); toast.success("Item de EPI registrado."); }, onError: error => toast.error(error.message) });
+  const createRequirement = trpc.portal.createEpiRequirement.useMutation({ onSuccess: async () => { setRequirementRoleId(0); setRequirementEpiId(0); await refresh(); toast.success("Requisito de EPI vinculado à função."); }, onError: error => toast.error(error.message) });
+  const createOccurrence = trpc.portal.createSstOccurrence.useMutation({ onSuccess: async () => { setOccurrenceDepartmentId(0); setOccurrenceEmployeeId(0); setOccurredAt(""); setOccurrenceSummary(""); await refresh(); toast.success("Ocorrência SST registrada."); }, onError: error => toast.error(error.message) });
+
+  if (workspace.isLoading || organization.isLoading || operations.isLoading) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  if (!workspaceId || !workspace.data) return <DashboardLayout title="Controle operacional"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#e98766]" /><h2 className="mt-4 text-xl font-bold">Selecione um ambiente para abrir o controle operacional.</h2><Link href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</Link></section></DashboardLayout>;
+
+  const current = workspace.data;
+  const canManage = current.role === "owner" || current.role === "manager";
+  const companies = current.companies;
+  const currentCompanyId = companyId || companies[0]?.id || 0;
+  const currentCompany = companies.find(item => item.id === currentCompanyId);
+  const departments = (organization.data?.departments ?? []).filter(item => item.companyId === currentCompanyId);
+  const jobRoles = (organization.data?.jobRoles ?? []).filter(item => item.companyId === currentCompanyId);
+  const employees = (organization.data?.employees ?? []).filter(item => item.companyId === currentCompanyId && item.status === "active");
+  const epiItems = (operations.data?.epiItems ?? []).filter(item => item.companyId === currentCompanyId && item.active);
+  const requirements = (operations.data?.epiRequirements ?? []).filter(item => item.companyId === currentCompanyId && item.active);
+  const occurrences = (operations.data?.occurrences ?? []).filter(item => item.companyId === currentCompanyId);
+  const roleName = new Map(jobRoles.map(item => [item.id, item.name]));
+  const epiNameById = new Map(epiItems.map(item => [item.id, item.name]));
+  const now = Date.now();
+  const inThirtyDays = now + 30 * 24 * 60 * 60 * 1000;
+  const lowStock = epiItems.filter(item => item.stockQuantity <= item.minimumStock);
+  const expiringOrExpired = epiItems.filter(item => item.expiresAt && item.expiresAt.getTime() <= inThirtyDays);
+  const openOccurrences = occurrences.filter(item => item.status !== "closed");
+
+  return <DashboardLayout title="Controle operacional"><div className="mx-auto max-w-7xl space-y-6">
+    <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Rotina operacional</p><h2 className="mt-2 text-3xl font-bold">EPIs, requisitos e ocorrências em um só lugar.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Registre somente a realidade da empresa: itens disponíveis, requisitos por função e ocorrências que precisam de acompanhamento, sem informações clínicas ou prontuários.</p></div><div className="grid grid-cols-3 gap-2 text-center text-xs"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{openOccurrences.length}</b>ocorrências abertas</div></div></div></section>
+
+    {!companies.length ? <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><HardHat className="mx-auto h-10 w-10 text-[#0c7474]" /><h3 className="mt-4 text-xl font-bold">Cadastre uma empresa antes de controlar a operação.</h3><p className="mt-2 text-sm text-[#668087]">Os EPIs e as ocorrências devem estar vinculados a uma empresa do ambiente.</p><Link href={`/app/pgr?workspace=${current.id}`} className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Abrir empresas e PGR</Link></section> : <>
+      <section className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><label className="block text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Empresa em foco</label><select value={currentCompanyId} onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); setOccurrenceDepartmentId(0); setOccurrenceEmployeeId(0); }} className="mt-3 h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-semibold text-[#23454b] md:max-w-md">{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select></section>
+      <section className="grid gap-5 xl:grid-cols-[1.02fr_.98fr]">
+        <article className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]"><PackageCheck className="h-5 w-5" /></span><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Controle de EPI</p><h3 className="text-lg font-bold">Itens e requisitos por função</h3></div></div>{canManage && <div className="mt-5 grid gap-3 md:grid-cols-2"><Input value={epiName} onChange={event => setEpiName(event.target.value)} placeholder="Nome do EPI" className="md:col-span-2" /><Input value={caNumber} onChange={event => setCaNumber(event.target.value)} placeholder="CA (opcional)" /><Input value={manufacturer} onChange={event => setManufacturer(event.target.value)} placeholder="Fabricante (opcional)" /><Input value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} type="number" min="0" placeholder="Estoque atual" /><Input value={minimumStock} onChange={event => setMinimumStock(event.target.value)} type="number" min="0" placeholder="Estoque mínimo" /><Input value={expiresAt} onChange={event => setExpiresAt(event.target.value)} type="date" className="md:col-span-2" /><Button disabled={createEpi.isPending || epiName.trim().length < 2} onClick={() => createEpi.mutate({ workspaceId, companyId: currentCompanyId, name: epiName.trim(), caNumber: caNumber.trim() || null, manufacturer: manufacturer.trim() || null, stockQuantity: Number(stockQuantity) || 0, minimumStock: Number(minimumStock) || 0, expiresAt: expiresAt ? new Date(`${expiresAt}T12:00:00`) : null })} className="rounded-xl bg-[#0c7474] text-white md:col-span-2"><Plus className="mr-2 h-4 w-4" />Registrar item de EPI</Button></div>}<div className="mt-5 space-y-2">{epiItems.length ? epiItems.map(item => <div key={item.id} className="rounded-xl border border-[#e6f0ee] p-3"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{item.name}</strong><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${item.stockQuantity <= item.minimumStock ? "bg-[#fff0e9] text-[#bd6e4f]" : "bg-[#e8f6f1] text-[#0c7474]"}`}>{item.stockQuantity} em estoque</span></div><small className="mt-1 block text-xs text-[#668087]">{item.caNumber ? `CA ${item.caNumber} · ` : ""}{item.manufacturer ?? "Fabricante não informado"}{item.expiresAt ? ` · validade ${item.expiresAt.toLocaleDateString("pt-BR")}` : ""}</small></div>) : <p className="rounded-xl bg-[#f7fcfa] p-3 text-sm text-[#668087]">Nenhum item de EPI registrado para esta empresa.</p>}</div>
+          {canManage && <div className="mt-5 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Requisito por função</p><div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={requirementRoleId} onChange={event => setRequirementRoleId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecionar função</option>{jobRoles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select value={requirementEpiId} onChange={event => setRequirementEpiId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecionar EPI</option>{epiItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><Button disabled={createRequirement.isPending || !requirementRoleId || !requirementEpiId} onClick={() => createRequirement.mutate({ workspaceId, companyId: currentCompanyId, jobRoleId: requirementRoleId, epiItemId: requirementEpiId })} className="rounded-xl bg-[#3173a8] text-white">Vincular</Button></div></div>}<div className="mt-3 space-y-2">{requirements.map(item => <p key={item.id} className="rounded-xl bg-[#f7fbff] px-3 py-2 text-xs text-[#47636a]"><b>{roleName.get(item.jobRoleId) ?? "Função"}</b> requer <b>{epiNameById.get(item.epiItemId) ?? "EPI"}</b></p>)}</div></article>
+        <article className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#fff0e9] text-[#bd6e4f]"><ShieldAlert className="h-5 w-5" /></span><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#bd6e4f]">Acompanhamento SST</p><h3 className="text-lg font-bold">Ocorrências</h3></div></div>{canManage && <div className="mt-5 space-y-3"><select value={occurrenceType} onChange={event => setOccurrenceType(event.target.value as keyof typeof occurrenceLabels)} className="h-10 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm">{Object.entries(occurrenceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><div className="grid gap-3 md:grid-cols-2"><select value={occurrenceDepartmentId} onChange={event => setOccurrenceDepartmentId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Setor (opcional)</option>{departments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select value={occurrenceEmployeeId} onChange={event => setOccurrenceEmployeeId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Pessoa (opcional)</option>{employees.map(item => <option key={item.id} value={item.id}>{item.fullName}</option>)}</select></div><Input value={occurredAt} onChange={event => setOccurredAt(event.target.value)} type="datetime-local" /><Textarea value={occurrenceSummary} onChange={event => setOccurrenceSummary(event.target.value)} placeholder="Resumo objetivo da ocorrência, sem informações médicas." className="min-h-24" /><Button disabled={createOccurrence.isPending || !occurredAt || occurrenceSummary.trim().length < 10} onClick={() => createOccurrence.mutate({ workspaceId, companyId: currentCompanyId, departmentId: occurrenceDepartmentId || null, employeeId: occurrenceEmployeeId || null, type: occurrenceType, occurredAt: new Date(occurredAt), summary: occurrenceSummary.trim() })} className="w-full rounded-xl bg-[#d67845] text-white"><ClipboardPlus className="mr-2 h-4 w-4" />Registrar ocorrência</Button></div>}<div className="mt-5 space-y-2">{occurrences.length ? occurrences.map(item => <div key={item.id} className="rounded-xl border border-[#f1ded4] p-3"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{occurrenceLabels[item.type]}</strong><span className="text-[10px] font-bold uppercase text-[#bd6e4f]">{item.status === "open" ? "Aberta" : item.status === "under_review" ? "Em análise" : "Encerrada"}</span></div><p className="mt-1 text-sm leading-5 text-[#47636a]">{item.summary}</p><small className="mt-2 block text-xs text-[#668087]">{item.occurredAt.toLocaleString("pt-BR")}</small></div>) : <p className="rounded-xl bg-[#fffaf7] p-3 text-sm text-[#668087]">Nenhuma ocorrência registrada para esta empresa.</p>}</div></article>
+      </section>
+    </>}
+  </div></DashboardLayout>;
+}

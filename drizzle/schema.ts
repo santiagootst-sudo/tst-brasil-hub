@@ -94,6 +94,60 @@ export const employees = mysqlTable("employees", {
   index("employees_status_idx").on(table.workspaceId, table.status),
 ]);
 
+export const epiItems = mysqlTable("epi_items", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  caNumber: varchar("caNumber", { length: 64 }),
+  manufacturer: varchar("manufacturer", { length: 160 }),
+  stockQuantity: int("stockQuantity").default(0).notNull(),
+  minimumStock: int("minimumStock").default(0).notNull(),
+  expiresAt: timestamp("expiresAt"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("epi_items_workspace_idx").on(table.workspaceId),
+  index("epi_items_company_idx").on(table.companyId),
+  index("epi_items_expiry_idx").on(table.workspaceId, table.expiresAt),
+]);
+
+export const epiRequirements = mysqlTable("epi_requirements", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  jobRoleId: int("jobRoleId").notNull(),
+  epiItemId: int("epiItemId").notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("epi_requirements_role_item_unique").on(table.jobRoleId, table.epiItemId),
+  index("epi_requirements_workspace_idx").on(table.workspaceId),
+  index("epi_requirements_company_idx").on(table.companyId),
+]);
+
+export const sstOccurrences = mysqlTable("sst_occurrences", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  employeeId: int("employeeId"),
+  type: mysqlEnum("type", ["near_miss", "incident", "accident"]).notNull(),
+  occurredAt: timestamp("occurredAt").notNull(),
+  summary: varchar("summary", { length: 1000 }).notNull(),
+  status: mysqlEnum("status", ["open", "under_review", "closed"]).default("open").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("sst_occurrences_workspace_idx").on(table.workspaceId),
+  index("sst_occurrences_company_idx").on(table.companyId),
+  index("sst_occurrences_status_idx").on(table.workspaceId, table.status),
+  index("sst_occurrences_occurred_at_idx").on(table.workspaceId, table.occurredAt),
+]);
+
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
@@ -184,3 +238,6 @@ export type SupportTicket = typeof supportTickets.$inferSelect;
 export type Department = typeof departments.$inferSelect;
 export type JobRole = typeof jobRoles.$inferSelect;
 export type Employee = typeof employees.$inferSelect;
+export type EpiItem = typeof epiItems.$inferSelect;
+export type EpiRequirement = typeof epiRequirements.$inferSelect;
+export type SstOccurrence = typeof sstOccurrences.$inferSelect;

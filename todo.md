@@ -103,3 +103,8 @@
 - [x] Cobrir os novos domínios com contratos, permissões por workspace e testes automatizados.
 - [x] Validar visualmente os módulos estruturantes nos dois contextos antes da homologação Stripe.
 - [x] Exibir e validar no dashboard um indicador real derivado de funções ativas cadastradas por empresa e ambiente.
+- [x] Modelar o controle de EPIs por empresa, função e ambiente, sem criar estoque ou entregas fictícias.
+- [x] Modelar ocorrências SST com registro mínimo e sem dados médicos sensíveis.
+- [x] Criar o módulo operacional de EPIs e Ocorrências, com permissões por workspace e estados vazios reais.
+- [x] Integrar alertas de pendências de EPI e ocorrências abertas aos dashboards contextuais.
+- [x] Cobrir os novos módulos operacionais com contratos, testes e validação visual em ambientes reais.

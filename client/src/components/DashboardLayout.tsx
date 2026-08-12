@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Carteira e PGR", icon: BriefcaseBusiness, path: "/app/pgr" },
     { label: "Estrutura dos clientes", icon: UsersRound, path: "/app/estrutura" },
+    { label: "Controle por cliente", icon: HardHat, path: "/app/operacao" },
     { label: "Materiais de atendimento", icon: FolderKanban, path: "/app/materiais" },
     { label: "Agenda de clientes", icon: GraduationCap, path: "/app/treinamentos" },
     { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
@@ -34,6 +35,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   ] : isClt ? [
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
+    { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
     { label: "Capacitação da equipe", icon: UsersRound, path: "/app/treinamentos" },
     { label: "Conformidade documental", icon: Trophy, path: "/app/certificados" },
     { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
@@ -44,6 +46,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
     { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
+    { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
     { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
     { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
     { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },

@@ -34,6 +34,9 @@ describe("prioridades contextuais dos ambientes", () => {
     expect(overviewSource).toContain("Pessoas ativas");
     expect(overviewSource).toContain("Setores ativos");
     expect(overviewSource).toContain("Funções ativas");
+    expect(overviewSource).toContain("Alertas de EPI");
+    expect(overviewSource).toContain("Ocorrências abertas");
+    expect(overviewSource).toContain("Tratar alertas de EPI");
     expect(overviewSource).toContain("Completar os vínculos da equipe");
     expect(overviewSource).toContain("Mapear os setores da operação");
   });

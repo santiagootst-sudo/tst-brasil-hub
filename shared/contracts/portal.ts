@@ -340,3 +340,115 @@ export const supportTicketCreatedSchema = z.object({
 
 export const checkoutSessionSchema = z.object({ url: z.string().url() });
 export const billingPortalSessionSchema = z.object({ url: z.string().url() });
+
+export const sstOccurrenceTypes = ["near_miss", "incident", "accident"] as const;
+export const sstOccurrenceStatuses = ["open", "under_review", "closed"] as const;
+export const sstOccurrenceTypeSchema = z.enum(sstOccurrenceTypes);
+export const sstOccurrenceStatusSchema = z.enum(sstOccurrenceStatuses);
+
+export const createEpiItemInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  name: z.string().trim().min(2).max(255),
+  caNumber: z.string().trim().max(64).nullable().optional(),
+  manufacturer: z.string().trim().max(160).nullable().optional(),
+  stockQuantity: z.number().int().min(0).max(1_000_000).default(0),
+  minimumStock: z.number().int().min(0).max(1_000_000).default(0),
+  expiresAt: z.coerce.date().nullable().optional(),
+});
+
+export const createEpiRequirementInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  jobRoleId: z.number().int().positive(),
+  epiItemId: z.number().int().positive(),
+});
+
+export const createSstOccurrenceInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  employeeId: z.number().int().positive().nullable().optional(),
+  type: sstOccurrenceTypeSchema,
+  occurredAt: z.coerce.date(),
+  summary: z.string().trim().min(10).max(1000),
+});
+
+export const epiItemSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  name: z.string(),
+  caNumber: z.string().nullable(),
+  manufacturer: z.string().nullable(),
+  stockQuantity: z.number().int().nonnegative(),
+  minimumStock: z.number().int().nonnegative(),
+  expiresAt: z.date().nullable(),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const epiRequirementSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  jobRoleId: z.number().int().positive(),
+  epiItemId: z.number().int().positive(),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const sstOccurrenceSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  employeeId: z.number().int().positive().nullable(),
+  type: sstOccurrenceTypeSchema,
+  occurredAt: z.date(),
+  summary: z.string(),
+  status: sstOccurrenceStatusSchema,
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const operationalSafetySnapshotSchema = z.object({
+  epiItems: z.array(epiItemSchema),
+  epiRequirements: z.array(epiRequirementSchema),
+  occurrences: z.array(sstOccurrenceSchema),
+});
+
+export const epiItemCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  name: z.string(),
+  caNumber: z.string().nullable(),
+  manufacturer: z.string().nullable(),
+  stockQuantity: z.number().int().nonnegative(),
+  minimumStock: z.number().int().nonnegative(),
+  expiresAt: z.date().nullable(),
+  active: z.literal(true),
+});
+
+export const epiRequirementCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  jobRoleId: z.number().int().positive(),
+  epiItemId: z.number().int().positive(),
+  active: z.literal(true),
+});
+
+export const sstOccurrenceCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  employeeId: z.number().int().positive().nullable(),
+  type: sstOccurrenceTypeSchema,
+  occurredAt: z.date(),
+  summary: z.string(),
+  status: z.literal("open"),
+  createdByUserId: z.number().int().positive(),
+});
