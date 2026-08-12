@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { ArrowUpRight, SlidersHorizontal } from "lucide-react";
+import { Activity, ArrowUpRight, Gauge, SlidersHorizontal, Sparkles } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -29,6 +29,7 @@ import {
   buildEmpresaPendingData,
   buildEmpresaStructureData,
   buildExecutionChartData,
+  safeCompletionRate,
   totalOf,
   type DashboardAnalyticsInput,
   type DashboardChartDatum,
@@ -201,6 +202,64 @@ function AlertDonut({ data }: { data: DashboardChartDatum[] }) {
   );
 }
 
+function DashboardPulse({
+  isAutonomo,
+  input,
+  executionData,
+  alertData,
+}: {
+  isAutonomo: boolean;
+  input: DashboardAnalyticsInput;
+  executionData: ReturnType<typeof buildExecutionChartData>;
+  alertData: DashboardChartDatum[];
+}) {
+  const totalExecution = executionData.reduce((sum, item) => sum + item.concluídas + item.pendentes + item.atrasadas, 0);
+  const completedExecution = executionData.reduce((sum, item) => sum + item.concluídas, 0);
+  const completion = safeCompletionRate(completedExecution, totalExecution);
+  const alertTotal = totalOf(alertData);
+  const metrics = isAutonomo
+    ? [
+        { label: "Clientes ativos", value: input.activeClients, color: "#0c8c89" },
+        { label: "PGRs em fluxo", value: input.pgrProjects, color: "#3173a8" },
+        { label: "Atenções", value: input.certificatesToAct, color: "#d67845" },
+      ]
+    : [
+        { label: "Pessoas ativas", value: input.activeEmployees, color: "#3173a8" },
+        { label: "Ações abertas", value: input.openActionItems, color: "#d67845" },
+        { label: "Alertas operacionais", value: alertTotal, color: "#0c8c89" },
+      ];
+  const pulseConfig = { execution: { label: "Execução", color: isAutonomo ? "#0c8c89" : "#3173a8" } } satisfies ChartConfig;
+  const radialData = [{ label: "Execução", value: completion ?? 0, fill: isAutonomo ? "#0c8c89" : "#3173a8" }];
+
+  return (
+    <article className="relative overflow-hidden rounded-[2rem] border border-white/85 bg-gradient-to-br from-white/82 via-white/58 to-[#e5f5ef]/70 p-5 shadow-[0_22px_55px_rgba(28,74,77,0.11)] backdrop-blur-2xl transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_28px_65px_rgba(28,74,77,0.16)] motion-reduce:transform-none motion-reduce:transition-none">
+      <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[#8edec7]/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 left-1/3 h-60 w-60 rounded-full bg-[#b9defc]/20 blur-3xl" />
+      <div className="relative flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.17em] text-[#0c8c89]"><Sparkles className="h-3.5 w-3.5" />Pulso do ambiente</p>
+          <h3 className="mt-1 text-xl font-bold tracking-tight text-[#102b32]">{isAutonomo ? "A carteira está pronta para avançar?" : "A operação está sob controle?"}</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Uma leitura viva do que já está registrado no ambiente, com foco no próximo movimento e sem criar comparações históricas artificiais.</p>
+        </div>
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/80 bg-white/65 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.12em] text-[#315158] shadow-sm backdrop-blur-md"><Activity className="h-3.5 w-3.5 text-[#0c8c89]" />Dados atuais</div>
+      </div>
+      <div className="relative mt-5 grid gap-4 lg:grid-cols-[1fr_220px] lg:items-center">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {metrics.map(metric => <div key={metric.label} className="group rounded-2xl border border-white/80 bg-white/58 p-4 shadow-[0_10px_25px_rgba(28,74,77,0.06)] backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:bg-white/78 hover:shadow-[0_16px_32px_rgba(28,74,77,0.11)] motion-reduce:transform-none motion-reduce:transition-none"><div className="mb-4 h-1 w-10 rounded-full transition-all duration-300 group-hover:w-16" style={{ background: `linear-gradient(90deg, ${metric.color}, ${metric.color}55)` }} /><p className="text-3xl font-bold tabular-nums tracking-tight text-[#102b32]">{metric.value}</p><p className="mt-1 text-[11px] font-semibold leading-4 text-[#668087]">{metric.label}</p></div>)}
+        </div>
+        <div className="relative rounded-[1.75rem] border border-white/80 bg-white/52 p-2 shadow-inner backdrop-blur-xl">
+          <ChartContainer config={pulseConfig} className="h-[170px] w-full">
+            <RadialBarChart data={radialData} innerRadius="66%" outerRadius="94%" startAngle={90} endAngle={-270} barSize={14}>
+              <RadialBar dataKey="value" cornerRadius={10} background={{ fill: "#e3f0ed" }} animationDuration={850} />
+            </RadialBarChart>
+          </ChartContainer>
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><Gauge className="mb-1 h-4 w-4 text-[#0c8c89]" /><strong className="text-3xl font-bold tabular-nums text-[#102b32]">{completion === null ? "—" : `${completion}%`}</strong><span className="text-[10px] font-bold uppercase tracking-[.12em] text-[#668087]">execução</span></div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function DashboardCharts({ isAutonomo, input, workspaceId }: DashboardChartsProps) {
   const executionData = useMemo(() => buildExecutionChartData(input), [input]);
   const portfolioData = useMemo(() => buildAutonomoPortfolioData(input), [input]);
@@ -218,6 +277,8 @@ export default function DashboardCharts({ isAutonomo, input, workspaceId }: Dash
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.12em] text-[#0c7474] shadow-sm backdrop-blur-md"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0c8c89] motion-reduce:animate-none" />Atualização automática</span>
       </div>
+
+      <DashboardPulse isAutonomo={isAutonomo} input={input} executionData={executionData} alertData={alertData} />
 
       {!isAutonomo && (
         <ChartCard eyebrow="Centro de controle" title="Central de Pendências" description="Uma leitura priorizada do que pede decisão na operação, com acesso direto ao módulo responsável.">

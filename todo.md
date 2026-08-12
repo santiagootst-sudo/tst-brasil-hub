@@ -267,3 +267,7 @@
 - [x] Implementar a opção opcional de lembrar a escolha do perfil no navegador, com possibilidade de alterar ou limpar a preferência.
 - [x] Validar acessibilidade, responsividade, reduced motion e persistência da preferência.
 - [x] Executar testes e salvar checkpoint da melhoria da entrada de perfis.
+- [x] Adicionar botão de troca rápida de perfil no menu principal e topo do dashboard, com opção de zerar ou alterar a escolha lembrada.
+- [x] Redesenhar os gráficos do dashboard com uma composição visualmente rica, usando transparências em camadas, gradientes fluidos e indicadores de tendências e status.
+- [ ] Validar a interatividade, as microinterações e a responsividade em desktop e mobile.
+- [ ] Salvar checkpoint e entregar a nova experiência visual expressiva.

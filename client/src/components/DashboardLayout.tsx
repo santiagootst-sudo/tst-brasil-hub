@@ -5,9 +5,10 @@ import { Link, useLocation, useSearch } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight } from "lucide-react";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -29,6 +30,12 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   const [switchingToastId, setSwitchingToastId] = useState<string | number | undefined>(undefined);
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, logout } = useAuth();
+
+  const goToProfilePicker = () => {
+    clearRememberedProfile(window.localStorage);
+    setProfileOpen(false);
+    setLocation("/app");
+  };
 
   useEffect(() => {
     if (!switchingWorkspaceId || currentWorkspace?.id !== switchingWorkspaceId) return;
@@ -125,6 +132,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
             <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
             <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
             {developmentWorkspaces.data && developmentWorkspaces.data.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{developmentWorkspaces.data.map(item => <button key={item.id} type="button" onClick={() => switchWorkspace(item.id, item.kind)} disabled={switchingWorkspaceId !== null} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition disabled:cursor-wait disabled:opacity-70 ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.id === switchingWorkspaceId ? "Abrindo..." : item.kind === "autonomo" ? "Autônomo" : "CLT"}</button>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
+            <button type="button" onClick={goToProfilePicker} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-[#d9eeea] transition hover:-translate-y-0.5 hover:bg-white/12 hover:text-white active:scale-[.98]"><ArrowLeftRight className="h-3.5 w-3.5" />Trocar perfil</button>
           </> : <>
             <p className="text-xs font-semibold text-white">Ambiente protegido</p>
             <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>
@@ -189,6 +197,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
                 <p className="mt-1 text-xs text-[#5d7479]">Sua conta possui 2 contextos de desenvolvimento (Autônomo e CLT) para alternância na fase de criação.</p>
               </div>
               <div className="flex flex-col gap-2.5 pt-2">
+                <Button type="button" onClick={goToProfilePicker} variant="outline" className="w-full rounded-xl border-[#b9ded4] text-[#0c7474] hover:bg-[#eaf7f1]"><ArrowLeftRight className="mr-2 h-4 w-4" />Trocar perfil ou ambiente</Button>
                 <Button type="button" onClick={() => { setProfileOpen(false); logout(); }} variant="outline" className="w-full rounded-xl border-[#dcebe8] text-[#c2410c] hover:bg-[#fff5f2]">Encerrar sessão</Button>
                 <Button type="button" onClick={() => setProfileOpen(false)} className="w-full rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Fechar painel</Button>
               </div>

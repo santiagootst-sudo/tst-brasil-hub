@@ -22,7 +22,7 @@ function daysUntil(date: Date | string | null) {
 export default function WorkspaceOverview() {
   const search = useSearch();
   const workspaceId = workspaceIdFromSearch(search) ?? 0;
-  const queryOptions = { enabled: Number.isInteger(workspaceId) && workspaceId > 0 };
+  const queryOptions = { enabled: Number.isInteger(workspaceId) && workspaceId > 0, retry: false };
   const workspace = trpc.portal.workspace.useQuery({ workspaceId }, queryOptions);
   const certificates = trpc.portal.certificates.useQuery({ workspaceId }, queryOptions);
   const trainings = trpc.portal.trainings.useQuery({ workspaceId }, queryOptions);
