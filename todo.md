@@ -113,3 +113,29 @@
 - [x] Integrar ações em aberto e inspeções registradas aos dashboards contextuais.
 - [x] Cobrir inspeções e ações com contratos, permissões por workspace e testes automatizados.
 - [x] Validar visualmente o módulo de inspeções nos ambientes Autônomo e CLT sem inserir dados de demonstração.
+- [x] Modelar a carteira comercial do TST Autônomo com status de cliente, agenda de visitas e vencimentos documentais reais.
+- [x] Criar a Agenda de visitas do TST Autônomo vinculada a empresas reais, com objetivo, data e status.
+- [x] Criar a visão de Documentos do TST Autônomo para consolidar PGRs, certificados e vencimentos por cliente.
+- [x] Reorganizar a barra lateral do TST Autônomo nas seções Principal, Documentos, Negócio e Conhecimento, sem remover ferramentas compartilhadas.
+- [x] Reorganizar o dashboard Autônomo como visão de carteira, agenda, vencimentos e operação comercial sem exibir métricas financeiras fictícias.
+- [x] Criar para o TST CLT uma visão de riscos e ações preventivas a partir das inspeções, EPIs, ocorrências e plano de ação existentes.
+- [x] Cobrir e validar visualmente as diferenças de navegação e dashboard entre Autônomo e CLT.
+- [x] Adicionar mutação e interface para atualizar o status das visitas do TST Autônomo entre planejada, concluída e cancelada.
+- [x] Exibir na visão de Documentos do TST Autônomo os vencimentos reais de certificados por cliente, incluindo status vencido e próximo do vencimento.
+- [x] Cobrir e validar no navegador a gestão de status de visitas e os vencimentos documentais da carteira comercial.
+- [ ] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência.
+- [ ] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente.
+- [x] Adicionar cobertura automatizada da lógica de resumo de vencimentos documentais por cliente na visão comercial do TST Autônomo.
+- [x] Implementar regra de ambiente único por usuário, permitindo a escolha inicial entre TST Autônomo e TST CLT, sem criação de ambientes adicionais.
+- [x] Remover da tela de entrada a listagem e os controles que exibem múltiplos ambientes para o mesmo usuário.
+- [x] Bloquear no backend a criação de novo ambiente quando o usuário já possuir um ambiente principal.
+- [x] Definir e aplicar o comportamento de compatibilidade para contas existentes com múltiplos ambientes.
+- [x] Implementar regra de ambiente único por usuário, permitindo a escolha inicial entre TST Autônomo e TST CLT, sem criação de ambientes adicionais.
+- [x] Remover da tela de entrada a listagem e os controles que exibem múltiplos ambientes para o mesmo usuário.
+- [x] Bloquear no backend a criação de novo ambiente quando o usuário já possuir um ambiente principal.
+- [x] Definir e aplicar o comportamento de compatibilidade para contas existentes com múltiplos ambientes.
+- [x] Migrar ou consolidar com segurança os dados dos ambientes legados para o ambiente principal escolhido, sem misturar contextos Autônomo e CLT indevidamente.
+- [x] Remover os ambientes legados que continham apenas dados de teste, mediante autorização expressa do usuário, antes da aplicação da regra de ambiente único.
+- [x] Remover os ambientes e registros de teste duplicados autorizados, mantendo apenas o ambiente principal atual da conta.
+- [x] Aplicar restrição de unicidade do proprietário na base de dados após a limpeza dos ambientes duplicados.
+- [x] Validar no navegador a conta consolidada em Empresas, PGR e Certificados, confirmando que o ambiente principal remanescente funciona sem dependência dos ambientes de teste removidos.

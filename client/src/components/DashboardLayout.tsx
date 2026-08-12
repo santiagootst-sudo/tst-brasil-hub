@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -22,29 +22,45 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   const currentWorkspace = workspace.data;
   const isAutonomo = currentWorkspace?.kind === "autonomo";
   const isClt = currentWorkspace?.kind === "clt";
-  const menuItems = isAutonomo ? [
-    { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
-    { label: "Carteira e PGR", icon: BriefcaseBusiness, path: "/app/pgr" },
-    { label: "Estrutura dos clientes", icon: UsersRound, path: "/app/estrutura" },
-    { label: "Controle por cliente", icon: HardHat, path: "/app/operacao" },
-    { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
-    { label: "Materiais de atendimento", icon: FolderKanban, path: "/app/materiais" },
-    { label: "Agenda de clientes", icon: GraduationCap, path: "/app/treinamentos" },
-    { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
-    { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
-    { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+  const menuSections = isAutonomo ? [
+    { label: "Principal", items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
+      { label: "Empresas e clientes", icon: BriefcaseBusiness, path: "/app/clientes" },
+      { label: "Agenda de visitas", icon: CalendarDays, path: "/app/agenda" },
+      { label: "Estrutura dos clientes", icon: UsersRound, path: "/app/estrutura" },
+    ] },
+    { label: "Documentos", items: [
+      { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "Modelos e anexos", icon: FolderKanban, path: "/app/materiais" },
+      { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
+    ] },
+    { label: "Negócio", items: [
+      { label: "Controle por cliente", icon: HardHat, path: "/app/operacao" },
+      { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
+    ] },
+    { label: "Conhecimento", items: [
+      { label: "Cursos e treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
+      { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+    ] },
   ] : isClt ? [
-    { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
-    { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
-    { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
-    { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
-    { label: "Capacitação da equipe", icon: UsersRound, path: "/app/treinamentos" },
-    { label: "Conformidade documental", icon: Trophy, path: "/app/certificados" },
-    { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
-    { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },
-    { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
-    { label: "Suporte", icon: Headphones, path: "/app/suporte" },
-  ] : [
+    { label: "Operação", items: [
+      { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
+      { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
+      { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
+      { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
+    ] },
+    { label: "Conformidade", items: [
+      { label: "Capacitação da equipe", icon: GraduationCap, path: "/app/treinamentos" },
+      { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
+      { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },
+    ] },
+    { label: "Conhecimento", items: [
+      { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+    ] },
+  ] : [{ label: "Aplicativos", items: [
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
     { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
@@ -55,7 +71,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
     { label: "Suporte", icon: Headphones, path: "/app/suporte" },
     { label: "Certificados", icon: Trophy, path: "/app/certificados" },
-  ];
+  ] }];
   const pathWithWorkspace = (path: string) => {
     if (path === "/app") return withWorkspaceContext("/app/visao", workspaceId);
     return withWorkspaceContext(path, workspaceId);
@@ -74,17 +90,11 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1">
-          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{isAutonomo ? "Rotina de atendimento" : isClt ? "Rotina de conformidade" : "Aplicativos"}</p>
-          {menuItems.map(({ label, icon: Icon, path }) => {
+        <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
+          {menuSections.map(section => <section key={section.label}><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{section.label}</p>{section.items.map(({ label, icon: Icon, path }) => {
             const active = path === "/app" ? location === "/app" || location === "/app/visao" : location === path;
-            return (
-              <Link key={path} href={pathWithWorkspace(path)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}>
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
-              </Link>
-            );
-          })}
+            return <Link key={path} href={pathWithWorkspace(path)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><Icon className="h-4 w-4" /><span>{label}</span></Link>;
+          })}</section>)}
         </nav>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -92,7 +102,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
             <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">{isAutonomo ? "TST Autônomo" : "TST CLT"}</p>
             <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
             <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
-            <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Trocar ambiente</Link>
+            <p className="mt-3 text-xs font-bold text-[#8edec7]">Ambiente principal da conta</p>
           </> : <>
             <p className="text-xs font-semibold text-white">Ambiente protegido</p>
             <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>

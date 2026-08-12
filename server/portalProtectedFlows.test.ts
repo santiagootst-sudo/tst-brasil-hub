@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   createSupportTicketForWorkspace: vi.fn(),
   createTrainingForWorkspace: vi.fn(),
   createWorkspaceForUser: vi.fn(),
+  getPrimaryWorkspaceForUser: vi.fn(),
   getCompanyForWorkspace: vi.fn(),
   getPgrProjectForWorkspace: vi.fn(),
   getSubscriptionForUser: vi.fn(),
@@ -59,6 +60,18 @@ function createContext(): TrpcContext {
 
 describe("portal protected flows", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("expõe somente o ambiente principal na entrada autenticada", async () => {
+    const primaryWorkspace = { id: 7, name: "Operação SST", kind: "clt" as const, role: "owner" as const, updatedAt: fixtureDate };
+    db.getPrimaryWorkspaceForUser.mockResolvedValue(primaryWorkspace);
+    await expect(appRouter.createCaller(createContext()).portal.workspaces()).resolves.toEqual([primaryWorkspace]);
+  });
+
+  it("impede a criação de outro ambiente quando a conta já possui um contexto principal", async () => {
+    db.getPrimaryWorkspaceForUser.mockResolvedValue({ id: 7, name: "Operação SST", kind: "clt", role: "owner" });
+    await expect(appRouter.createCaller(createContext()).portal.createWorkspace({ name: "Outro ambiente", kind: "autonomo" })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(db.createWorkspaceForUser).not.toHaveBeenCalled();
+  });
 
   it("permite que qualquer membro consulte certificados do próprio ambiente", async () => {
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "member" });

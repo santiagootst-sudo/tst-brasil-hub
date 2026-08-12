@@ -19,7 +19,7 @@ export const workspaces = mysqlTable("workspaces", {
   ownerUserId: int("ownerUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("workspaces_owner_idx").on(table.ownerUserId)]);
+}, table => [uniqueIndex("workspaces_owner_unique").on(table.ownerUserId)]);
 
 export const workspaceMembers = mysqlTable("workspace_members", {
   id: int("id").autoincrement().primaryKey(),
@@ -42,6 +42,41 @@ export const companies = mysqlTable("companies", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("companies_workspace_idx").on(table.workspaceId)]);
+
+export const clientEngagements = mysqlTable("client_engagements", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  status: mysqlEnum("status", ["lead", "active", "inactive"]).default("lead").notNull(),
+  nextFollowUpAt: timestamp("nextFollowUpAt"),
+  notes: varchar("notes", { length: 1500 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("client_engagements_company_unique").on(table.companyId),
+  index("client_engagements_workspace_idx").on(table.workspaceId),
+  index("client_engagements_status_idx").on(table.workspaceId, table.status),
+  index("client_engagements_follow_up_idx").on(table.workspaceId, table.nextFollowUpAt),
+]);
+
+export const clientVisits = mysqlTable("client_visits", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  scheduledAt: timestamp("scheduledAt").notNull(),
+  objective: varchar("objective", { length: 500 }).notNull(),
+  notes: varchar("notes", { length: 1500 }),
+  status: mysqlEnum("status", ["planned", "completed", "cancelled"]).default("planned").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("client_visits_workspace_idx").on(table.workspaceId),
+  index("client_visits_company_idx").on(table.companyId),
+  index("client_visits_status_idx").on(table.workspaceId, table.status),
+  index("client_visits_scheduled_idx").on(table.workspaceId, table.scheduledAt),
+]);
 
 export const departments = mysqlTable("departments", {
   id: int("id").autoincrement().primaryKey(),
@@ -284,3 +319,5 @@ export type EpiRequirement = typeof epiRequirements.$inferSelect;
 export type SstOccurrence = typeof sstOccurrences.$inferSelect;
 export type Inspection = typeof inspections.$inferSelect;
 export type ActionItem = typeof actionItems.$inferSelect;
+export type ClientEngagement = typeof clientEngagements.$inferSelect;
+export type ClientVisit = typeof clientVisits.$inferSelect;

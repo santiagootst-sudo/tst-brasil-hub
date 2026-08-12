@@ -4,7 +4,7 @@
 
 O Portal TST deve evoluir como um **monólito modular orientado a domínios**, mantendo React, tRPC, Express, Drizzle e MySQL/TiDB no mesmo repositório enquanto o produto consolida seus fluxos. A prioridade não é separar serviços por infraestrutura; é separar responsabilidades por negócio, manter cada registro vinculado a um ambiente de trabalho e preservar a possibilidade de extrair módulos no futuro sem reescrever regras críticas.
 
-> **Princípio central:** TST Autônomo e TST CLT são experiências de operação distintas sobre o mesmo ecossistema de domínios. O contexto altera prioridades, linguagem e painel, mas não cria uma segunda plataforma nem duplica ferramentas.
+> **Princípio central:** TST Autônomo e TST CLT são experiências de operação distintas sobre o mesmo ecossistema de domínios. O contexto altera prioridades, linguagem e painel, mas não cria uma segunda plataforma nem duplica ferramentas. Cada conta possui **um único ambiente principal**, escolhido no primeiro acesso como Autônomo ou CLT.
 
 | Camada | Responsabilidade atual | Evolução recomendada |
 |---|---|---|
@@ -69,6 +69,19 @@ O arquivo `server/routers.ts` permanece como ponto de composição do `appRouter
 | Materiais | Modelos, checklists e procedimentos reais | Material pertence ao ambiente que o cadastrou | `owner`, `manager` |
 | Suporte | Chamados e futuras interações de atendimento | Chamado é exibido apenas no ambiente de origem | Todos os membros podem abrir; operação do status deve ser gerencial |
 | Billing | Assinatura, plano e estado de acesso | Assinatura pertence ao usuário; acesso é aplicado na abertura de apps pagos | Provedor e regras do sistema |
+
+## Regra de ambiente principal único
+
+O ambiente não representa cada empresa atendida. Ele representa a **forma de atuação profissional da conta**: o TST Autônomo usa um único ambiente para administrar sua carteira de clientes; o TST CLT usa um único ambiente para gerir a operação interna. Empresas, clientes, pessoas, documentos, PGRs e demais registros passam a ser organizados dentro desse contexto principal, e não por meio da criação de novos ambientes.
+
+| Situação | Comportamento do portal |
+|---|---|
+| Primeiro acesso sem ambiente | A interface apresenta apenas a escolha entre TST Autônomo e TST CLT. A escolha cria o ambiente principal e abre seu painel. |
+| Conta com ambiente principal | A entrada redireciona diretamente para o dashboard. Não há lista de ambientes, seletor de contexto nem opção de criar outro ambiente. |
+| Tentativa de criar um segundo ambiente | O procedimento protegido retorna conflito e orienta o cadastro de empresas e clientes dentro do ambiente já existente. |
+| Conta legada com ambientes duplicados | O ambiente próprio mais recente é tratado como principal e é o único exposto pela interface e pelos procedimentos de entrada. Registros produtivos permanecem preservados até que exista uma operação explícita de transferência; dados de teste só podem ser removidos com autorização expressa. |
+
+Essa compatibilidade evita perda de dados enquanto o produto deixa de reforçar o modelo antigo. A transferência de empresas, projetos PGR ou registros de um ambiente legado para o principal deve ocorrer apenas por operação explícita e revisada, pois pode misturar contextos Autônomo e CLT indevidamente. Na base de desenvolvimento, os ambientes duplicados que continham apenas registros de teste foram removidos mediante autorização do usuário antes da aplicação da restrição de unicidade.
 
 ## Prioridades que independem de autenticação externa
 

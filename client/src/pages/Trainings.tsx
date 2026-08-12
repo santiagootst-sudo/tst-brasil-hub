@@ -20,7 +20,7 @@ export default function Trainings() {
   const utils = trpc.useUtils();
   const workspaces = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
   const requestedWorkspaceId = workspaceIdFromSearch(search);
-  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
+  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? workspaces.data?.[0] ?? null : workspaces.data?.[0] ?? null;
   const trainings = trpc.portal.trainings.useQuery({ workspaceId: activeWorkspace?.id ?? 0 }, { enabled: Boolean(activeWorkspace) });
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState("");

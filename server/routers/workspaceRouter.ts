@@ -6,8 +6,17 @@ import { canManageWorkspace } from "../workspaceAccess";
 import { protectedProcedure, router } from "../_core/trpc";
 
 export const workspaceRouter = router({
-  workspaces: protectedProcedure.output(workspaceSummarySchema.array()).query(({ ctx }) => portalDb.listWorkspacesForUser(ctx.user.id)),
-  createWorkspace: protectedProcedure.input(workspaceInput).output(workspaceCreatedSchema).mutation(({ ctx, input }) => portalDb.createWorkspaceForUser({ userId: ctx.user.id, ...input })),
+  workspaces: protectedProcedure.output(workspaceSummarySchema.array()).query(async ({ ctx }) => {
+    const primaryWorkspace = await portalDb.getPrimaryWorkspaceForUser(ctx.user.id);
+    return primaryWorkspace ? [primaryWorkspace] : [];
+  }),
+  createWorkspace: protectedProcedure.input(workspaceInput).output(workspaceCreatedSchema).mutation(async ({ ctx, input }) => {
+    const primaryWorkspace = await portalDb.getPrimaryWorkspaceForUser(ctx.user.id);
+    if (primaryWorkspace) {
+      throw new TRPCError({ code: "CONFLICT", message: "Sua conta já possui um ambiente principal. Empresas e clientes devem ser cadastrados dentro dele." });
+    }
+    return portalDb.createWorkspaceForUser({ userId: ctx.user.id, ...input });
+  }),
   workspace: protectedProcedure.input(workspaceIdInput).output(workspaceDetailSchema.nullable()).query(async ({ ctx, input }) => {
     const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);
     if (!workspace) return null;

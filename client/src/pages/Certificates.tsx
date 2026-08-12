@@ -29,7 +29,7 @@ export default function Certificates() {
   const utils = trpc.useUtils();
   const workspaces = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
   const requestedWorkspaceId = workspaceIdFromSearch(search);
-  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? null : workspaces.data?.[0] ?? null;
+  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? workspaces.data?.[0] ?? null : workspaces.data?.[0] ?? null;
   const certificates = trpc.portal.certificates.useQuery({ workspaceId: activeWorkspace?.id ?? 0 }, { enabled: Boolean(activeWorkspace) });
   const [formOpen, setFormOpen] = useState(false);
   const [participantName, setParticipantName] = useState("");

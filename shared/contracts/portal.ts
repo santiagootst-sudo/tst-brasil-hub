@@ -537,3 +537,80 @@ export const actionItemCreatedSchema = z.object({
   status: z.literal("open"),
   createdByUserId: z.number().int().positive(),
 });
+
+export const clientEngagementStatuses = ["lead", "active", "inactive"] as const;
+export const clientVisitStatuses = ["planned", "completed", "cancelled"] as const;
+export const clientEngagementStatusSchema = z.enum(clientEngagementStatuses);
+export const clientVisitStatusSchema = z.enum(clientVisitStatuses);
+
+export const createClientEngagementInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  status: clientEngagementStatusSchema.default("lead"),
+  nextFollowUpAt: z.coerce.date().nullable().optional(),
+  notes: z.string().trim().max(1500).nullable().optional(),
+});
+
+export const createClientVisitInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  scheduledAt: z.coerce.date(),
+  objective: z.string().trim().min(3).max(500),
+  notes: z.string().trim().max(1500).nullable().optional(),
+});
+
+export const updateClientVisitStatusInput = workspaceIdInput.extend({
+  visitId: z.number().int().positive(),
+  status: clientVisitStatusSchema,
+});
+
+export const clientEngagementSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  status: clientEngagementStatusSchema,
+  nextFollowUpAt: z.date().nullable(),
+  notes: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const clientVisitSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  scheduledAt: z.date(),
+  objective: z.string(),
+  notes: z.string().nullable(),
+  status: clientVisitStatusSchema,
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const commercialSnapshotSchema = z.object({
+  engagements: z.array(clientEngagementSchema),
+  visits: z.array(clientVisitSchema),
+});
+
+export const clientEngagementCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  status: clientEngagementStatusSchema,
+  nextFollowUpAt: z.date().nullable(),
+  notes: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+});
+
+export const clientVisitCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  scheduledAt: z.date(),
+  objective: z.string(),
+  notes: z.string().nullable(),
+  status: z.literal("planned"),
+  createdByUserId: z.number().int().positive(),
+});
+
+export const clientVisitUpdatedSchema = clientVisitSchema;

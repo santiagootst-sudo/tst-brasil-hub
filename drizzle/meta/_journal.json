@@ -57,6 +57,20 @@
       "when": 1786493900569,
       "tag": "0007_tranquil_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1786494589378,
+      "tag": "0008_secret_felicia_hardy",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1786499946225,
+      "tag": "0009_modern_vermin",
+      "breakpoints": true
     }
   ]
 }

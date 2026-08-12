@@ -11,6 +11,7 @@ import Materials from "./pages/Materials";
 import NotFound from "./pages/NotFound";
 import Operations from "./pages/Operations";
 import Inspections from "./pages/Inspections";
+import Commercial from "./pages/Commercial";
 import Organization from "./pages/Organization";
 import PgrApp from "./pages/PgrApp";
 import Pricing from "./pages/Pricing";
@@ -19,7 +20,7 @@ import Trainings from "./pages/Trainings";
 import WorkspaceOverview from "./pages/WorkspaceOverview";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/planos" component={Pricing} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/pgr" component={PgrApp} /><Route path="/app" component={AppDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/planos" component={Pricing} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/pgr" component={PgrApp} /><Route path="/app" component={AppDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 
 export default function App() {

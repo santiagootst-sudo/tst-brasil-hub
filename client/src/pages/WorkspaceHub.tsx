@@ -8,11 +8,10 @@ import {
   GraduationCap,
   Headphones,
   Loader2,
-  Plus,
   ShieldCheck,
   UserRoundCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -41,6 +40,7 @@ export default function WorkspaceHub() {
   });
   const billing = trpc.billing.status.useQuery(undefined, { enabled: Boolean(user) });
   const [form, setForm] = useState<{ kind: WorkspaceKind; name: string } | null>(null);
+  const primaryWorkspace = workspaces?.[0];
 
   const createWorkspace = trpc.portal.createWorkspace.useMutation({
     onSuccess: workspace => {
@@ -56,26 +56,19 @@ export default function WorkspaceHub() {
     onError: error => toast.error(error.message),
   });
 
+  useEffect(() => {
+    if (primaryWorkspace) setLocation(`/app/visao?workspace=${primaryWorkspace.id}`);
+  }, [primaryWorkspace, setLocation]);
+
   if (loading || isLoading) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
   }
 
-  const grouped = {
-    autonomo: workspaces?.filter(workspace => workspace.kind === "autonomo") ?? [],
-    clt: workspaces?.filter(workspace => workspace.kind === "clt") ?? [],
-  };
-  const hasWorkspaces = (workspaces?.length ?? 0) > 0;
-  const billingSuccess = new URLSearchParams(window.location.search).get("billing") === "success";
+  if (primaryWorkspace) {
+    return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  }
 
-  const openWorkspace = (workspaceId: number) => setLocation(`/app/visao?workspace=${workspaceId}`);
-  const openTool = (route: string) => {
-    const firstWorkspace = workspaces?.[0];
-    if (!firstWorkspace) {
-      toast.message("Primeiro crie um ambiente Autônomo ou CLT para abrir as ferramentas.");
-      return;
-    }
-    setLocation(`${route}?workspace=${firstWorkspace.id}`);
-  };
+  const billingSuccess = new URLSearchParams(window.location.search).get("billing") === "success";
 
   return (
     <DashboardLayout title="Início">
@@ -89,7 +82,7 @@ export default function WorkspaceHub() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
           <div>
             <h2 className="text-2xl font-bold">Olá, {user?.name?.split(" ")[0] || "profissional"}.</h2>
-            <p className="mt-1 text-sm text-[#668087]">Acesse os seus ambientes ou use as ferramentas compartilhadas do Portal TST.</p>
+            <p className="mt-1 text-sm text-[#668087]">Defina como você trabalha no Portal TST e crie o seu ambiente principal.</p>
           </div>
           {billing.data?.subscription && (
             <Button onClick={() => manageSubscription.mutate()} variant="outline" className="rounded-xl border-[#bddbd5] text-[#0c7474]">
@@ -105,12 +98,10 @@ export default function WorkspaceHub() {
             </span>
             <div>
               <h3 className="text-2xl font-bold">
-                {hasWorkspaces ? "Abra um ambiente de trabalho" : "Primeiro acesso: crie seu ambiente"}
+                Primeiro acesso: escolha seu contexto profissional
               </h3>
               <p className="text-sm text-[#698187]">
-                {hasWorkspaces
-                  ? "Clique em um ambiente já criado para abrir o painel ou crie outro contexto de trabalho."
-                  : "Escolha Autônomo ou CLT. Depois da criação, o painel correspondente será aberto automaticamente."}
+                Escolha Autônomo ou CLT. A sua conta terá um único ambiente principal, com painel e ferramentas adaptados à sua rotina.
               </p>
             </div>
           </div>
@@ -118,7 +109,6 @@ export default function WorkspaceHub() {
           <div className="mt-7 grid gap-6 lg:grid-cols-2">
             {(["autonomo", "clt"] as WorkspaceKind[]).map(kind => {
               const autonomous = kind === "autonomo";
-              const entries = grouped[kind];
               const Icon = autonomous ? BriefcaseBusiness : UserRoundCheck;
               const contextLabel = autonomous ? "Autônomo" : "CLT";
 
@@ -147,39 +137,19 @@ export default function WorkspaceHub() {
                   </div>
 
                   <div className="min-h-48 p-6">
-                    {entries.length ? (
-                      <div className="space-y-3">
-                        {entries.map(workspace => (
-                          <button
-                            key={workspace.id}
-                            type="button"
-                            onClick={() => openWorkspace(workspace.id)}
-                            className="flex w-full items-center justify-between rounded-xl border border-[#deece9] px-4 py-3 text-left transition hover:border-[#0c8c89] hover:bg-[#f7fbfa]"
-                          >
-                            <span>
-                              <strong className="block text-sm">{workspace.name}</strong>
-                              <small className="text-xs text-[#0c7474]">
-                                Abrir painel · perfil {workspace.role === "owner" ? "proprietário" : workspace.role}
-                              </small>
-                            </span>
-                            <ArrowRight className="h-4 w-4 text-[#0c7474]" />
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-[#c7ddd8] bg-[#fbfefd] p-4 text-sm leading-6 text-[#5d7479]">
-                        Nenhum ambiente {contextLabel} criado ainda. Use o botão abaixo para criar o primeiro.
-                      </div>
-                    )}
-
+                    <div className="rounded-xl border border-dashed border-[#c7ddd8] bg-[#fbfefd] p-4 text-sm leading-6 text-[#5d7479]">
+                      {autonomous
+                        ? "Você administrará sua carteira de empresas e clientes dentro deste único ambiente."
+                        : "Você organizará a operação SST da sua empresa dentro deste único ambiente."}
+                    </div>
                     <Button
                       type="button"
                       onClick={() => setForm({ kind, name: autonomous ? "Meu ambiente Autônomo" : "Minha empresa" })}
                       variant="outline"
                       className={`mt-5 w-full rounded-xl ${autonomous ? "border-[#0c7474] text-[#0c7474]" : "border-[#2165a9] text-[#2165a9]"}`}
                     >
-                      <Plus className="mr-2 h-4 w-4" />
-                      {entries.length ? `Criar outro ambiente ${contextLabel}` : `Criar meu primeiro ambiente ${contextLabel}`}
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Escolher TST {contextLabel}
                     </Button>
                   </div>
                 </article>
@@ -189,21 +159,19 @@ export default function WorkspaceHub() {
         </section>
 
         <div className="mt-6 rounded-2xl border border-[#dcebe8] bg-[#f8fcfb] px-5 py-4 text-sm text-[#668087]">
-          Os seus dados permanecem organizados por ambiente. O layout muda conforme a rotina Autônoma ou CLT, mas PGR, Biblioteca, Materiais, Suporte, Treinamentos e Certificados pertencem ao mesmo ecossistema.
+          Empresas, clientes, equipes e documentos ficam organizados dentro do seu ambiente principal. O layout muda conforme a rotina Autônoma ou CLT, mas PGR, Biblioteca, Materiais, Suporte, Treinamentos e Certificados pertencem ao mesmo ecossistema.
         </div>
 
         <section className="mt-10">
           <h3 className="text-xl font-bold">Ferramentas compartilhadas</h3>
           <p className="mt-1 text-sm text-[#6f858a]">
-            {hasWorkspaces ? "Recursos acessíveis no ambiente que você abrir." : "Disponíveis assim que você criar o primeiro ambiente."}
+            Recursos que ficarão disponíveis assim que você criar seu ambiente principal.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sharedTools.map(({ icon: Icon, title, text, route }) => (
-              <button
-                type="button"
-                onClick={() => openTool(route)}
+              <div
                 key={title}
-                className="flex items-center gap-4 rounded-2xl border border-[#deece9] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#a9d4c8] hover:shadow-sm"
+                className="flex items-center gap-4 rounded-2xl border border-[#deece9] bg-white p-5"
               >
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]">
                   <Icon className="h-5 w-5" />
@@ -213,7 +181,7 @@ export default function WorkspaceHub() {
                   <small className="block text-xs text-[#6f858a]">{text}</small>
                 </span>
                 <ArrowRight className="ml-auto h-4 w-4 text-[#83a39e]" />
-              </button>
+              </div>
             ))}
           </div>
         </section>
@@ -234,7 +202,7 @@ export default function WorkspaceHub() {
               </span>
               <div>
                 <h3 className="text-xl font-bold">Criar ambiente TST {form.kind === "autonomo" ? "Autônomo" : "CLT"}</h3>
-                <p className="text-xs text-[#6f858a]">Este contexto manterá empresas, pessoas e dados de operação separados.</p>
+                <p className="text-xs text-[#6f858a]">Este será o único ambiente principal da sua conta. Empresas e clientes serão cadastrados dentro dele.</p>
               </div>
             </div>
             <label className="mt-6 block text-sm font-semibold">

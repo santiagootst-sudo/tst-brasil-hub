@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actionItems, certificates, companies, departments, employees, epiItems, epiRequirements, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, certificates, clientEngagements, clientVisits, companies, departments, employees, epiItems, epiRequirements, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -51,6 +51,18 @@ export async function listWorkspacesForUser(userId: number) {
     .orderBy(desc(workspaces.updatedAt));
 }
 
+export async function getPrimaryWorkspaceForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const workspace = (await db
+    .select({ id: workspaces.id, name: workspaces.name, kind: workspaces.kind, updatedAt: workspaces.updatedAt })
+    .from(workspaces)
+    .where(eq(workspaces.ownerUserId, userId))
+    .orderBy(desc(workspaces.updatedAt), desc(workspaces.id))
+    .limit(1))[0];
+  return workspace ? { ...workspace, role: "owner" as const } : undefined;
+}
+
 export async function createWorkspaceForUser(input: { userId: number; name: string; kind: "autonomo" | "clt" }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
@@ -64,12 +76,16 @@ export async function createWorkspaceForUser(input: { userId: number; name: stri
 export async function getWorkspaceForUser(workspaceId: number, userId: number) {
   const db = await getDb();
   if (!db) return undefined;
-  return (await db
+  const workspace = (await db
     .select({ id: workspaces.id, name: workspaces.name, kind: workspaces.kind, role: workspaceMembers.role })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
     .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.workspaceId, workspaceId)))
     .limit(1))[0];
+  if (!workspace) return undefined;
+  if (workspace.role !== "owner") return workspace;
+  const primaryWorkspace = await getPrimaryWorkspaceForUser(userId);
+  return primaryWorkspace?.id === workspace.id ? workspace : undefined;
 }
 
 export async function listCompaniesForWorkspace(workspaceId: number) {
@@ -385,4 +401,47 @@ export async function createActionItemForWorkspace(input: { workspaceId: number;
   const values = { ...input, inspectionId: input.inspectionId ?? null, departmentId: input.departmentId ?? null, responsibleEmployeeId: input.responsibleEmployeeId ?? null, description: input.description ?? null, dueAt: input.dueAt ?? null, status: "open" as const };
   const inserted = await db.insert(actionItems).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function listClientEngagementsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientEngagements).where(eq(clientEngagements.workspaceId, workspaceId)).orderBy(desc(clientEngagements.nextFollowUpAt), desc(clientEngagements.updatedAt));
+}
+
+export async function createClientEngagementForWorkspace(input: { workspaceId: number; companyId: number; status: "lead" | "active" | "inactive"; nextFollowUpAt?: Date | null; notes?: string | null; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = { ...input, nextFollowUpAt: input.nextFollowUpAt ?? null, notes: input.notes ?? null };
+  const inserted = await db.insert(clientEngagements).values(values);
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function listClientVisitsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clientVisits).where(eq(clientVisits.workspaceId, workspaceId)).orderBy(desc(clientVisits.scheduledAt));
+}
+
+export async function createClientVisitForWorkspace(input: { workspaceId: number; companyId: number; scheduledAt: Date; objective: string; notes?: string | null; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = { ...input, notes: input.notes ?? null, status: "planned" as const };
+  const inserted = await db.insert(clientVisits).values(values);
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function getClientVisitForWorkspace(visitId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(clientVisits).where(and(eq(clientVisits.id, visitId), eq(clientVisits.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function updateClientVisitStatusForWorkspace(visitId: number, workspaceId: number, status: "planned" | "completed" | "cancelled") {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(clientVisits).set({ status }).where(and(eq(clientVisits.id, visitId), eq(clientVisits.workspaceId, workspaceId)));
+  const visit = await getClientVisitForWorkspace(visitId, workspaceId);
+  if (!visit) throw new Error("Visita não encontrada.");
+  return visit;
 }

@@ -5,8 +5,11 @@ describe("composição de routers do portal", () => {
   it("mantém todos os procedimentos de domínio no namespace plano portal", () => {
     expect(Object.keys(portalRouter._def.record).sort()).toEqual([
       "certificates",
+      "commercial",
       "createActionItem",
       "createCertificate",
+      "createClientEngagement",
+      "createClientVisit",
       "createCompany",
       "createDepartment",
       "createEmployee",
@@ -27,6 +30,7 @@ describe("composição de routers do portal", () => {
       "planning",
       "supportTickets",
       "trainings",
+      "updateClientVisitStatus",
       "uploadCompanyLogo",
       "workspace",
       "workspaces",

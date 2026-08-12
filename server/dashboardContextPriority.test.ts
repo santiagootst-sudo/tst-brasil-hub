@@ -8,10 +8,10 @@ const layoutSource = readFileSync(resolve(process.cwd(), "client/src/components/
 describe("prioridades contextuais dos ambientes", () => {
   it("ordena o dashboard Autônomo para carteira, entregas e atendimento", () => {
     expect(overviewSource).toContain("Carteira, entregas e clientes sob controle.");
-    expect(overviewSource).toContain("Empresas na carteira");
+    expect(overviewSource).toContain("Clientes ativos");
     expect(overviewSource).toContain("Roteiro de atendimento");
     expect(overviewSource).toContain("Materiais de atendimento");
-    expect(overviewSource).toContain("Estrutura dos clientes");
+    expect(overviewSource).toContain("Empresas e clientes");
   });
 
   it("ordena o dashboard CLT para pessoas, conformidade e rotina interna", () => {
@@ -23,8 +23,9 @@ describe("prioridades contextuais dos ambientes", () => {
   });
 
   it("preserva ferramentas compartilhadas, mas muda o destaque da barra lateral", () => {
-    expect(layoutSource).toContain("Rotina de atendimento");
-    expect(layoutSource).toContain("Rotina de conformidade");
+    expect(layoutSource).toContain('label: "Principal"');
+    expect(layoutSource).toContain('label: "Operação"');
+    expect(layoutSource).toContain('label: "Conformidade"');
     expect(layoutSource).toContain("Biblioteca técnica");
     expect(layoutSource).toContain("Suporte");
   });
@@ -39,6 +40,9 @@ describe("prioridades contextuais dos ambientes", () => {
     expect(overviewSource).toContain("Tratar alertas de EPI");
     expect(overviewSource).toContain("Ações em aberto");
     expect(overviewSource).toContain("Inspeções e ações");
+    expect(overviewSource).toContain("Clientes ativos");
+    expect(overviewSource).toContain("Visitas agendadas");
+    expect(overviewSource).toContain("Visão de risco e ações internas");
     expect(overviewSource).toContain("Completar os vínculos da equipe");
     expect(overviewSource).toContain("Mapear os setores da operação");
   });
