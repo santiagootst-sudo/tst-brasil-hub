@@ -205,3 +205,5 @@
 - [x] Adicionar editor pré-exportação de recomendações automáticas para relatórios em PDF.
 - [x] Implementar animações de carregamento, estados de sucesso e feedback visual por toast para exportações em PDF e CSV.
 - [x] Incluir alternador de modo claro e escuro no painel de visualização COPSOQ para máxima acessibilidade.
+- [x] Integrar sugestões de planos de ação por IA para dimensões críticas no PDF do COPSOQ-III.
+- [x] Criar painel de destaque na tela principal com alertas visuais para riscos médios e altos.
