@@ -162,3 +162,5 @@
 
 - [x] Integrar o novo logo do Portal TST Brasil na navegação principal e na landing page.
 - [x] Implementar a página/modal Meu perfil com dados reais do usuário, ambiente ativo e ações de sessão.
+
+- [x] Refatorar a integração do logotipo para remover fundo quadriculado e usar proporções profissionais na landing page e no painel.

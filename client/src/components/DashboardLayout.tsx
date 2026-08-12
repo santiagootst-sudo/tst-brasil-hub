@@ -103,12 +103,8 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   return (
     <div className="min-h-screen bg-[#f6faf9] text-[#102b32]">
       <aside className={`fixed inset-y-0 left-0 z-30 hidden w-72 flex-col px-3 py-5 text-[#d9eeea] shadow-2xl lg:flex ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
-        <div className="mb-7 flex items-center gap-3 px-3">
-          <img src="/logo-portal-tst.png" alt="Portal TST Brasil" className="h-11 w-11 rounded-xl object-contain bg-white/10 p-1" />
-          <div>
-            <p className="font-display text-base font-bold tracking-tight text-white leading-tight">Portal TST</p>
-            <p className="text-[10px] uppercase tracking-wider text-[#9ecfc5]">Brasil</p>
-          </div>
+        <div className="mb-7 flex items-center px-3">
+          <img src="/manus-storage/portal-tst-logo-clean_28523a59.png" alt="Portal TST Brasil" className="h-14 w-[214px] object-contain object-left" />
         </div>
 
         <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
