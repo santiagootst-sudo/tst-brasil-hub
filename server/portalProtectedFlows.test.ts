@@ -151,6 +151,26 @@ describe("portal protected flows", () => {
     expect(db.createPgrProjectForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 7, name: "PGR Unidade A", legacyStorageKey: expect.stringContaining("workspace-7-pgr-") }));
   });
 
+  it("simula a jornada completa empresa, logo, PGR e abertura autorizada", async () => {
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "autonomo", role: "owner" });
+    db.createCompanyForWorkspace.mockResolvedValue(companyCreatedSchema.parse({ id: 51, workspaceId: 7, name: "Empresa Nova" }));
+    db.getCompanyForWorkspace.mockResolvedValue({ id: 51, workspaceId: 7, name: "Empresa Nova" });
+    storage.storagePut.mockResolvedValue({ key: "company-logos/workspace-7/company-51/logo.png", url: "/manus-storage/company-logo.png" });
+    db.updateCompanyLogoForWorkspace.mockResolvedValue({ id: 51, workspaceId: 7, logoKey: "company-logos/workspace-7/company-51/logo.png", logoUrl: "/manus-storage/company-logo.png" });
+    db.createPgrProjectForWorkspace.mockResolvedValue(pgrProjectCreatedSchema.parse({ id: 52, workspaceId: 7, companyId: 51, name: "PGR Empresa Nova", legacyStorageKey: "workspace-7-pgr-contract" }));
+    db.getSubscriptionForUser.mockResolvedValue(subscriptionFixture("active"));
+    db.getPgrProjectForWorkspace.mockResolvedValue({ id: 52, workspaceId: 7, companyId: 51, name: "PGR Empresa Nova" });
+    pgrTicket.createPgrIframeTicket.mockResolvedValue("ticket-seguro");
+
+    const caller = appRouter.createCaller(createContext());
+    await caller.portal.createCompany({ workspaceId: 7, name: "Empresa Nova" });
+    await caller.portal.uploadCompanyLogo({ workspaceId: 7, companyId: 51, dataUrl: "data:image/png;base64,aGVsbG8gd29ybGQgaGVsbG8gd29ybGQgaGVsbG8gd29ybGQ=" });
+    await caller.portal.createPgrProject({ workspaceId: 7, companyId: 51, name: "PGR Empresa Nova" });
+    await expect(caller.portal.iframeAccess({ workspaceId: 7, projectId: 52 })).resolves.toEqual({ url: "/api/apps/pgr/7?ticket=ticket-seguro" });
+    expect(db.createPgrProjectForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ companyId: 51, workspaceId: 7 }));
+    expect(db.updateCompanyLogoForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ companyId: 51, workspaceId: 7 }));
+  });
+
   it("emite a autorização do iframe apenas para projeto PGR do ambiente acessível", async () => {
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, name: "Unidade A", kind: "clt", role: "owner" });
     db.getSubscriptionForUser.mockResolvedValue(subscriptionFixture("active"));

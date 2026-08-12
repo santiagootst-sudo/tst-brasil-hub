@@ -13,3 +13,11 @@ A primeira captura com IDs antigos exibiu corretamente os estados de seleção d
 ## Cenário sem vínculo ao workspace
 
 Com a conta administrativa autenticada, o workspace real `30002` pertence a outra conta e não possui vínculo com o proprietário. A captura de `/app/visao?workspace=30002` exibiu o estado seguro de seleção de ambiente, sem indicadores nem dados de outra conta. Em contraste, os workspaces vinculados `120001` e `150001` exibiram seus dashboards Autônomo e CLT com dados e estados próprios. A evidência confirma o isolamento contextual do dashboard para o caso sem vínculo, sem alterar qualquer registro.
+
+## Observação no navegador conectado
+
+No navegador autenticado, a URL do workspace `30002` (pertencente a outra conta) carregou o shell autenticado sem expor dados externos. O conteúdo principal exibiu “Selecione um ambiente para ver o painel” e informou que os indicadores usam somente registros reais do ambiente ativo. A barra lateral manteve apenas a navegação do portal e o atalho “Escolher ambiente”, confirmando o estado seguro de ausência de vínculo.
+
+## Alternância Autônomo/CLT no navegador
+
+No navegador autenticado, a abertura do ambiente `120001` exibiu o dashboard TST Autônomo com carteira, entregas PGR, agenda e documentos como prioridades. Em seguida, a navegação para `150001` carregou o dashboard TST CLT com pessoas, conformidade, capacitação, EPIs e ocorrências como prioridades. Em ambos os estados, a URL preservou o identificador do workspace, o shell contextual foi atualizado e o atalho “Contexto alternativo” permaneceu disponível. Nenhum dado foi criado ou alterado durante a observação.

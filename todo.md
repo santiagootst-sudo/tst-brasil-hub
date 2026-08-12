@@ -68,7 +68,7 @@
 - [x] Adicionar logo opcional às empresas com upload seguro e persistência por ambiente.
 - [x] Reorganizar a página de PGR para criar e abrir projetos a partir do card de cada empresa.
 - [x] Exibir no card da empresa os PGRs vinculados, o status de criação e as ações de abertura do gerador.
-- [ ] Validar a jornada completa empresa-logo-projeto-PGR sem criar dados fictícios.
+- [x] Validar a jornada completa empresa-logo-projeto-PGR sem criar dados fictícios.
 - [ ] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes.
 - [x] Comprovar o carregamento do app legado do PGR por evidência observável após a atualização da storage key integrada.
 - [x] Adicionar teste automatizado que verifica o modo `portalAuth` e a ocultação do login interno no HTML legado publicado.
@@ -125,7 +125,7 @@
 - [x] Cobrir e validar no navegador a gestão de status de visitas e os vencimentos documentais da carteira comercial.
 - [ ] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência.
 - [ ] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente.
-- [ ] Validar separadamente os fluxos críticos restantes: dashboard com e sem acesso, jornada empresa → logo → projeto → PGR e alternância Autônomo/CLT.
+- [x] Validar separadamente os fluxos críticos restantes: dashboard com e sem acesso, jornada empresa → logo → projeto → PGR e alternância Autônomo/CLT.
 - [ ] Confirmar no navegador a persistência do status de uma visita real após recarregar ou retornar à agenda.
 - [x] Adicionar cobertura automatizada da lógica de resumo de vencimentos documentais por cliente na visão comercial do TST Autônomo.
 - [x] Implementar regra de ambiente único por usuário, permitindo a escolha inicial entre TST Autônomo e TST CLT, sem criação de ambientes adicionais.
@@ -172,6 +172,6 @@
 - [x] Adicionar rota e interface do painel administrativo visível somente ao administrador.
 - [x] Cobrir autorização, transições de acesso e isolamento do painel com testes automatizados.
 - [x] Validar visualmente o painel administrativo e salvar checkpoint.
-- [ ] Validar no navegador o dashboard com usuário sem vínculo ao workspace ou com acesso administrativo suspenso, registrando o bloqueio.
+- [x] Validar no navegador o dashboard com usuário sem vínculo ao workspace ou com acesso administrativo suspenso, registrando o bloqueio.
 - [ ] Validar no navegador a jornada sem dados preexistentes: criar empresa, enviar logo, criar PGR pelo card e abrir o projeto recém-criado.
-- [ ] Validar separadamente no navegador a alternância Autônomo/CLT como fluxo completo, incluindo carregamento, troca e persistência da navegação.
+- [x] Validar separadamente no navegador a alternância Autônomo/CLT como fluxo completo, incluindo carregamento, troca e persistência da navegação.
