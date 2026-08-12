@@ -108,6 +108,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
         </div>
 
         <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
+          {user?.role === "admin" && <section><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">Administração</p><Link href="/admin" className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${location === "/admin" ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><UsersRound className="h-4 w-4" /><span>Gestão de acessos</span></Link></section>}
           {menuSections.map(section => <section key={section.label}><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{section.label}</p>{section.items.map(({ label, icon: Icon, path }) => {
             const active = path === "/app" ? location === "/app" || location === "/app/visao" : location === path;
             return <Link key={path} href={pathWithWorkspace(path)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><Icon className="h-4 w-4" /><span>{label}</span></Link>;

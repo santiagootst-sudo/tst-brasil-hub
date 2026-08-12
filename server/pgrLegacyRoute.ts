@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { canUsePaidApps } from "./access";
-import { getSubscriptionForUser, getWorkspaceForUser } from "./db";
+import { getSubscriptionForUser, getUserById, getWorkspaceForUser } from "./db";
 import { verifyPgrIframeTicket } from "./pgrIframeTicket";
 import { sdk } from "./_core/sdk";
 import { storageGetSignedUrl } from "./storage";
@@ -72,12 +72,13 @@ export function registerPgrLegacyRoute(app: Express) {
       const userId = user?.id ?? ticket!.userId;
       const userRole = user?.role ?? ticket!.userRole;
 
-      const [workspace, subscription] = await Promise.all([
+      const [workspace, subscription, accessUser] = await Promise.all([
         getWorkspaceForUser(workspaceId, userId),
         getSubscriptionForUser(userId),
+        user ? Promise.resolve(user) : getUserById(userId),
       ]);
       if (!workspace) return res.status(403).send("Você não possui acesso a este ambiente.");
-      if (!canUsePaidApps({ userRole, subscriptionStatus: subscription?.status })) {
+      if (!canUsePaidApps({ userRole, accessStatus: accessUser?.accessStatus, accessExpiresAt: accessUser?.accessExpiresAt, subscriptionStatus: subscription?.status })) {
         return res.status(402).send("Uma assinatura ativa é necessária para usar o PGR Pro.");
       }
 

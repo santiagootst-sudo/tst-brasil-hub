@@ -164,3 +164,11 @@
 - [x] Implementar a página/modal Meu perfil com dados reais do usuário, ambiente ativo e ações de sessão.
 
 - [x] Refatorar a integração do logotipo para remover fundo quadriculado e usar proporções profissionais na landing page e no painel.
+
+- [x] Criar painel administrativo seguro para gestão de usuários, renovação de acesso, suspensão e desligamento na rodada de testes.
+- [x] Adicionar estado administrativo de acesso e validade de teste ao usuário, integrados ao bloqueio de rotas protegidas.
+- [x] Criar procedimentos admin-only para listar usuários, renovar, suspender, reativar e encerrar acesso.
+- [x] Criar auditoria das alterações administrativas de acesso.
+- [x] Adicionar rota e interface do painel administrativo visível somente ao administrador.
+- [x] Cobrir autorização, transições de acesso e isolamento do painel com testes automatizados.
+- [x] Validar visualmente o painel administrativo e salvar checkpoint.

@@ -7,6 +7,8 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  accessStatus: mysqlEnum("accessStatus", ["active", "suspended"]).default("active").notNull(),
+  accessExpiresAt: timestamp("accessExpiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -295,6 +297,21 @@ export const subscriptions = mysqlTable("subscriptions", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("subscriptions_customer_idx").on(table.stripeCustomerId)]);
 
+export const adminAccessAudit = mysqlTable("admin_access_audit", {
+  id: int("id").autoincrement().primaryKey(),
+  targetUserId: int("targetUserId").notNull(),
+  adminUserId: int("adminUserId").notNull(),
+  action: mysqlEnum("action", ["renew", "suspend", "reactivate", "disable"]).notNull(),
+  previousStatus: varchar("previousStatus", { length: 64 }),
+  nextStatus: varchar("nextStatus", { length: 64 }),
+  previousExpiresAt: timestamp("previousExpiresAt"),
+  nextExpiresAt: timestamp("nextExpiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("admin_access_audit_target_idx").on(table.targetUserId, table.createdAt),
+  index("admin_access_audit_admin_idx").on(table.adminUserId, table.createdAt),
+]);
+
 export const pgrProjects = mysqlTable("pgr_projects", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
@@ -366,6 +383,7 @@ export const supportTickets = mysqlTable("support_tickets", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type AdminAccessAudit = typeof adminAccessAudit.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;

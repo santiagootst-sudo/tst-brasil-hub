@@ -3,6 +3,7 @@ import type { Express, Request, Response } from "express";
 
 const db = vi.hoisted(() => ({
   getSubscriptionForUser: vi.fn(),
+  getUserById: vi.fn(),
   getWorkspaceForUser: vi.fn(),
 }));
 const sdk = vi.hoisted(() => ({ authenticateRequest: vi.fn() }));
@@ -98,6 +99,7 @@ describe("rota protegida do PGR", () => {
     pgrTicket.verifyPgrIframeTicket.mockResolvedValue({ userId: 12, workspaceId: 7, projectId: 3, userRole: "user" });
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, role: "owner" });
     db.getSubscriptionForUser.mockResolvedValue({ status: "active" });
+    db.getUserById.mockResolvedValue({ id: 12, role: "user", accessStatus: "active", accessExpiresAt: null });
     storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
     const response = createResponse();
 

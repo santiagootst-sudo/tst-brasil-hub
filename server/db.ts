@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actionItems, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -38,6 +38,63 @@ export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
   return (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0];
+}
+
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+}
+
+export async function listUsersForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  const [userRows, subscriptionRows, workspaceRows] = await Promise.all([
+    db.select().from(users).orderBy(desc(users.createdAt), desc(users.id)),
+    db.select().from(subscriptions),
+    db.select({ id: workspaces.id, ownerUserId: workspaces.ownerUserId, name: workspaces.name, kind: workspaces.kind }).from(workspaces),
+  ]);
+  return userRows.map(user => ({
+    ...user,
+    subscription: subscriptionRows.find(subscription => subscription.userId === user.id) ?? null,
+    workspaces: workspaceRows.filter(workspace => workspace.ownerUserId === user.id),
+  }));
+}
+
+export async function updateUserAccess(input: {
+  targetUserId: number;
+  adminUserId: number;
+  action: "renew" | "suspend" | "reactivate" | "disable";
+  expiresAt: Date | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const target = (await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1))[0];
+  if (!target) throw new Error("Usuário não encontrado.");
+
+  const nextStatus = input.action === "suspend" || input.action === "disable" ? "suspended" : "active";
+  const nextExpiresAt = nextStatus === "suspended" ? null : input.expiresAt;
+  await db.transaction(async tx => {
+    await tx.update(users)
+      .set({ accessStatus: nextStatus, accessExpiresAt: nextExpiresAt, updatedAt: new Date() })
+      .where(eq(users.id, input.targetUserId));
+    await tx.insert(adminAccessAudit).values({
+      targetUserId: input.targetUserId,
+      adminUserId: input.adminUserId,
+      action: input.action,
+      previousStatus: target.accessStatus,
+      nextStatus,
+      previousExpiresAt: target.accessExpiresAt,
+      nextExpiresAt,
+    });
+  });
+  return (await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1))[0];
+}
+
+export async function listAdminAccessAudits(limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminAccessAudit).orderBy(desc(adminAccessAudit.createdAt), desc(adminAccessAudit.id)).limit(limit);
 }
 
 export async function listWorkspacesForUser(userId: number) {
