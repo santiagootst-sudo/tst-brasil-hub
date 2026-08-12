@@ -242,3 +242,7 @@
 - [x] Corrigir a exibição do módulo Controle de EPIs na navegação do ambiente Empresa e preservar o contexto ativo na rota.
 - [x] Adicionar teste para garantir que o módulo de EPIs fique acessível no ambiente Empresa sem expor rotas indevidas em outros contextos.
 - [x] Validar visualmente a entrada do módulo de EPIs no dashboard e na barra lateral da Empresa.
+- [x] Redesenhar o cabeçalho do dashboard para reduzir a área escura e aliviar a fadiga visual.
+- [x] Reestruturar os cartões de indicadores com hierarquia, contraste e densidade mais equilibrados.
+- [x] Validar a revisão visual em desktop e mobile, incluindo contraste e estados sem dados.
+- [x] Atualizar os testes e salvar checkpoint da nova direção visual.
