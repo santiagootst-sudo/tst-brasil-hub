@@ -214,3 +214,5 @@
 - [x] Implementar análise de atas por IA para sugerir itens ao plano de ação com revisão humana.
 - [x] Desenvolver a nova Biblioteca Visual com design moderno, abas de Documentos por NR, Cursos e Vídeos.
 - [x] Implementar busca instantânea, filtros por categoria e abertura segura de materiais de SST.
+- [x] Desenvolver a nova Biblioteca Visual com design moderno, abas de Documentos por NR, Cursos e Vídeos.
+- [x] Implementar busca instantânea, filtros por categoria e abertura segura de materiais de SST.
