@@ -425,3 +425,48 @@ export type Inspection = typeof inspections.$inferSelect;
 export type ActionItem = typeof actionItems.$inferSelect;
 export type ClientEngagement = typeof clientEngagements.$inferSelect;
 export type ClientVisit = typeof clientVisits.$inferSelect;
+
+// Módulo COPSOQ-III (Avaliação de Riscos Psicossociais - NR-1)
+export const psychosocialApplications = mysqlTable("psychosocial_applications", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["draft", "active", "completed"]).default("active").notNull(),
+  minRespondents: int("minRespondents").default(10).notNull(),
+  respondentCount: int("respondentCount").default(0).notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("psychosocial_applications_workspace_idx").on(table.workspaceId),
+  index("psychosocial_applications_company_idx").on(table.companyId),
+]);
+
+export const psychosocialResponses = mysqlTable("psychosocial_responses", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: int("applicationId").notNull(),
+  // Hash anônimo para auditoria de unicidade sem expor identificidade do respondente
+  respondentHash: varchar("respondentHash", { length: 128 }).notNull(),
+  answersJson: varchar("answersJson", { length: 4000 }).notNull(), // Armazena mapa de questões e escores
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("psychosocial_responses_app_idx").on(table.applicationId),
+]);
+
+export const psychosocialResults = mysqlTable("psychosocial_results", {
+  id: int("id").autoincrement().primaryKey(),
+  applicationId: int("applicationId").notNull(),
+  dimensionKey: varchar("dimensionKey", { length: 64 }).notNull(), // ex: "demands_quantitative", "harassment_sexual"
+  dimensionName: varchar("dimensionName", { length: 255 }).notNull(),
+  domainName: varchar("domainName", { length: 255 }).notNull(),
+  score: int("score").notNull(), // Média normalizada 0-100
+  riskLevel: mysqlEnum("riskLevel", ["low", "medium", "high"]).notNull(),
+  exportedToPgr: boolean("exportedToPgr").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("psychosocial_results_app_idx").on(table.applicationId),
+  index("psychosocial_results_risk_idx").on(table.applicationId, table.riskLevel),
+]);
