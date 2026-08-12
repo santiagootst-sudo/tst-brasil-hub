@@ -10,15 +10,19 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
+let loginRedirectInFlight = false;
+
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
 
-  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
+  const isUnauthorized = error.message === UNAUTHED_ERR_MSG || error.data?.code === "UNAUTHORIZED";
+  const isProtectedRoute = window.location.pathname === "/app" || window.location.pathname.startsWith("/app/");
 
-  if (!isUnauthorized) return;
+  if (!isUnauthorized || !isProtectedRoute || loginRedirectInFlight) return;
 
-  startLogin();
+  loginRedirectInFlight = true;
+  startLogin({ automatic: true });
 };
 
 queryClient.getQueryCache().subscribe(event => {

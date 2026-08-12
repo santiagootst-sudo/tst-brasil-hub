@@ -250,3 +250,7 @@
 - [x] Adicionar indicadores de tendência, microinterações e gráficos imersivos.
 - [x] Validar a nova experiência visual em desktop e mobile e cobrir com testes.
 - [x] Salvar checkpoint e disponibilizar a nova versão imersiva do portal.
+- [x] Corrigir o loop de entrada de login e estabilizar o retorno do callback OAuth.
+- [x] Impedir redirecionamento infinito quando a sessão ou o callback falhar.
+- [x] Cobrir com testes o fluxo de login, logout, callback e erro de autenticação.
+- [ ] Validar no navegador a entrada do portal após autenticação e salvar checkpoint da correção.
