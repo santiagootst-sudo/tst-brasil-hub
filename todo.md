@@ -219,3 +219,4 @@
 - [x] Adicionar barra de pesquisa global e filtros avançados na Biblioteca de Conhecimento.
 - [x] Implementar assistente de IA na Biblioteca para resumos de NRs e recomendação de cursos.
 - [x] Criar painel de progresso visual na Biblioteca para monitorar cursos e vídeos iniciados, em andamento ou concluídos.
+- [x] Criar wireframes de alta fidelidade para a Gestão de EPIs e fichas de entrega automatizadas.
