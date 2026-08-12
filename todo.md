@@ -199,3 +199,9 @@
 - [x] Adicionar tooltips explicativos ao gráfico de radar detalhando o significado de cada dimensão psicométrica.
 - [x] Incluir seção de recomendações automáticas e planos de ação baseados nas menores pontuações no relatório PDF.
 - [x] Implementar funcionalidade de comparação agregada entre períodos e benchmarks internos.
+- [x] Adicionar editor de recomendações automáticas pré-exportação de PDF.
+- [x] Implementar animações de carregamento, estados de sucesso e toasts para download de PDF/CSV.
+- [x] Incluir alternador de modo claro e escuro dedicado no painel de visualização COPSOQ.
+- [x] Adicionar editor pré-exportação de recomendações automáticas para relatórios em PDF.
+- [x] Implementar animações de carregamento, estados de sucesso e feedback visual por toast para exportações em PDF e CSV.
+- [x] Incluir alternador de modo claro e escuro no painel de visualização COPSOQ para máxima acessibilidade.
