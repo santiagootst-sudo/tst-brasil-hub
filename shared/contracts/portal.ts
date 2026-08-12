@@ -452,3 +452,88 @@ export const sstOccurrenceCreatedSchema = z.object({
   status: z.literal("open"),
   createdByUserId: z.number().int().positive(),
 });
+
+export const inspectionStatuses = ["planned", "completed"] as const;
+export const actionItemStatuses = ["open", "in_progress", "completed"] as const;
+export const inspectionStatusSchema = z.enum(inspectionStatuses);
+export const actionItemStatusSchema = z.enum(actionItemStatuses);
+
+export const createInspectionInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().min(3).max(255),
+  dueAt: z.coerce.date().nullable().optional(),
+  notes: z.string().trim().max(1500).nullable().optional(),
+});
+
+export const createActionItemInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  inspectionId: z.number().int().positive().nullable().optional(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  responsibleEmployeeId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().min(3).max(255),
+  description: z.string().trim().max(1500).nullable().optional(),
+  dueAt: z.coerce.date().nullable().optional(),
+});
+
+export const inspectionSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  title: z.string(),
+  dueAt: z.date().nullable(),
+  completedAt: z.date().nullable(),
+  notes: z.string().nullable(),
+  status: inspectionStatusSchema,
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const actionItemSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  inspectionId: z.number().int().positive().nullable(),
+  departmentId: z.number().int().positive().nullable(),
+  responsibleEmployeeId: z.number().int().positive().nullable(),
+  title: z.string(),
+  description: z.string().nullable(),
+  dueAt: z.date().nullable(),
+  status: actionItemStatusSchema,
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const planningSnapshotSchema = z.object({
+  inspections: z.array(inspectionSchema),
+  actionItems: z.array(actionItemSchema),
+});
+
+export const inspectionCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  title: z.string(),
+  dueAt: z.date().nullable(),
+  notes: z.string().nullable(),
+  status: z.literal("planned"),
+  createdByUserId: z.number().int().positive(),
+});
+
+export const actionItemCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  inspectionId: z.number().int().positive().nullable(),
+  departmentId: z.number().int().positive().nullable(),
+  responsibleEmployeeId: z.number().int().positive().nullable(),
+  title: z.string(),
+  description: z.string().nullable(),
+  dueAt: z.date().nullable(),
+  status: z.literal("open"),
+  createdByUserId: z.number().int().positive(),
+});

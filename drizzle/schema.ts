@@ -148,6 +148,47 @@ export const sstOccurrences = mysqlTable("sst_occurrences", {
   index("sst_occurrences_occurred_at_idx").on(table.workspaceId, table.occurredAt),
 ]);
 
+export const inspections = mysqlTable("inspections", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  dueAt: timestamp("dueAt"),
+  completedAt: timestamp("completedAt"),
+  notes: varchar("notes", { length: 1500 }),
+  status: mysqlEnum("status", ["planned", "completed"]).default("planned").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("inspections_workspace_idx").on(table.workspaceId),
+  index("inspections_company_idx").on(table.companyId),
+  index("inspections_status_idx").on(table.workspaceId, table.status),
+  index("inspections_due_at_idx").on(table.workspaceId, table.dueAt),
+]);
+
+export const actionItems = mysqlTable("action_items", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  inspectionId: int("inspectionId"),
+  departmentId: int("departmentId"),
+  responsibleEmployeeId: int("responsibleEmployeeId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1500 }),
+  dueAt: timestamp("dueAt"),
+  status: mysqlEnum("status", ["open", "in_progress", "completed"]).default("open").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("action_items_workspace_idx").on(table.workspaceId),
+  index("action_items_company_idx").on(table.companyId),
+  index("action_items_status_idx").on(table.workspaceId, table.status),
+  index("action_items_due_at_idx").on(table.workspaceId, table.dueAt),
+]);
+
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
@@ -241,3 +282,5 @@ export type Employee = typeof employees.$inferSelect;
 export type EpiItem = typeof epiItems.$inferSelect;
 export type EpiRequirement = typeof epiRequirements.$inferSelect;
 export type SstOccurrence = typeof sstOccurrences.$inferSelect;
+export type Inspection = typeof inspections.$inferSelect;
+export type ActionItem = typeof actionItems.$inferSelect;

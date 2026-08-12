@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { certificates, companies, departments, employees, epiItems, epiRequirements, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, certificates, companies, departments, employees, epiItems, epiRequirements, inspections, jobRoles, type InsertUser, materials, pgrProjects, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -350,5 +350,39 @@ export async function createSstOccurrenceForWorkspace(input: { workspaceId: numb
   if (!db) throw new Error("Banco de dados indisponível.");
   const values = { ...input, departmentId: input.departmentId ?? null, employeeId: input.employeeId ?? null, status: "open" as const };
   const inserted = await db.insert(sstOccurrences).values(values);
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function listInspectionsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(inspections).where(eq(inspections.workspaceId, workspaceId)).orderBy(desc(inspections.dueAt), desc(inspections.updatedAt));
+}
+
+export async function getInspectionForWorkspace(inspectionId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(inspections).where(and(eq(inspections.id, inspectionId), eq(inspections.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function createInspectionForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; title: string; dueAt?: Date | null; notes?: string | null; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = { ...input, departmentId: input.departmentId ?? null, dueAt: input.dueAt ?? null, notes: input.notes ?? null, status: "planned" as const };
+  const inserted = await db.insert(inspections).values(values);
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function listActionItemsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(actionItems).where(eq(actionItems.workspaceId, workspaceId)).orderBy(desc(actionItems.dueAt), desc(actionItems.updatedAt));
+}
+
+export async function createActionItemForWorkspace(input: { workspaceId: number; companyId: number; inspectionId?: number | null; departmentId?: number | null; responsibleEmployeeId?: number | null; title: string; description?: string | null; dueAt?: Date | null; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = { ...input, inspectionId: input.inspectionId ?? null, departmentId: input.departmentId ?? null, responsibleEmployeeId: input.responsibleEmployeeId ?? null, description: input.description ?? null, dueAt: input.dueAt ?? null, status: "open" as const };
+  const inserted = await db.insert(actionItems).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
 }

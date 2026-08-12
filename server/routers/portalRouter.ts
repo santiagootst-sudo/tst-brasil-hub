@@ -3,6 +3,7 @@ import { learningRouter } from "./learningRouter";
 import { materialsRouter } from "./materialsRouter";
 import { organizationRouter } from "./organizationRouter";
 import { operationsRouter } from "./operationsRouter";
+import { planningRouter } from "./planningRouter";
 import { pgrRouter } from "./pgrRouter";
 import { supportRouter } from "./supportRouter";
 import { workspaceRouter } from "./workspaceRouter";
@@ -14,5 +15,6 @@ export const portalRouter = router({
   ...materialsRouter._def.record,
   ...organizationRouter._def.record,
   ...operationsRouter._def.record,
+  ...planningRouter._def.record,
   ...supportRouter._def.record,
 });

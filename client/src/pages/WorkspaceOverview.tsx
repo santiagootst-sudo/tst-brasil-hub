@@ -26,8 +26,9 @@ export default function WorkspaceOverview() {
   const trainings = trpc.portal.trainings.useQuery({ workspaceId }, queryOptions);
   const organization = trpc.portal.organization.useQuery({ workspaceId }, queryOptions);
   const operations = trpc.portal.operations.useQuery({ workspaceId }, queryOptions);
+  const planning = trpc.portal.planning.useQuery({ workspaceId }, queryOptions);
 
-  if (workspace.isLoading || certificates.isLoading || trainings.isLoading || organization.isLoading || operations.isLoading) {
+  if (workspace.isLoading || certificates.isLoading || trainings.isLoading || organization.isLoading || operations.isLoading || planning.isLoading) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
   }
 
@@ -51,6 +52,9 @@ export default function WorkspaceOverview() {
   const epiExpiring = epiItems.filter(item => item.expiresAt && daysUntil(item.expiresAt) !== null && (daysUntil(item.expiresAt) ?? 0) <= 30).length;
   const epiAlerts = epiStockCritical + epiExpiring;
   const openOccurrences = operations.data?.occurrences.filter(item => item.status !== "closed").length ?? 0;
+  const plannedInspections = planning.data?.inspections.filter(item => item.status === "planned").length ?? 0;
+  const openActionItems = planning.data?.actionItems.filter(item => item.status !== "completed") ?? [];
+  const overdueActionItems = openActionItems.filter(item => item.dueAt && daysUntil(item.dueAt) !== null && (daysUntil(item.dueAt) ?? 0) < 0).length;
   const appHref = (path: string) => `${path}?workspace=${current.id}`;
 
   const context = isAutonomo
@@ -70,6 +74,7 @@ export default function WorkspaceOverview() {
         { label: "Pessoas registradas", value: activeEmployees.length, icon: UsersRound, tone: "mint" },
         { label: "Funções ativas", value: activeJobRoles.length, icon: BriefcaseBusiness, tone: "blue" },
         { label: "Alertas de EPI", value: epiAlerts, icon: ShieldCheck, tone: "coral" },
+        { label: "Ações em aberto", value: openActionItems.length, icon: ClipboardCheck, tone: "coral" },
         { label: "Documentos a tratar", value: certificatesToAct, icon: Award, tone: "coral" },
       ],
       routine: ["Selecionar a empresa atendida", "Avançar o PGR e suas evidências", "Confirmar a programação com o cliente", "Registrar materiais e próximos retornos"],
@@ -77,6 +82,7 @@ export default function WorkspaceOverview() {
         { href: appHref("/app/pgr"), icon: ShieldCheck, title: "Entregas PGR", text: "Empresas, projetos e documentos" },
         { href: appHref("/app/estrutura"), icon: UsersRound, title: "Estrutura dos clientes", text: "Setores, funções e equipes" },
         { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle por cliente", text: "EPIs e ocorrências SST" },
+        { href: appHref("/app/inspecoes"), icon: ClipboardCheck, title: "Inspeções e ações", text: "Prevenção por cliente" },
         { href: appHref("/app/materiais"), icon: FolderKanban, title: "Materiais de atendimento", text: "Modelos e checklists para usar" },
         { href: appHref("/app/treinamentos"), icon: GraduationCap, title: "Agenda de treinamentos", text: "Programação por cliente" },
         { href: appHref("/app/certificados"), icon: Award, title: "Certificados", text: "Validades que exigem retorno" },
@@ -100,12 +106,14 @@ export default function WorkspaceOverview() {
         { label: "Funções ativas", value: activeJobRoles.length, icon: BriefcaseBusiness, tone: "blue" },
         { label: "Alertas de EPI", value: epiAlerts, icon: ShieldCheck, tone: "coral" },
         { label: "Ocorrências abertas", value: openOccurrences, icon: CircleAlert, tone: "coral" },
+        { label: "Ações em aberto", value: openActionItems.length, icon: ClipboardCheck, tone: "coral" },
         { label: "Certificados a tratar", value: certificatesToAct, icon: Award, tone: "coral" },
       ],
       routine: ["Revisar pendências de capacitação", "Tratar certificados vencidos ou próximos", "Manter o PGR e as evidências atualizados", "Registrar procedimentos e acionar suporte quando necessário"],
       tools: [
         { href: appHref("/app/estrutura"), icon: UsersRound, title: "Estrutura e equipe", text: "Pessoas, setores e funções" },
         { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle operacional", text: "EPIs e ocorrências SST" },
+        { href: appHref("/app/inspecoes"), icon: ClipboardCheck, title: "Inspeções e ações", text: "Prevenção e prazos" },
         { href: appHref("/app/treinamentos"), icon: UsersRound, title: "Capacitação da equipe", text: "Planejamento e execução" },
         { href: appHref("/app/certificados"), icon: Award, title: "Conformidade documental", text: "Validades e evidências" },
         { href: appHref("/app/pgr"), icon: ShieldCheck, title: "PGR da operação", text: "Riscos e documentos" },
@@ -144,6 +152,20 @@ export default function WorkspaceOverview() {
       icon: CircleAlert,
       tone: "coral" as const,
     },
+    openActionItems.length > 0 && {
+      href: appHref("/app/inspecoes"),
+      title: `${openActionItems.length} ação(ões) preventiva(s) em acompanhamento`,
+      detail: overdueActionItems > 0 ? `${overdueActionItems} ação(ões) estão com prazo vencido.` : "Acompanhe responsável, prazo e evidência de cada medida.",
+      icon: ClipboardCheck,
+      tone: "coral" as const,
+    },
+    plannedInspections > 0 && {
+      href: appHref("/app/inspecoes"),
+      title: `${plannedInspections} inspeção(ões) planejada(s)`,
+      detail: "Organize a verificação por empresa ou setor antes da próxima rotina operacional.",
+      icon: ClipboardCheck,
+      tone: "blue" as const,
+    },
     !current.pgrProjects.length && {
       href: appHref("/app/pgr"),
       title: isAutonomo ? "Criar a primeira entrega PGR" : "Criar ou atualizar o PGR da operação",
@@ -170,7 +192,7 @@ export default function WorkspaceOverview() {
   return <DashboardLayout title="Visão geral"><div className="mx-auto max-w-7xl space-y-7">
     <section className={`overflow-hidden rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${context.color}`}>
       <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start"><div><span className={`rounded-lg bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.label}</span><p className={`mt-5 text-xs font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.eyebrow}</p><h2 className="mt-2 max-w-3xl text-3xl font-bold tracking-tight lg:text-4xl">{context.headline}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">{context.description}</p></div><Link href="/app" className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">Trocar ambiente <ArrowRight className="h-4 w-4" /></Link></div>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{context.stats.map(({ label, value, icon: Icon, tone }) => <div key={label} className="rounded-2xl border border-white/10 bg-white/8 p-4"><span className={`grid h-9 w-9 place-items-center rounded-xl ${tone === "coral" ? "bg-[#e98766]/15 text-[#ffb69d]" : tone === "blue" ? "bg-[#b9defc]/15 text-[#b9defc]" : "bg-[#8edec7]/15 text-[#8edec7]"}`}><Icon className="h-4 w-4" /></span><p className="mt-4 text-3xl font-bold">{value}</p><p className="mt-1 text-xs text-white/70">{label}</p></div>)}</div>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">{context.stats.map(({ label, value, icon: Icon, tone }) => <div key={label} className="rounded-2xl border border-white/10 bg-white/8 p-4"><span className={`grid h-9 w-9 place-items-center rounded-xl ${tone === "coral" ? "bg-[#e98766]/15 text-[#ffb69d]" : tone === "blue" ? "bg-[#b9defc]/15 text-[#b9defc]" : "bg-[#8edec7]/15 text-[#8edec7]"}`}><Icon className="h-4 w-4" /></span><p className="mt-4 text-3xl font-bold">{value}</p><p className="mt-1 text-xs text-white/70">{label}</p></div>)}</div>
     </section>
 
     <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">

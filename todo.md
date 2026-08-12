@@ -108,3 +108,8 @@
 - [x] Criar o módulo operacional de EPIs e Ocorrências, com permissões por workspace e estados vazios reais.
 - [x] Integrar alertas de pendências de EPI e ocorrências abertas aos dashboards contextuais.
 - [x] Cobrir os novos módulos operacionais com contratos, testes e validação visual em ambientes reais.
+- [x] Modelar inspeções e ações preventivas por empresa, setor e ambiente, sem gerar pendências fictícias.
+- [x] Criar o módulo de Inspeções e Plano de ação com registros reais, responsáveis e prazos opcionais.
+- [x] Integrar ações em aberto e inspeções registradas aos dashboards contextuais.
+- [x] Cobrir inspeções e ações com contratos, permissões por workspace e testes automatizados.
+- [x] Validar visualmente o módulo de inspeções nos ambientes Autônomo e CLT sem inserir dados de demonstração.
