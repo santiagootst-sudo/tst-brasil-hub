@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -25,6 +26,8 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   const currentWorkspace = workspace.data;
   const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<number | null>(null);
   const [switchingToastId, setSwitchingToastId] = useState<string | number | undefined>(undefined);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     if (!switchingWorkspaceId || currentWorkspace?.id !== switchingWorkspaceId) return;
@@ -101,12 +104,10 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     <div className="min-h-screen bg-[#f6faf9] text-[#102b32]">
       <aside className={`fixed inset-y-0 left-0 z-30 hidden w-72 flex-col px-3 py-5 text-[#d9eeea] shadow-2xl lg:flex ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
         <div className="mb-7 flex items-center gap-3 px-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#77cdb2]/15 text-[#88ddc4]">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
+          <img src="/logo-portal-tst.png" alt="Portal TST Brasil" className="h-11 w-11 rounded-xl object-contain bg-white/10 p-1" />
           <div>
-            <p className="font-display text-lg font-bold tracking-tight text-white">Portal TST</p>
-            <p className="text-xs text-[#9ecfc5]">Brasil · Gestão SST</p>
+            <p className="font-display text-base font-bold tracking-tight text-white leading-tight">Portal TST</p>
+            <p className="text-[10px] uppercase tracking-wider text-[#9ecfc5]">Brasil</p>
           </div>
         </div>
 
@@ -146,15 +147,44 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
               <Bell className="h-5 w-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e98766] ring-2 ring-white" />
             </Button>
-            <div className="flex items-center gap-2 rounded-xl border border-[#deece9] bg-[#f6faf9] px-2 py-1.5">
+            <button type="button" onClick={() => setProfileOpen(true)} className="flex items-center gap-2 rounded-xl border border-[#deece9] bg-[#f6faf9] px-2.5 py-1.5 transition hover:bg-[#e8f6f1]">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d9f1e7] text-[#0c7474]"><User className="h-4 w-4" /></span>
-              <span className="hidden pr-1 text-xs font-semibold text-[#315158] sm:block">Meu perfil</span>
-            </div>
+              <span className="hidden pr-1 text-xs font-semibold text-[#315158] sm:block">{user?.name || "Meu perfil"}</span>
+            </button>
           </div>
         </header>
         <main className="px-5 py-7 lg:px-9 lg:py-9">{children}</main>
       </div>
       {switchingWorkspaceId && currentWorkspace?.id !== switchingWorkspaceId && <div className="fixed inset-0 z-50 grid place-items-center bg-[#062f35]/20 backdrop-blur-[2px]"><div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white px-5 py-4 text-sm font-bold text-[#21444b] shadow-2xl"><Loader2 className="h-5 w-5 animate-spin text-[#0c7474]" />Carregando contexto de trabalho...</div></div>}
+      {profileOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062f35]/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#deece9] pb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Conta autenticada</p>
+                <h3 className="font-display text-xl font-bold text-[#102b32]">Meu perfil profissional</h3>
+              </div>
+              <button type="button" onClick={() => setProfileOpen(false)} className="rounded-xl p-2 text-[#668087] hover:bg-[#f6faf9] hover:text-[#102b32]">✕</button>
+            </div>
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl border border-[#e6f0ee] bg-[#f7fcfa] p-4">
+                <p className="text-xs font-medium text-[#668087]">Profissional</p>
+                <p className="mt-1 text-base font-bold text-[#102b32]">{user?.name || "Técnico de Segurança do Trabalho"}</p>
+                <p className="mt-0.5 text-xs text-[#0c7474]">{user?.email || "Profissional cadastrado no ecossistema"}</p>
+              </div>
+              <div className="rounded-2xl border border-[#e6f0ee] bg-[#f7fcfa] p-4">
+                <p className="text-xs font-medium text-[#668087]">Ambiente de trabalho ativo</p>
+                <p className="mt-1 text-sm font-bold text-[#102b32]">{currentWorkspace ? `${currentWorkspace.kind === "autonomo" ? "TST Autônomo" : "TST CLT"} · ${currentWorkspace.name}` : "Nenhum ambiente selecionado"}</p>
+                <p className="mt-1 text-xs text-[#5d7479]">Sua conta possui 2 contextos de desenvolvimento (Autônomo e CLT) para alternância na fase de criação.</p>
+              </div>
+              <div className="flex flex-col gap-2.5 pt-2">
+                <Button type="button" onClick={() => { setProfileOpen(false); logout(); }} variant="outline" className="w-full rounded-xl border-[#dcebe8] text-[#c2410c] hover:bg-[#fff5f2]">Encerrar sessão</Button>
+                <Button type="button" onClick={() => setProfileOpen(false)} className="w-full rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Fechar painel</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {collapsed ? <X className="hidden" /> : null}
     </div>
   );

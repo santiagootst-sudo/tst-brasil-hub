@@ -159,3 +159,6 @@
 - [x] Validar visualmente os novos módulos de SST nos ambientes Autônomo e CLT com estados reais existentes.
 - [x] Confirmar que os estados vazios dos módulos não exibem métricas ou registros fictícios.
 - [x] Registrar as evidências da validação local sem sandbox Stripe em docs/local-validation-2026-08-12.md.
+
+- [x] Integrar o novo logo do Portal TST Brasil na navegação principal e na landing page.
+- [x] Implementar a página/modal Meu perfil com dados reais do usuário, ambiente ativo e ações de sessão.

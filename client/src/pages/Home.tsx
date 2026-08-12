@@ -22,7 +22,7 @@ export default function Home() {
     <main className="min-h-screen overflow-x-hidden bg-[#f7fbfa] text-[#102b32]">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#063b43] text-[#88ddc4] shadow-lg shadow-[#063b43]/15"><ShieldCheck className="h-6 w-6" /></span>
+          <img src="/logo-portal-tst.png" alt="Portal TST Brasil" className="h-11 w-11 rounded-2xl object-contain bg-[#063b43] p-1 shadow-lg shadow-[#063b43]/15" />
           <span><strong className="font-display block text-lg leading-5">Portal TST</strong><small className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0c8c89]">Brasil</small></span>
         </Link>
         <div className="hidden items-center gap-7 text-sm font-semibold text-[#49636a] md:flex"><a href="#produto">Produto</a><a href="#como-funciona">Como funciona</a><Link href="/planos">Planos</Link></div>
