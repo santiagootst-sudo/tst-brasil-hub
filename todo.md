@@ -216,3 +216,5 @@
 - [x] Implementar busca instantânea, filtros por categoria e abertura segura de materiais de SST.
 - [x] Desenvolver a nova Biblioteca Visual com design moderno, abas de Documentos por NR, Cursos e Vídeos.
 - [x] Implementar busca instantânea, filtros por categoria e abertura segura de materiais de SST.
+- [x] Adicionar barra de pesquisa global e filtros avançados na Biblioteca de Conhecimento.
+- [x] Implementar assistente de IA na Biblioteca para resumos de NRs e recomendação de cursos.
