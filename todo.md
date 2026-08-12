@@ -95,3 +95,11 @@
 - [x] Reorganizar o dashboard TST CLT para priorizar pessoas, conformidade, treinamentos, certificados e alertas operacionais.
 - [x] Tornar a barra lateral contextual, destacando os atalhos e informações mais relevantes em cada ambiente sem remover as ferramentas compartilhadas.
 - [x] Validar visualmente os dashboards Autônomo e CLT com a nova hierarquia de informações e ações.
+- [x] Modelar entidades de pessoas, setores e funções vinculadas às empresas e aos ambientes de trabalho.
+- [x] Criar o módulo de Pessoas e Funções para gestão operacional no contexto TST CLT e atendimento do TST Autônomo.
+- [x] Criar o módulo de Setores para organizar a estrutura de cada empresa e sustentar PGR, treinamentos e indicadores.
+- [x] Conectar Empresas, Pessoas, Setores e Funções aos atalhos e à navegação contextual sem remover ferramentas existentes.
+- [x] Criar indicadores operacionais reais derivados dos registros de empresas, pessoas, setores, funções, treinamentos, certificados e PGRs.
+- [x] Cobrir os novos domínios com contratos, permissões por workspace e testes automatizados.
+- [x] Validar visualmente os módulos estruturantes nos dois contextos antes da homologação Stripe.
+- [x] Exibir e validar no dashboard um indicador real derivado de funções ativas cadastradas por empresa e ambiente.

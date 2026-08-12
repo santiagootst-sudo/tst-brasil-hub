@@ -25,6 +25,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   const menuItems = isAutonomo ? [
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Carteira e PGR", icon: BriefcaseBusiness, path: "/app/pgr" },
+    { label: "Estrutura dos clientes", icon: UsersRound, path: "/app/estrutura" },
     { label: "Materiais de atendimento", icon: FolderKanban, path: "/app/materiais" },
     { label: "Agenda de clientes", icon: GraduationCap, path: "/app/treinamentos" },
     { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
@@ -32,6 +33,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { label: "Suporte", icon: Headphones, path: "/app/suporte" },
   ] : isClt ? [
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
+    { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
     { label: "Capacitação da equipe", icon: UsersRound, path: "/app/treinamentos" },
     { label: "Conformidade documental", icon: Trophy, path: "/app/certificados" },
     { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
@@ -41,6 +43,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   ] : [
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+    { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
     { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
     { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
     { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },

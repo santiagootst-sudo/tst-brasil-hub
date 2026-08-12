@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { certificates, companies, type InsertUser, materials, pgrProjects, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { certificates, companies, departments, employees, jobRoles, type InsertUser, materials, pgrProjects, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -247,4 +247,55 @@ export async function createSupportTicketForWorkspace(input: {
   if (!db) throw new Error("Banco de dados indisponível.");
   const inserted = await db.insert(supportTickets).values(input);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, status: "open" as const };
+}
+
+export async function listDepartmentsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(departments).where(eq(departments.workspaceId, workspaceId)).orderBy(desc(departments.updatedAt));
+}
+
+export async function getDepartmentForWorkspace(departmentId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(departments).where(and(eq(departments.id, departmentId), eq(departments.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function createDepartmentForWorkspace(input: { workspaceId: number; companyId: number; name: string; description?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(departments).values({ ...input, description: input.description ?? null });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, description: input.description ?? null, active: true as const };
+}
+
+export async function listJobRolesForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(jobRoles).where(eq(jobRoles.workspaceId, workspaceId)).orderBy(desc(jobRoles.updatedAt));
+}
+
+export async function getJobRoleForWorkspace(jobRoleId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(jobRoles).where(and(eq(jobRoles.id, jobRoleId), eq(jobRoles.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function createJobRoleForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; name: string; description?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(jobRoles).values({ ...input, departmentId: input.departmentId ?? null, description: input.description ?? null });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, departmentId: input.departmentId ?? null, description: input.description ?? null, active: true as const };
+}
+
+export async function listEmployeesForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(employees).where(eq(employees.workspaceId, workspaceId)).orderBy(desc(employees.updatedAt));
+}
+
+export async function createEmployeeForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; jobRoleId?: number | null; fullName: string; hiredAt?: Date | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(employees).values({ ...input, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" as const };
 }

@@ -11,6 +11,7 @@ describe("prioridades contextuais dos ambientes", () => {
     expect(overviewSource).toContain("Empresas na carteira");
     expect(overviewSource).toContain("Roteiro de atendimento");
     expect(overviewSource).toContain("Materiais de atendimento");
+    expect(overviewSource).toContain("Estrutura dos clientes");
   });
 
   it("ordena o dashboard CLT para pessoas, conformidade e rotina interna", () => {
@@ -18,6 +19,7 @@ describe("prioridades contextuais dos ambientes", () => {
     expect(overviewSource).toContain("Capacitação da equipe");
     expect(overviewSource).toContain("Conformidade documental");
     expect(overviewSource).toContain("Roteiro de conformidade");
+    expect(overviewSource).toContain("Estrutura e equipe");
   });
 
   it("preserva ferramentas compartilhadas, mas muda o destaque da barra lateral", () => {
@@ -25,5 +27,14 @@ describe("prioridades contextuais dos ambientes", () => {
     expect(layoutSource).toContain("Rotina de conformidade");
     expect(layoutSource).toContain("Biblioteca técnica");
     expect(layoutSource).toContain("Suporte");
+  });
+
+  it("deriva indicadores e prioridades de pessoas, setores e funções registradas", () => {
+    expect(overviewSource).toContain("trpc.portal.organization.useQuery");
+    expect(overviewSource).toContain("Pessoas ativas");
+    expect(overviewSource).toContain("Setores ativos");
+    expect(overviewSource).toContain("Funções ativas");
+    expect(overviewSource).toContain("Completar os vínculos da equipe");
+    expect(overviewSource).toContain("Mapear os setores da operação");
   });
 });

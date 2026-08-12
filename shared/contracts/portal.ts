@@ -12,6 +12,27 @@ export const createCompanyInput = workspaceIdInput.extend({
   document: z.string().trim().max(32).optional(),
 });
 
+export const createDepartmentInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  name: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(1000).nullable().optional(),
+});
+
+export const createJobRoleInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  name: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(1000).nullable().optional(),
+});
+
+export const createEmployeeInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  jobRoleId: z.number().int().positive().nullable().optional(),
+  fullName: z.string().trim().min(2).max(255),
+  hiredAt: z.coerce.date().nullable().optional(),
+});
+
 export const uploadCompanyLogoInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   dataUrl: z.string().min(32).max(3_500_000),
@@ -57,6 +78,7 @@ export const workspaceKindSchema = z.enum(["autonomo", "clt"]);
 export const workspaceRoleSchema = z.enum(["owner", "manager", "member"]);
 export const materialCategorySchema = z.enum(materialCategories);
 export const supportTicketStatusSchema = z.enum(["open", "in_progress", "resolved"]);
+export const employeeStatusSchema = z.enum(["active", "inactive"]);
 
 export const workspaceSummarySchema = z.object({
   id: z.number().int().positive(),
@@ -75,6 +97,48 @@ export const companySchema = z.object({
   logoUrl: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
+});
+
+export const departmentSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  name: z.string(),
+  description: z.string().nullable(),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const jobRoleSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  name: z.string(),
+  description: z.string().nullable(),
+  active: z.boolean(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const employeeSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  jobRoleId: z.number().int().positive().nullable(),
+  fullName: z.string(),
+  status: employeeStatusSchema,
+  hiredAt: z.date().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const organizationSnapshotSchema = z.object({
+  departments: z.array(departmentSchema),
+  jobRoles: z.array(jobRoleSchema),
+  employees: z.array(employeeSchema),
 });
 
 export const pgrProjectSchema = z.object({
@@ -194,6 +258,36 @@ export const companyLogoUpdatedSchema = z.object({
   workspaceId: z.number().int().positive(),
   logoKey: z.string(),
   logoUrl: z.string(),
+});
+
+export const departmentCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  name: z.string(),
+  description: z.string().nullable(),
+  active: z.literal(true),
+});
+
+export const jobRoleCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  name: z.string(),
+  description: z.string().nullable(),
+  active: z.literal(true),
+});
+
+export const employeeCreatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  jobRoleId: z.number().int().positive().nullable(),
+  fullName: z.string(),
+  status: z.literal("active"),
+  hiredAt: z.date().nullable(),
 });
 
 export const pgrProjectCreatedSchema = z.object({

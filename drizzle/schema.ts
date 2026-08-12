@@ -43,6 +43,57 @@ export const companies = mysqlTable("companies", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("companies_workspace_idx").on(table.workspaceId)]);
 
+export const departments = mysqlTable("departments", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  name: varchar("name", { length: 160 }).notNull(),
+  description: varchar("description", { length: 1000 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("departments_workspace_idx").on(table.workspaceId),
+  index("departments_company_idx").on(table.companyId),
+  uniqueIndex("departments_company_name_unique").on(table.companyId, table.name),
+]);
+
+export const jobRoles = mysqlTable("job_roles", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  name: varchar("name", { length: 160 }).notNull(),
+  description: varchar("description", { length: 1000 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("job_roles_workspace_idx").on(table.workspaceId),
+  index("job_roles_company_idx").on(table.companyId),
+  index("job_roles_department_idx").on(table.departmentId),
+  uniqueIndex("job_roles_company_department_name_unique").on(table.companyId, table.departmentId, table.name),
+]);
+
+export const employees = mysqlTable("employees", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  jobRoleId: int("jobRoleId"),
+  fullName: varchar("fullName", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
+  hiredAt: timestamp("hiredAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("employees_workspace_idx").on(table.workspaceId),
+  index("employees_company_idx").on(table.companyId),
+  index("employees_department_idx").on(table.departmentId),
+  index("employees_job_role_idx").on(table.jobRoleId),
+  index("employees_status_idx").on(table.workspaceId, table.status),
+]);
+
 export const subscriptions = mysqlTable("subscriptions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().unique(),
@@ -130,3 +181,6 @@ export type Certificate = typeof certificates.$inferSelect;
 export type Training = typeof trainings.$inferSelect;
 export type Material = typeof materials.$inferSelect;
 export type SupportTicket = typeof supportTickets.$inferSelect;
+export type Department = typeof departments.$inferSelect;
+export type JobRole = typeof jobRoles.$inferSelect;
+export type Employee = typeof employees.$inferSelect;
