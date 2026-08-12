@@ -183,3 +183,4 @@
 - [x] Atualizar a terminologia pública da landing page de TST Autônomo / TST CLT para Prestador de serviço / Empresa, mantendo os fluxos técnicos inalterados.
 - [x] Adicionar efeito de hover suave e destaque de seleção nos cartões do Choice Hub, incluir botões de chamada para ação claros e criar uma seção de benefícios detalhados para Prestador de serviço e Empresa.
 - [x] Executar testes de eficiência máxima no Gerador de PGR (persistência, reabertura em tela cheia, exportação em PDF e validação de dados do prestador de serviço).
+- [x] Automatizar e aprimorar a função Limpar dados no HTML do Gerador de PGR com confirmação segura e limpeza inteligente dos campos do formulário.

@@ -47,8 +47,40 @@ html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100
   document.documentElement.classList.add('portal-tst-embedded');
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', activatePortalMode);
   else activatePortalMode();
+
+  window.addEventListener('DOMContentLoaded', function () {
+    window.clearData = window.limparDados = function () {
+      var confirmClean = window.confirm("Deseja realmente limpar todos os dados preenchidos neste PGR? Esta ação redefinirá o formulário de forma limpa e automatizada.");
+      if (!confirmClean) return;
+      try {
+        var inputs = document.querySelectorAll('#pgrContainer input:not([type="hidden"]):not([type="submit"]):not([type="button"]), #pgrContainer select, #pgrContainer textarea');
+        for (var i = 0; i < inputs.length; i++) {
+          var el = inputs[i];
+          if (el.type === 'checkbox' || el.type === 'radio') {
+            el.checked = false;
+          } else {
+            el.value = '';
+          }
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        for (var key in localStorage) {
+          if (key.indexOf('pgr') !== -1 || key.indexOf('tst') !== -1) {
+            localStorage.removeItem(key);
+          }
+        }
+        if (typeof window.showToast === 'function') {
+          window.showToast('Dados limpos com sucesso!');
+        } else {
+          alert('Dados limpos com sucesso!');
+        }
+      } catch (err) {
+        console.error('Erro ao limpar dados:', err);
+      }
+    };
+  });
 })();
-</script>`;
+  </script>`;
   return html.includes("</head>") ? html.replace("</head>", `${portalScript}</head>`) : `${portalScript}${html}`;
 }
 
