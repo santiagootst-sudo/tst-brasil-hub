@@ -49,34 +49,83 @@ html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100
   else activatePortalMode();
 
   window.addEventListener('DOMContentLoaded', function () {
+    // Injetar estilos do modal e toast
+    var style = document.createElement('style');
+    style.textContent = '#tst-modal-overlay { position: fixed; inset: 0; background: rgba(9, 30, 34, 0.65); backdrop-filter: blur(4px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }' +
+      '#tst-modal-overlay.active { opacity: 1; }' +
+      '#tst-modal-card { background: #ffffff; border-radius: 20px; padding: 28px; max-width: 420px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.25); transform: scale(0.95); transition: transform 0.2s ease; font-family: system-ui, sans-serif; }' +
+      '#tst-modal-overlay.active #tst-modal-card { transform: scale(1); }' +
+      '#tst-toast { position: fixed; bottom: 24px; right: 24px; background: #0c7474; color: #ffffff; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(6,59,67,0.3); z-index: 2147483647; font: 600 14px system-ui, sans-serif; opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); pointer-events: none; }' +
+      '#tst-toast.active { opacity: 1; transform: translateY(0); }';
+    document.head.appendChild(style);
+
+    function showToast(msg) {
+      var old = document.getElementById('tst-toast');
+      if (old) old.remove();
+      var t = document.createElement('div');
+      t.id = 'tst-toast';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function() { t.classList.add('active'); }, 10);
+      setTimeout(function() {
+        t.classList.remove('active');
+        setTimeout(function() { t.remove(); }, 300);
+      }, 3500);
+    }
+
     window.clearData = window.limparDados = function () {
-      var confirmClean = window.confirm("Deseja realmente limpar todos os dados preenchidos neste PGR? Esta ação redefinirá o formulário de forma limpa e automatizada.");
-      if (!confirmClean) return;
-      try {
-        var inputs = document.querySelectorAll('#pgrContainer input:not([type="hidden"]):not([type="submit"]):not([type="button"]), #pgrContainer select, #pgrContainer textarea');
-        for (var i = 0; i < inputs.length; i++) {
-          var el = inputs[i];
-          if (el.type === 'checkbox' || el.type === 'radio') {
-            el.checked = false;
-          } else {
-            el.value = '';
+      var oldOverlay = document.getElementById('tst-modal-overlay');
+      if (oldOverlay) oldOverlay.remove();
+
+      var overlay = document.createElement('div');
+      overlay.id = 'tst-modal-overlay';
+      overlay.innerHTML = '<div id="tst-modal-card">' +
+          '<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">' +
+            '<div style="width:40px; height:40px; border-radius:12px; background:#fef2f2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:18px;">⚠️</div>' +
+            '<div>' +
+              '<h3 style="margin:0; font-size:18px; font-weight:700; color:#091e22;">Limpar todos os dados?</h3>' +
+              '<p style="margin:2px 0 0; font-size:12px; color:#64748b;">Esta ação redefinirá o formulário do PGR.</p>' +
+            '</div>' +
+          '</div>' +
+          '<p style="font-size:14px; color:#334155; line-height:1.5; margin:0 0 20px;">Deseja realmente limpar todos os campos preenchidos neste PGR? Os dados atuais serão apagados e não poderão ser recuperados.</p>' +
+          '<div style="display:flex; gap:10px; justify-content:flex-end;">' +
+            '<button id="tst-modal-cancel" style="padding:10px 16px; border-radius:10px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; font-weight:600; cursor:pointer; font-size:13px;">Cancelar</button>' +
+            '<button id="tst-modal-confirm" style="padding:10px 18px; border-radius:10px; border:none; background:#dc2626; color:#ffffff; font-weight:600; cursor:pointer; font-size:13px;">Sim, limpar dados</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      setTimeout(function() { overlay.classList.add('active'); }, 10);
+
+      document.getElementById('tst-modal-cancel').onclick = function () {
+        overlay.classList.remove('active');
+        setTimeout(function() { overlay.remove(); }, 200);
+      };
+
+      document.getElementById('tst-modal-confirm').onclick = function () {
+        overlay.classList.remove('active');
+        setTimeout(function() { overlay.remove(); }, 200);
+        try {
+          var inputs = document.querySelectorAll('#pgrContainer input:not([type="hidden"]):not([type="submit"]):not([type="button"]), #pgrContainer select, #pgrContainer textarea');
+          for (var i = 0; i < inputs.length; i++) {
+            var el = inputs[i];
+            if (el.type === 'checkbox' || el.type === 'radio') {
+              el.checked = false;
+            } else {
+              el.value = '';
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
           }
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        for (var key in localStorage) {
-          if (key.indexOf('pgr') !== -1 || key.indexOf('tst') !== -1) {
-            localStorage.removeItem(key);
+          for (var key in localStorage) {
+            if (key.indexOf('pgr') !== -1 || key.indexOf('tst') !== -1) {
+              localStorage.removeItem(key);
+            }
           }
+          showToast('✓ Dados limpos e redefinidos com sucesso!');
+        } catch (err) {
+          console.error('Erro ao limpar dados:', err);
         }
-        if (typeof window.showToast === 'function') {
-          window.showToast('Dados limpos com sucesso!');
-        } else {
-          alert('Dados limpos com sucesso!');
-        }
-      } catch (err) {
-        console.error('Erro ao limpar dados:', err);
-      }
+      };
     };
   });
 })();
