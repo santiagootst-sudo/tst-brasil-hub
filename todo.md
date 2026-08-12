@@ -212,3 +212,5 @@
 - [x] Criar painel de destaque no módulo CIPA com alertas visuais para eleições e reuniões pendentes.
 - [x] Adicionar exportação em PDF formatado para atas de reuniões e calendário da CIPA.
 - [x] Implementar análise de atas por IA para sugerir itens ao plano de ação com revisão humana.
+- [x] Desenvolver a nova Biblioteca Visual com design moderno, abas de Documentos por NR, Cursos e Vídeos.
+- [x] Implementar busca instantânea, filtros por categoria e abertura segura de materiais de SST.
