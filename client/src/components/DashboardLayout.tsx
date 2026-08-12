@@ -1,4 +1,3 @@
-import { Bell, BriefcaseBusiness, CalendarDays, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Loader2, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen } from "lucide-react";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -55,6 +55,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     ] },
     { label: "Documentos", items: [
       { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Modelos e anexos", icon: FolderKanban, path: "/app/materiais" },
       { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
     ] },
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
       { label: "Capacitação da equipe", icon: GraduationCap, path: "/app/treinamentos" },
       { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
       { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },
     ] },
     { label: "Conhecimento", items: [
@@ -87,6 +89,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   ] : [{ label: "Aplicativos", items: [
     { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
     { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+    { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
     { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
     { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
     { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
@@ -146,15 +149,23 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e98766] ring-2 ring-white" />
             </Button>
             <button type="button" onClick={() => setProfileOpen(true)} className="flex items-center gap-2 rounded-xl border border-[#deece9] bg-[#f6faf9] px-2.5 py-1.5 transition hover:bg-[#e8f6f1]">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d9f1e7] text-[#0c7474]"><User className="h-4 w-4" /></span>
-              <span className="hidden pr-1 text-xs font-semibold text-[#315158] sm:block">{user?.name || "Meu perfil"}</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0c7474] text-xs font-bold text-white">
+                {user?.name?.[0] || "T"}
+              </div>
+              <div className="hidden text-left sm:block">
+                <p className="text-xs font-bold text-[#102b32]">{user?.name || "Profissional"}</p>
+                <p className="text-[10px] text-[#668087]">{currentWorkspace ? (isAutonomo ? "TST Autônomo" : "TST CLT") : "Perfil SST"}</p>
+              </div>
             </button>
           </div>
         </header>
-        <main className="px-5 py-7 lg:px-9 lg:py-9">{children}</main>
+
+        <main className="p-6 lg:p-9">
+          {children}
+        </main>
       </div>
-      {switchingWorkspaceId && currentWorkspace?.id !== switchingWorkspaceId && <div className="fixed inset-0 z-50 grid place-items-center bg-[#062f35]/20 backdrop-blur-[2px]"><div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white px-5 py-4 text-sm font-bold text-[#21444b] shadow-2xl"><Loader2 className="h-5 w-5 animate-spin text-[#0c7474]" />Carregando contexto de trabalho...</div></div>}
-      {profileOpen && typeof document !== "undefined" && document.getElementById("profile-overlay-root") && createPortal(
+
+      {profileOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062f35]/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[#deece9] pb-4">

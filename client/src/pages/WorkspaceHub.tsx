@@ -24,6 +24,7 @@ type WorkspaceKind = "autonomo" | "clt";
 
 const sharedTools = [
   { icon: ShieldCheck, title: "Gerador de PGR", text: "Projetos, riscos e documentos", route: "/app/pgr" },
+  { icon: ShieldCheck, title: "Riscos Psicossociais (COPSOQ)", text: "Avaliação de estressores NR-1", route: "/app/copsoq" },
   { icon: BookOpen, title: "Biblioteca", text: "Normas e fontes técnicas", route: "/app/biblioteca" },
   { icon: FolderKanban, title: "Materiais", text: "Modelos e checklists SST", route: "/app/materiais" },
   { icon: Headphones, title: "Suporte", text: "Ajuda para a sua operação", route: "/app/suporte" },

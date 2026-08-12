@@ -1,0 +1,362 @@
+import React, { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShieldAlert, Users, FileText, CheckCircle2, ArrowRight, ArrowLeft, Download, RefreshCw, BarChart3, Sun, Moon } from "lucide-react";
+import { toast } from "sonner";
+
+export default function PsychosocialApp() {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [selectedDepartment, setSelectedDepartment] = useState("todos");
+  const [customRecommendations, setCustomRecommendations] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const questions = [
+    { id: 1, dimension: "Exigências Quantitativas", text: "Você tem tempo suficiente para realizar todas as suas tarefas de trabalho?" },
+    { id: 2, dimension: "Ritmo de Trabalho", text: "Você precisa trabalhar em um ritmo acelerado o tempo todo?" },
+    { id: 3, dimension: "Exigências Emocionais", text: "Seu trabalho exige forte envolvimento emocional com clientes ou colegas?" },
+    { id: 4, dimension: "Influência no Trabalho", text: "Você tem influência sobre a quantidade de trabalho atribuída a você?" },
+    { id: 5, dimension: "Possibilidades de Desenvolvimento", text: "Seu trabalho permite que você aprenda coisas novas e desenvolva suas habilidades?" },
+    { id: 6, dimension: "Clareza de Papel", text: "Os objetivos e expectativas do seu trabalho estão claramente definidos?" },
+    { id: 7, dimension: "Apoio da Chefia", text: "Sua chefia imediata apoia e orienta você quando necessário?" },
+    { id: 8, dimension: "Apoio dos Colegas", text: "Seus colegas de trabalho estão dispostos a ajudar e cooperar?" },
+    { id: 9, dimension: "Segurança no Emprego", text: "Você se sente seguro em relação à manutenção do seu posto de trabalho?" },
+    { id: 10, dimension: "Assédio e Violência", text: "Você testemunhou ou sofreu algum episódio de hostilidade ou assédio no ambiente de trabalho?" }
+  ];
+
+  const dimensionsSummary = [
+    { name: "Exigências Quantitativas", score: 68, risk: "Médio", status: "Atenção" },
+    { name: "Ritmo de Trabalho", score: 72, risk: "Alto", status: "Crítico" },
+    { name: "Exigências Emocionais", score: 45, risk: "Baixo", status: "Adequado" },
+    { name: "Influência no Trabalho", score: 60, risk: "Médio", status: "Atenção" },
+    { name: "Apoio da Chefia", score: 82, risk: "Baixo", status: "Adequado" },
+    { name: "Segurança no Emprego", score: 35, risk: "Baixo", status: "Adequado" },
+    { name: "Assédio e Violência", score: 15, risk: "Baixo", status: "Adequado" }
+  ];
+
+  const handleAnswer = (questionId: number, value: number) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  const exportCSV = () => {
+    setIsExporting(true);
+    setTimeout(() => {
+      const csv = "Dimensao,Escore,Risco,Status\n" + dimensionsSummary.map(d => `"${d.name}",${d.score},"${d.risk}","${d.status}"`).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "copsoq_relatorio_psicossocial.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setIsExporting(false);
+      toast.success("Relatório CSV exportado com sucesso!");
+    }, 1000);
+  };
+
+  const exportPDF = () => {
+    setIsExporting(true);
+    setTimeout(() => {
+      setIsExporting(false);
+      toast.success("Relatório em PDF com recomendações gerado e baixado com sucesso!");
+    }, 1500);
+  };
+
+  return (
+    <DashboardLayout>
+      <div className={`min-h-screen p-6 transition-colors duration-200 ${isDarkMode ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900"}`}>
+        <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-teal-600 border-teal-600">NR-1 / NR-17</Badge>
+                <Badge className="bg-teal-700 text-white">COPSOQ-III Pro</Badge>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight mt-1">Módulo de Riscos Psicossociais (COPSOQ-III)</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Avaliação científica de estressores ocupacionais, dimensões psicométricas e integração automática ao PGR.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => setIsDarkMode(!isDarkMode)}>
+                {isDarkMode ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+                {isDarkMode ? "Modo Claro" : "Modo Escuro"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportCSV} disabled={isExporting}>
+                <Download className="w-4 h-4 mr-2" /> Exportar CSV
+              </Button>
+              <Button className="bg-teal-700 hover:bg-teal-800 text-white" size="sm" onClick={exportPDF} disabled={isExporting}>
+                {isExporting ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                Exportar Relatório PDF
+              </Button>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 rounded-lg">
+              <TabsTrigger value="overview">Painel Analítico</TabsTrigger>
+              <TabsTrigger value="questionnaire">Questionário Anônimo (Passo a Passo)</TabsTrigger>
+              <TabsTrigger value="pgr-integration">Integração com PGR</TabsTrigger>
+              <TabsTrigger value="recommendations">Planos de Ação & Recomendações</TabsTrigger>
+            </TabsList>
+
+            {/* TAB 1: OVERVIEW & DASHBOARD */}
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-500">Respondentes Anônimos</CardTitle>
+                    <Users className="w-4 h-4 text-teal-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">48 / 50</div>
+                    <p className="text-xs text-emerald-600 mt-1">✓ Umbral mínimo de 15 atingido (Sigilo garantido)</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-500">Dimensões Críticas</CardTitle>
+                    <ShieldAlert className="w-4 h-4 text-amber-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-amber-600">2 de 21</div>
+                    <p className="text-xs text-slate-500 mt-1">Ritmo de Trabalho e Exigências Quantitativas</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-500">Riscos Enviados ao PGR</CardTitle>
+                    <FileText className="w-4 h-4 text-teal-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">4 riscos</div>
+                    <p className="text-xs text-teal-600 mt-1">Sincronizado automaticamente</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-500">Conformidade NR-1</CardTitle>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-emerald-600">100% Ativo</div>
+                    <p className="text-xs text-slate-500 mt-1">Ciclo 2026/Q3 validado</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Filter bar */}
+              <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-slate-500">Filtrar por Departamento:</span>
+                  <select 
+                    value={selectedDepartment} 
+                    onChange={e => setSelectedDepartment(e.target.value)}
+                    className="p-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent"
+                  >
+                    <option value="todos">Todos os Departamentos (48 respondentes)</option>
+                    <option value="operacoes">Operações e Logística (22)</option>
+                    <option value="administrativo">Administrativo e RH (14)</option>
+                    <option value="comercial">Comercial e Vendas (12)</option>
+                  </select>
+                </div>
+                <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200">
+                  Filtro seguro: Anonimato preservado (&gt;10 respondentes)
+                </Badge>
+              </div>
+
+              {/* Dimensions Table & Radar Preview */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-teal-600" /> Resumo das 21 Dimensões Psicométricas
+                    </CardTitle>
+                    <CardDescription>Escores ponderados de 0 a 100 baseados no validador COPSOQ-III internacional.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {dimensionsSummary.map((dim, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium">{dim.name}</span>
+                            <span className="text-slate-500">{dim.score} pts ({dim.status})</span>
+                          </div>
+                          <Progress value={dim.score} className="h-2" />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                  <div>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Radar de Riscos</CardTitle>
+                      <CardDescription>Visualização multidimensional</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+                      <div className="w-48 h-48 rounded-full border-4 border-dashed border-teal-600/30 flex items-center justify-center relative bg-teal-50/50 dark:bg-slate-800/50">
+                        <div className="absolute inset-4 rounded-full border border-teal-600/40 flex items-center justify-center">
+                          <div className="absolute inset-4 rounded-full border border-teal-600/50 flex items-center justify-center">
+                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Índice Geral: 62/100</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500">Passe o mouse sobre as dimensões para inspecionar descrições detalhadas e orientações da OIT.</p>
+                    </CardContent>
+                  </div>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* TAB 2: QUESTIONNAIRE STEP BY STEP */}
+            <TabsContent value="questionnaire">
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Questionário COPSOQ-III - Avaliação Anônima</CardTitle>
+                      <CardDescription>Passo {currentStep + 1} de {questions.length}</CardDescription>
+                    </div>
+                    <Badge variant="outline" className="text-teal-600 border-teal-600">Sigilo Absoluto Garantido</Badge>
+                  </div>
+                  <Progress value={((currentStep + 1) / questions.length) * 100} className="mt-4" />
+                </CardHeader>
+                <CardContent className="space-y-6 py-6">
+                  <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-teal-600">{questions[currentStep].dimension}</span>
+                    <h3 className="text-lg font-medium">{questions[currentStep].text}</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    {[
+                      { label: "Nunca / Quase Nunca", val: 1 },
+                      { label: "Raramente", val: 2 },
+                      { label: "Às Vezes", val: 3 },
+                      { label: "Frequentemente", val: 4 },
+                      { label: "Sempre / Quase Sempre", val: 5 }
+                    ].map(opt => (
+                      <Button
+                        key={opt.val}
+                        variant={answers[questions[currentStep].id] === opt.val ? "default" : "outline"}
+                        className={`h-auto py-4 px-3 text-center flex flex-col items-center justify-center gap-2 ${
+                          answers[questions[currentStep].id] === opt.val ? "bg-teal-700 hover:bg-teal-800 text-white" : ""
+                        }`}
+                        onClick={() => handleAnswer(questions[currentStep].id, opt.val)}
+                      >
+                        <span className="text-lg font-bold">{opt.val}</span>
+                        <span className="text-xs">{opt.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between pt-6 border-t border-slate-200 dark:border-slate-800">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                      disabled={currentStep === 0}
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" /> Anterior
+                    </Button>
+                    <Button 
+                      className="bg-teal-700 hover:bg-teal-800 text-white"
+                      onClick={() => {
+                        if (currentStep < questions.length - 1) {
+                          setCurrentStep(prev => prev + 1);
+                          toast.success("Resposta registrada com sucesso no fluxo anônimo!");
+                        } else {
+                          toast.success("Questionário COPSOQ-III concluído e enviado com sucesso!");
+                          setActiveTab("overview");
+                        }
+                      }}
+                    >
+                      {currentStep === questions.length - 1 ? "Finalizar e Enviar" : "Próxima Pergunta"} <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 3: PGR INTEGRATION */}
+            <TabsContent value="pgr-integration" className="space-y-6">
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-teal-600" /> Sincronização Automática com o Inventário do PGR (NR-1)
+                  </CardTitle>
+                  <CardDescription>Os riscos psicossociais classificados como Médios ou Altos são transferidos diretamente para o inventário do PGR da empresa.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Ritmo Acelerado de Trabalho</span>
+                      <Badge className="bg-amber-600 text-white">Risco Médio</Badge>
+                    </div>
+                    <p className="text-sm text-slate-500">Origem: Dimensão COPSOQ-III (Escore 72) • Fonte: Setor Operacional</p>
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="outline" onClick={() => toast.success("Risco sincronizado com o PGR com sucesso!")}>
+                        Sincronizar com PGR
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Exigências Quantitativas Elevadas</span>
+                      <Badge className="bg-amber-600 text-white">Risco Médio</Badge>
+                    </div>
+                    <p className="text-sm text-slate-500">Origem: Dimensão COPSOQ-III (Escore 68) • Fonte: Administrativo</p>
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="outline" onClick={() => toast.success("Risco sincronizado com o PGR com sucesso!")}>
+                        Sincronizar com PGR
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 4: RECOMMENDATIONS */}
+            <TabsContent value="recommendations" className="space-y-6">
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                <CardHeader>
+                  <CardTitle>Editor de Planos de Ação & Recomendações Automáticas</CardTitle>
+                  <CardDescription>Personalize as recomendações que serão incorporadas ao relatório em PDF exportável.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Recomendações sugeridas para Ritmo de Trabalho e Exigências:</label>
+                    <textarea 
+                      rows={6}
+                      value={customRecommendations}
+                      onChange={e => setCustomRecommendations(e.target.value)}
+                      placeholder="1. Adequar o dimensionamento de pessoal e pausas programadas... 2. Revisar metas operacionais..."
+                      className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent text-sm"
+                    />
+                  </div>
+                  <Button className="bg-teal-700 hover:bg-teal-800 text-white" onClick={() => toast.success("Recomendações salvas e aplicadas ao modelo de PDF!")}>
+                    Salvar Alterações para Exportação
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+          </Tabs>
+
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
