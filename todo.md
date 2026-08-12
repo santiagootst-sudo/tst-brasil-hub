@@ -222,3 +222,6 @@
 - [x] Criar wireframes de alta fidelidade para a Gestão de EPIs e fichas de entrega automatizadas.
 - [x] Adicionar exportação de fichas de entrega de EPIs em formato PDF formatado para auditorias.
 - [x] Implementar assistente de inteligência artificial para sugerir EPIs baseados no cargo e nos riscos da função.
+- [x] Criar histórico detalhado no perfil de cada funcionário com todos os EPIs recebidos, devolvidos ou substituídos.
+- [x] Implementar recurso de assinatura digital para os funcionários assinarem fichas de EPI diretamente na plataforma.
+- [x] Adicionar painel de controle para monitorar validade de EPIs com alertas visuais de reposição ou troca.
