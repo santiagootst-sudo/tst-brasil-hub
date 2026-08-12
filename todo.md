@@ -186,3 +186,4 @@
 - [x] Automatizar e aprimorar a função Limpar dados no HTML do Gerador de PGR com confirmação segura e limpeza inteligente dos campos do formulário.
 - [x] Substituir o alerta nativo por modal personalizado de confirmação e toast de sucesso estilizado na ação de limpar dados do PGR.
 - [x] Criar barra de progresso inteligente no topo do formulário do Gerador de PGR para indicar o andamento das etapas preenchidas.
+- [x] Realizar a revisão técnica completa da especificação do módulo COPSOQ-III (riscos psicossociais) e registrar parecer em docs/parecer-tecnico-copsoq-iii.md.
