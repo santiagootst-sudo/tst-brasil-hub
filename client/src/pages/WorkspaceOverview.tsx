@@ -150,7 +150,7 @@ export default function WorkspaceOverview() {
       routine: ["Revisar pendências de capacitação", "Tratar certificados vencidos ou próximos", "Manter o PGR e as evidências atualizados", "Registrar procedimentos e acionar suporte quando necessário"],
       tools: [
         { href: appHref("/app/estrutura"), icon: UsersRound, title: "Estrutura e equipe", text: "Pessoas, setores e funções" },
-        { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle operacional", text: "EPIs e ocorrências SST" },
+        { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle de EPIs", text: "Entrega, estoque e ocorrências SST" },
         { href: appHref("/app/inspecoes"), icon: ClipboardCheck, title: "Inspeções e ações", text: "Prevenção e prazos" },
         { href: appHref("/app/treinamentos"), icon: UsersRound, title: "Capacitação da equipe", text: "Planejamento e execução" },
         { href: appHref("/app/certificados"), icon: Award, title: "Conformidade documental", text: "Validades e evidências" },

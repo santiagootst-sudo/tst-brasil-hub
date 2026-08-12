@@ -239,3 +239,6 @@
 - [x] Analisar a referência Excel do dashboard de Empresa e registrar os padrões visuais, indicadores e interações relevantes.
 - [x] Mapear quais elementos da referência podem ser incorporados ao Portal TST usando somente dados reais do ambiente Empresa.
 - [x] Implementar, após validação da referência, os aprimoramentos selecionados no dashboard Empresa.
+- [x] Corrigir a exibição do módulo Controle de EPIs na navegação do ambiente Empresa e preservar o contexto ativo na rota.
+- [x] Adicionar teste para garantir que o módulo de EPIs fique acessível no ambiente Empresa sem expor rotas indevidas em outros contextos.
+- [x] Validar visualmente a entrada do módulo de EPIs no dashboard e na barra lateral da Empresa.

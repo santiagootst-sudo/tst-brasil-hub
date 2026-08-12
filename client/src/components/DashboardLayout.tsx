@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen } from "lucide-react";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -60,7 +60,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
       { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
     ] },
     { label: "Negócio", items: [
-      { label: "Controle por cliente", icon: HardHat, path: "/app/operacao" },
+      { label: "Controle de EPIs por cliente", icon: HardHat, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     ] },
     { label: "Conhecimento", items: [
@@ -72,7 +72,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { label: "Operação", items: [
       { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
       { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
-      { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
+      { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     ] },
     { label: "Conformidade", items: [
@@ -91,7 +91,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
     { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
     { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
     { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
-    { label: "Controle operacional", icon: HardHat, path: "/app/operacao" },
+    { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
     { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
     { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
