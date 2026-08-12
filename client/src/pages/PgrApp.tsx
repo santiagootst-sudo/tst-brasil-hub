@@ -6,6 +6,7 @@ import {
   ClipboardPlus,
   ExternalLink,
   FilePlus2,
+  FileCheck2,
   ImagePlus,
   Loader2,
   ShieldCheck,
@@ -16,6 +17,7 @@ import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import PgrFullscreenOverlay from "@/components/PgrFullscreenOverlay";
+import { downloadPgrReportPdf } from "@/lib/pdfReports";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
@@ -112,6 +114,7 @@ export default function PgrApp() {
 
   const canManage = workspace.data.role === "owner" || workspace.data.role === "manager";
   const companies = workspace.data.companies;
+  const selectedCompany = companies.find(company => company.id === selectedProject?.companyId) ?? null;
   const orphanProjects = availableProjects.filter(project => !project.companyId);
   const iframeSource = selectedProject && iframeAccess.data
     ? `${iframeAccess.data.url}&workspace=portal-${workspace.data.id}-${selectedProject.legacyStorageKey}&portalAuth=1`
@@ -257,7 +260,7 @@ export default function PgrApp() {
             <div className="flex flex-col justify-between gap-3 border-b border-[#e7f1ef] bg-[#fbfefd] px-5 py-4 text-xs text-[#5d7479] md:flex-row md:items-center">
               <span className="inline-flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-[#39a77e]" />Projeto aberto: <strong>{selectedProject.name}</strong></span>
               <span className="inline-flex items-center gap-2 text-[#0c7474]"><Sparkles className="h-4 w-4" />Acesso integrado pelo Portal TST</span>
-              <Button type="button" onClick={() => { setIsIframeLoaded(false); setIsPgrFullscreen(true); }} className="h-9 rounded-xl bg-[#0c7474] px-4 text-xs font-bold text-white"><ExternalLink className="mr-2 h-4 w-4" />Abrir PGR em tela cheia</Button>
+              <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={() => { if (!selectedProject) return; downloadPgrReportPdf({ workspaceName: workspace.data?.name ?? "Ambiente", companyName: selectedCompany?.name, projectName: selectedProject.name, projectId: selectedProject.id }); toast.success("Relatório do PGR exportado em PDF."); }} className="h-9 rounded-xl border-[#9ccfc2] px-4 text-xs font-bold text-[#0c7474]"><FileCheck2 className="mr-2 h-4 w-4" />Exportar PDF</Button><Button type="button" onClick={() => { setIsIframeLoaded(false); setIsPgrFullscreen(true); }} className="h-9 rounded-xl bg-[#0c7474] px-4 text-xs font-bold text-white"><ExternalLink className="mr-2 h-4 w-4" />Abrir PGR em tela cheia</Button></div>
             </div>
             <div className="flex min-h-[180px] flex-col items-center justify-center p-8 text-center">
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><ExternalLink className="h-5 w-5" /></span>

@@ -1,6 +1,8 @@
-import { Bell, BriefcaseBusiness, CalendarDays, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
+import { Bell, BriefcaseBusiness, CalendarDays, FolderKanban, GraduationCap, HardHat, Headphones, LayoutDashboard, Library, Loader2, Menu, ShieldCheck, Trophy, User, UsersRound, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
@@ -11,7 +13,7 @@ type DashboardLayoutProps = {
 };
 
 export default function DashboardLayout({ children, title = "Portal TST Brasil" }: DashboardLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const search = useSearch();
   const collapsed = false;
   const workspaceId = workspaceIdFromSearch(search);
@@ -21,6 +23,23 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
   );
   const developmentWorkspaces = trpc.portal.workspaces.useQuery();
   const currentWorkspace = workspace.data;
+  const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<number | null>(null);
+  const [switchingToastId, setSwitchingToastId] = useState<string | number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!switchingWorkspaceId || currentWorkspace?.id !== switchingWorkspaceId) return;
+    const label = currentWorkspace.kind === "autonomo" ? "TST Autônomo" : "TST CLT";
+    toast.success(`${label} aberto com sucesso.`, { id: switchingToastId });
+    setSwitchingWorkspaceId(null);
+    setSwitchingToastId(undefined);
+  }, [currentWorkspace?.id, currentWorkspace?.kind, switchingToastId, switchingWorkspaceId]);
+
+  const switchWorkspace = (workspaceId: number, kind: "autonomo" | "clt") => {
+    if (workspaceId === currentWorkspace?.id) return;
+    setSwitchingWorkspaceId(workspaceId);
+    setSwitchingToastId(toast.loading(`Abrindo TST ${kind === "autonomo" ? "Autônomo" : "CLT"}...`));
+    setLocation(`/app/visao?workspace=${workspaceId}`);
+  };
   const isAutonomo = currentWorkspace?.kind === "autonomo";
   const isClt = currentWorkspace?.kind === "clt";
   const menuSections = isAutonomo ? [
@@ -103,7 +122,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
             <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">{isAutonomo ? "TST Autônomo" : "TST CLT"}</p>
             <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
             <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
-            {developmentWorkspaces.data && developmentWorkspaces.data.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{developmentWorkspaces.data.map(item => <Link key={item.id} href={`/app/visao?workspace=${item.id}`} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.kind === "autonomo" ? "Autônomo" : "CLT"}</Link>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
+            {developmentWorkspaces.data && developmentWorkspaces.data.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{developmentWorkspaces.data.map(item => <button key={item.id} type="button" onClick={() => switchWorkspace(item.id, item.kind)} disabled={switchingWorkspaceId !== null} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition disabled:cursor-wait disabled:opacity-70 ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.id === switchingWorkspaceId ? "Abrindo..." : item.kind === "autonomo" ? "Autônomo" : "CLT"}</button>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
           </> : <>
             <p className="text-xs font-semibold text-white">Ambiente protegido</p>
             <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>
@@ -135,6 +154,7 @@ export default function DashboardLayout({ children, title = "Portal TST Brasil" 
         </header>
         <main className="px-5 py-7 lg:px-9 lg:py-9">{children}</main>
       </div>
+      {switchingWorkspaceId && currentWorkspace?.id !== switchingWorkspaceId && <div className="fixed inset-0 z-50 grid place-items-center bg-[#062f35]/20 backdrop-blur-[2px]"><div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white px-5 py-4 text-sm font-bold text-[#21444b] shadow-2xl"><Loader2 className="h-5 w-5 animate-spin text-[#0c7474]" />Carregando contexto de trabalho...</div></div>}
       {collapsed ? <X className="hidden" /> : null}
     </div>
   );

@@ -49,14 +49,14 @@
 - [x] Criar um roteiro de qualidade local com critérios verificáveis para PGR, dashboards, Materiais, Suporte, Treinamentos e Certificados.
 - [x] Definir o backlog técnico de próximos módulos: empresas, equipe, inventário de riscos, plano de ação, indicadores e marketplace futuro.
 - [x] Corrigir a jornada de primeiro acesso para orientar a criação e a abertura do primeiro ambiente Autônomo ou CLT.
-- [ ] Validar que a criação de ambiente leva ao dashboard correspondente sem retornar ao bloqueio de ambiente vazio.
+- [x] Validar que a criação de ambiente leva ao dashboard correspondente sem retornar ao bloqueio de ambiente vazio.
 - [x] Tornar explícita na interface a diferença entre criar um novo ambiente e selecionar um ambiente existente.
 - [x] Corrigir a leitura do parâmetro `workspace` no dashboard e no PGR para que ambientes existentes sejam abertos corretamente.
 - [x] Propagar o ambiente ativo pela navegação lateral para que os módulos não retornem ao estado de seleção.
 - [x] Fazer Materiais, Suporte, Treinamentos e Certificados respeitarem o ambiente recebido pela URL e refletirem a troca de contexto.
 - [x] Extrair e testar o helper de leitura e propagação de `workspace` para impedir regressão da navegação por contexto.
 - [x] Reproduzir e corrigir a abertura funcional do Gerador de PGR no ambiente selecionado.
-- [ ] Validar o cadastro inicial de empresa e projeto PGR antes da abertura do aplicativo legado.
+- [x] Validar o cadastro inicial de empresa e projeto PGR antes da abertura do aplicativo legado.
 - [x] Validar o carregamento do aplicativo legado do PGR dentro do contexto e projeto selecionados.
 - [x] Criar uma autorização temporária e restrita para o iframe do PGR quando a sessão chegar ao portal por cabeçalho, sem expor acesso irrestrito ao aplicativo legado.
 - [x] Cobrir em testes a emissão e validação da autorização temporária do PGR, incluindo escopo de usuário e ambiente.
@@ -143,3 +143,7 @@
 - [x] Impedir a criação de ambientes duplicados do mesmo tipo para o mesmo usuário.
 - [x] Reintroduzir uma alternância explícita entre os dois contextos de desenvolvimento na interface autenticada.
 - [x] Restaurar e validar o ambiente CLT de desenvolvimento, mantendo o Autônomo já existente.
+
+- [x] Criar painel de resumo na página inicial com gráficos dinâmicos mostrando o status de inspeções e planos de ação.
+- [x] Implementar animações de carregamento e notificações visuais de sucesso ao alternar entre os perfis Autônomo e CLT.
+- [x] Adicionar funcionalidade de exportar relatórios do Gerador de PGR e das Inspeções diretamente para o formato PDF.
