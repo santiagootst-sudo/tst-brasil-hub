@@ -232,3 +232,7 @@
 - [x] Implementar tela de confirmação no celular após leitura do QR Code com detalhes de EPIs antes da assinatura.
 - [x] Implementar animação de sucesso com ícone animado e feedback visual após a assinatura do EPI via QR Code no celular.
 - [x] Adicionar opção de baixar o comprovante digital oficial da entrega de EPI em formato PDF formatado diretamente pelo celular.
+- [x] Evoluir o dashboard principal com gráficos dinâmicos e atrativos baseados em indicadores reais.
+- [x] Diferenciar as visualizações prioritárias dos ambientes Prestador de Serviço e Empresa.
+- [x] Validar responsividade, estados vazios, tooltips, interações e acessibilidade dos gráficos.
+- [x] Criar testes automatizados para os cálculos e a apresentação dos indicadores do dashboard.
