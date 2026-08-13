@@ -25,3 +25,7 @@ Os testes automatizados e o build de produção foram executados com sucesso: 32
 ## Próxima ação necessária
 
 Para encerrar os itens manuais, o proprietário deve autenticar no navegador com a conta que possui o workspace de homologação. Para o item 178, a conta Vanderson precisa abrir `/admin`. Para os itens de PGR, visitas e certificados, o proprietário deve confirmar quais dados reais de homologação podem ser criados e depois revisar a limpeza desses registros.
+
+## Verificação adicional após a personalização do certificado
+
+Na sessão autenticada do workspace Autônomo `240001`, a Agenda de visitas exibiu zero clientes ativos, zero retornos e zero visitas agendadas, com orientação para cadastrar uma empresa. A rota do Gerador de PGR exibiu o bloqueio legítimo de assinatura (`Ative o PGR Pro para este ambiente`), sem abrir a jornada de empresa/projeto. Portanto, as validações manuais de visita, persistência de status e criação empresa → PGR continuam pendentes por falta de registro real e assinatura ativa; nenhum dado foi inventado para forçar a homologação.
