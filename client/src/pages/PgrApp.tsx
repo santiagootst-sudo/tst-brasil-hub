@@ -61,6 +61,37 @@ export default function PgrApp() {
     actionPlan: true,
   });
 
+  const [activityInput, setActivityInput] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState<Array<{ gheName: string; description: string; suggestedHazards: string[]; suggestedMeasures: string[] }>>([]);
+  const [attachmentTitle, setAttachmentTitle] = useState("");
+  const [attachmentCategory, setAttachmentCategory] = useState<"photo" | "laudo" | "art" | "certificate" | "other">("photo");
+
+  const suggestGhes = trpc.portal.suggestGhes.useMutation({
+    onSuccess: data => {
+      setAiSuggestions(data.suggestions);
+      toast.success("Sugestões de GHE e perigos geradas com sucesso pela IA!");
+    },
+    onError: err => {
+      toast.error(err.message || "Falha ao gerar sugestões.");
+    },
+  });
+
+  const attachmentsQuery = trpc.portal.listAttachments.useQuery(
+    { workspaceId, projectId: selectedProjectId ?? 0 },
+    { enabled: Boolean(workspaceId && selectedProjectId) }
+  );
+
+  const uploadAttachment = trpc.portal.uploadAttachment.useMutation({
+    onSuccess: () => {
+      toast.success("Documento/foto anexado com sucesso ao projeto PGR!");
+      setAttachmentTitle("");
+      utils.portal.listAttachments.invalidate({ workspaceId, projectId: selectedProjectId ?? 0 });
+    },
+    onError: err => {
+      toast.error(err.message || "Erro ao enviar anexo.");
+    },
+  });
+
   const createCompany = trpc.portal.createCompany.useMutation({
     onSuccess: async () => {
       setCompanyName("");
@@ -351,10 +382,148 @@ export default function PgrApp() {
                 </Button>
               </div>
             </div>
-            <div className="flex min-h-[180px] flex-col items-center justify-center p-8 text-center">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><ExternalLink className="h-5 w-5" /></span>
-              <h3 className="mt-4 text-lg font-bold">Abra o PGR em uma área de trabalho ampliada.</h3>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-[#668087]">O gerador ocupa toda a área útil ao lado do menu do Portal TST, mantendo a navegação principal sempre acessível.</p>
+            <div className="p-6 space-y-6">
+              <div className="flex min-h-[140px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#bddbd5] bg-[#fbfefd] p-6 text-center">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><ExternalLink className="h-5 w-5" /></span>
+                <h3 className="mt-3 text-base font-bold">Gerador Integrado de PGR</h3>
+                <p className="mt-1 max-w-lg text-xs leading-5 text-[#668087]">Abra em tela cheia para gerenciar inventários, matrizes de risco e o plano de ação completo.</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="rounded-2xl border border-[#d7ebe6] bg-[#fbfefd] p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-[#0c7474]">
+                    <Sparkles className="h-5 w-5" />
+                    <h4 className="font-bold text-sm text-[#102b32]">Preenchimento Assistido por IA (GHEs e Perigos)</h4>
+                  </div>
+                  <p className="text-xs text-[#5d7479] leading-relaxed">
+                    Informe a atividade econômica ou o ramo de atuação da empresa para receber sugestões técnicas de GHEs, perigos e medidas preventivas conforme a NR-01.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex.: Indústria metalúrgica de usinagem e solda"
+                      value={activityInput}
+                      onChange={e => setActivityInput(e.target.value)}
+                      className="h-9 rounded-xl border-[#bddbd5] bg-white text-xs"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!activityInput.trim()) {
+                          toast.error("Informe a atividade econômica.");
+                          return;
+                        }
+                        suggestGhes.mutate({ workspaceId, projectId: selectedProject.id, activityDescription: activityInput.trim() });
+                      }}
+                      disabled={suggestGhes.isPending}
+                      className="h-9 rounded-xl bg-[#0c7474] px-4 text-xs font-bold text-white shrink-0 hover:bg-[#095c5c]"
+                    >
+                      {suggestGhes.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sugerir via IA"}
+                    </Button>
+                  </div>
+
+                  {aiSuggestions.length > 0 && (
+                    <div className="mt-4 space-y-3 max-h-64 overflow-y-auto pr-1">
+                      {aiSuggestions.map((sug, idx) => (
+                        <div key={idx} className="rounded-xl border border-[#d7ebe6] bg-white p-3.5 space-y-2 text-xs">
+                          <div className="font-bold text-[#102b32] flex items-center justify-between">
+                            <span>{sug.gheName}</span>
+                            <span className="text-[10px] rounded-full bg-[#e8f6f1] px-2 py-0.5 text-[#0c7474]">Sugestão NR-01</span>
+                          </div>
+                          <p className="text-[#5d7479]">{sug.description}</p>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Perigos:</strong> {sug.suggestedHazards.join("; ")}
+                          </div>
+                          <div className="text-[11px] text-[#15803d]">
+                            <strong>Medidas:</strong> {sug.suggestedMeasures.join("; ")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-[#d7ebe6] bg-[#fbfefd] p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-[#0c7474]">
+                    <ImagePlus className="h-5 w-5" />
+                    <h4 className="font-bold text-sm text-[#102b32]">Anexos, Laudos e Fotos da Identificação</h4>
+                  </div>
+                  <p className="text-xs text-[#5d7479] leading-relaxed">
+                    Envie fotos do local, laudos técnicos anteriores, ARTs ou certificados para vincular ao acervo documental deste PGR.
+                  </p>
+
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Título do documento ou foto (Ex.: Laudo Ruído 2026)"
+                      value={attachmentTitle}
+                      onChange={e => setAttachmentTitle(e.target.value)}
+                      className="h-9 rounded-xl border-[#bddbd5] bg-white text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={attachmentCategory}
+                        onChange={e => setAttachmentCategory(e.target.value as any)}
+                        className="h-9 rounded-xl border border-[#bddbd5] bg-white px-3 text-xs text-[#102b32]"
+                      >
+                        <option value="photo">Foto do Local</option>
+                        <option value="laudo">Laudo Técnico</option>
+                        <option value="art">ART / RRT</option>
+                        <option value="certificate">Certificado</option>
+                        <option value="other">Outro Documento</option>
+                      </select>
+                      <label className="cursor-pointer inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0c7474] px-4 py-2 text-xs font-bold text-white hover:bg-[#095c5c]">
+                        {uploadAttachment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Arquivo"}
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (!attachmentTitle.trim()) {
+                              toast.error("Informe um título para o anexo.");
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              uploadAttachment.mutate({
+                                workspaceId,
+                                projectId: selectedProject.id,
+                                title: attachmentTitle.trim(),
+                                category: attachmentCategory,
+                                dataUrl: reader.result as string,
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {attachmentsQuery.data && attachmentsQuery.data.length > 0 ? (
+                      attachmentsQuery.data.map(att => (
+                        <div key={att.id} className="flex items-center justify-between rounded-xl border border-[#d7ebe6] bg-white p-3 text-xs">
+                          <div>
+                            <span className="font-bold text-[#102b32]">{att.title}</span>
+                            <span className="ml-2 rounded bg-[#f1f5f9] px-2 py-0.5 text-[10px] uppercase text-[#64748b]">{att.category}</span>
+                          </div>
+                          <a
+                            href={att.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-[#0c7474] hover:underline inline-flex items-center gap-1"
+                          >
+                            Abrir <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs italic text-[#7e969b]">Nenhum laudo ou foto anexado a este projeto ainda.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         ) : (

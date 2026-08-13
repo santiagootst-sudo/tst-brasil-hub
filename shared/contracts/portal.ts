@@ -54,6 +54,41 @@ export const createPgrProjectInput = workspaceIdInput.extend({
   visualMatrixImageUrl: z.string().max(2048).nullable().optional(),
 });
 
+export const suggestPgrGhesInput = workspaceIdInput.extend({
+  projectId: z.number().int().positive(),
+  activityDescription: z.string().trim().min(3, "Informe a atividade econômica ou o ramo da empresa.").max(1000),
+});
+
+export const pgrGheSuggestionSchema = z.object({
+  gheName: z.string(),
+  description: z.string(),
+  suggestedHazards: z.array(z.string()),
+  suggestedMeasures: z.array(z.string()),
+});
+
+export const suggestPgrGhesOutput = z.object({
+  success: z.boolean(),
+  activityDescription: z.string(),
+  suggestions: z.array(pgrGheSuggestionSchema),
+});
+
+export const uploadPgrAttachmentInput = workspaceIdInput.extend({
+  projectId: z.number().int().positive(),
+  title: z.string().trim().min(2, "Informe o título do laudo ou foto.").max(128),
+  category: z.enum(["photo", "laudo", "art", "certificate", "other"]).default("photo"),
+  dataUrl: z.string().min(15, "Envie o arquivo codificado em base64."),
+});
+
+export const pgrAttachmentSchema = z.object({
+  id: z.number().int().positive(),
+  pgrProjectId: z.number().int().positive(),
+  title: z.string(),
+  category: z.string(),
+  fileKey: z.string(),
+  fileUrl: z.string(),
+  createdAt: z.date(),
+});
+
 export const certificateCategories = ["certificate", "pgr", "ltcat", "os", "pcmat", "laudo", "other"] as const;
 export const certificateCategorySchema = z.enum(certificateCategories);
 

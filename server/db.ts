@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -266,6 +266,27 @@ export async function createPgrProjectForWorkspace(input: { workspaceId: number;
     legacyStorageKey: input.legacyStorageKey,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export async function listPgrAttachments(pgrProjectId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pgrAttachments).where(and(eq(pgrAttachments.pgrProjectId, pgrProjectId), eq(pgrAttachments.workspaceId, workspaceId))).orderBy(desc(pgrAttachments.createdAt));
+}
+
+export async function createPgrAttachment(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  title: string;
+  category: "photo" | "laudo" | "art" | "certificate" | "other";
+  fileKey: string;
+  fileUrl: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(pgrAttachments).values(input);
+  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  return (await db.select().from(pgrAttachments).where(eq(pgrAttachments.id, id)).limit(1))[0];
 }
 
 export async function listCertificatesForWorkspace(workspaceId: number) {

@@ -148,6 +148,13 @@
       "when": 1786647398801,
       "tag": "0020_mighty_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1786661117412,
+      "tag": "0021_fresh_stone_men",
+      "breakpoints": true
     }
   ]
 }

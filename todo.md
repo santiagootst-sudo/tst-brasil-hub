@@ -507,3 +507,7 @@
 
 - [x] Corrigir a persistência do formulário do PGR: dados preenchidos devem permanecer ao sair e reabrir o mesmo projeto.
 - [x] Revalidar isolamento entre projetos e confirmar que o PDF usa os dados persistidos após reabertura.
+
+- [x] Implementar preenchimento assistido por IA para sugerir inventários de GHE e perigos com base na atividade econômica.
+- [x] Implementar upload e gerenciamento de fotos e laudos complementares na aba de Identificação do PGR.
+- [x] Atualizar testes unitários, exportação PDF e validação de build de produção.

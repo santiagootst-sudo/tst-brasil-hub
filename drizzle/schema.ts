@@ -383,6 +383,20 @@ export const pgrTechnicalSignatures = mysqlTable("pgr_technical_signatures", {
   index("pgr_signatures_project_idx").on(table.pgrProjectId),
 ]);
 
+export const pgrAttachments = mysqlTable("pgr_attachments", {
+  id: int("id").autoincrement().primaryKey(),
+  pgrProjectId: int("pgrProjectId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  title: varchar("title", { length: 128 }).notNull(),
+  category: mysqlEnum("category", ["photo", "laudo", "art", "certificate", "other"]).default("photo").notNull(),
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  fileUrl: varchar("fileUrl", { length: 2048 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("pgr_attachments_project_idx").on(table.pgrProjectId),
+  index("pgr_attachments_workspace_idx").on(table.workspaceId),
+]);
+
 export const certificates = mysqlTable("certificates", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
