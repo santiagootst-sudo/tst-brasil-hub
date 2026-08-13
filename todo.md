@@ -458,3 +458,7 @@
 - [x] Ampliar tamanhos e contraste da tipografia na Visão Geral (dashboard e top bar) para garantir leitura confortável.
 - [x] Atualizar testes unitários, verificar build de produção e capturar prova visual.
 - [x] Publicar checkpoint final da melhoria de acessibilidade tipográfica.
+
+- [x] Ajustar posicionamento e margens dos badges de notificação na top bar da Visão Geral para eliminar o corte visual.
+- [x] Validar testes unitários, build de produção e captura de tela.
+- [x] Publicar checkpoint final da correção visual dos badges.
