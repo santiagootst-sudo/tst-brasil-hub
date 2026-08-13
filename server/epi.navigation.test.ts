@@ -21,4 +21,11 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage).toContain('<DashboardLayout title="Controle de EPIs">');
     expect(operationsPage).toContain("Centro Operacional de EPIs");
   });
+
+  it("permite abrir diretamente a aba de fichas por funcionário e evita retry em acesso negado", () => {
+    expect(operationsPage).toContain('new URLSearchParams(search).get("tab")');
+    expect(operationsPage).toContain('requestedTab === "employee_profile"');
+    expect(operationsPage).toContain("retry: false");
+    expect(operationsPage).toContain("Não foi possível abrir este ambiente.");
+  });
 });

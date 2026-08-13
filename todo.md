@@ -462,3 +462,12 @@
 - [x] Ajustar posicionamento e margens dos badges de notificação na top bar da Visão Geral para eliminar o corte visual.
 - [x] Validar testes unitários, build de produção e captura de tela.
 - [x] Publicar checkpoint final da correção visual dos badges.
+
+- [x] Adicionar campo dedicado de busca por funcionário no Centro Operacional de EPIs.
+- [x] Criar armário de arquivo físico visual para fichas de EPI arquivadas com gavetas, status e ações claras.
+- [x] Atualizar testes unitários, verificar build de produção e capturar prova visual.
+- [x] Publicar checkpoint final da melhoria do centro de EPIs.
+
+- [x] Exibir estado de acesso negado no Centro Operacional de EPIs quando o workspace informado na URL não pertence ao usuário autenticado.
+- [x] Atualizar a documentação de homologação do dashboard, CIPA e armário de fichas de EPI.
+- [x] Publicar checkpoint final da melhoria do centro de EPIs.

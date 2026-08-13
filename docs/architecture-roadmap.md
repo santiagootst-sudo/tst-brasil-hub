@@ -134,3 +134,18 @@ Enquanto o acesso externo não está disponível, cada novo domínio deve cumpri
 ## Limites atuais e decisão de execução
 
 As pendências de homologação — login real, workspace real, checkout, webhook, cancelamento e bloqueio do PGR — devem permanecer sem dados de demonstração. A arquitetura, a modularização, a documentação, os testes locais e os novos domínios de produto podem avançar agora. Quando o acesso for disponibilizado, a homologação deve ser executada sobre os mesmos contratos e checklists já documentados, sem refazer a base funcional.
+
+
+## Evolução operacional registrada em agosto de 2026
+
+O portal agora possui três superfícies operacionais complementares que devem permanecer separadas por responsabilidade, sem duplicar os dados: o **dashboard executivo**, o **Assistant CIPA** e o **Centro Operacional de EPIs**. O dashboard agrega sinais reais e fornece navegação temática; CIPA concentra composição, calendário e documentos da comissão; EPIs concentra estoque, CA, entregas, assinaturas, histórico individual e alertas de validade.
+
+| Superfície | Dados de referência | Regra de isolamento | Próxima evolução segura |
+|---|---|---|---|
+| Dashboard executivo | Empresas, pessoas, inspeções, ações, EPIs, CIPA e documentos | Indicadores devem ser derivados apenas do workspace ativo | Refinar agregações por período e melhorar estados de erro sem criar métricas fictícias |
+| Assistant CIPA | Dados da empresa, dimensionamento orientativo, calendário, membros e documentos da sessão | Documentos e preferências devem respeitar o workspace e a empresa selecionados | Persistência documental e revisão técnica dos modelos antes de uso produtivo |
+| Centro Operacional de EPIs | Itens, CA, estoque, requisitos, entregas, devoluções, assinaturas e pessoas | Cada operação deve validar workspace, company e funcionário relacionados | Homologar o armário com registros reais autorizados e garantir atualização transacional do estoque |
+
+A busca por funcionário e a abertura direta da aba `employee_profile` são recursos de navegação, não uma nova fronteira de dados. A URL pode solicitar a aba, mas a API continua responsável por verificar o vínculo com o workspace. Quando o vínculo é inválido, a interface deve informar o bloqueio e oferecer retorno à seleção de ambientes em vez de permanecer em carregamento indefinido.
+
+A metáfora do armário de fichas é deliberadamente visual, porém o documento arquivado continua sendo o registro operacional da ficha de entrega. Qualquer futura persistência de PDFs ou anexos deve seguir o padrão de armazenamento externo definido para o projeto, mantendo no banco apenas metadados, referência de arquivo, empresa, funcionário, status e auditoria.

@@ -10,18 +10,22 @@ import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadEpiReceiptPdf } from "@/lib/pdfReports";
 import { 
   AlertTriangle, ClipboardCheck, ClipboardPlus, HardHat, Loader2, PackageCheck, 
-  Plus, ShieldAlert, QrCode, Smartphone, CheckCircle2, Download, Check, X, Sparkles, UsersRound 
+  Plus, ShieldAlert, QrCode, Smartphone, CheckCircle2, Download, Check, X, Sparkles, UsersRound, Archive, FolderOpen, Search, ChevronDown
 } from "lucide-react";
 
 const occurrenceLabels = { near_miss: "Quase acidente", incident: "Incidente", accident: "Acidente" } as const;
+type OperationsTab = "overview" | "stock" | "deliveries" | "requirements" | "alerts" | "employee_profile";
 
 export default function Operations() {
   const search = useSearch();
   const workspaceId = workspaceIdFromSearch(search) ?? 0;
+  const requestedTab = new URLSearchParams(search).get("tab");
+  const initialTab: OperationsTab = requestedTab === "employee_profile" || requestedTab === "stock" || requestedTab === "deliveries" || requestedTab === "requirements" || requestedTab === "alerts" ? requestedTab : "overview";
   const utils = trpc.useUtils();
-  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
-  const organization = trpc.portal.organization.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
-  const operations = trpc.portal.operations.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const queryOptions = { enabled: workspaceId > 0, retry: false } as const;
+  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, queryOptions);
+  const organization = trpc.portal.organization.useQuery({ workspaceId }, queryOptions);
+  const operations = trpc.portal.operations.useQuery({ workspaceId }, queryOptions);
   const [companyId, setCompanyId] = useState(0);
   const [epiName, setEpiName] = useState("");
   const [caNumber, setCaNumber] = useState("");
@@ -51,14 +55,29 @@ export default function Operations() {
   const [qrSignedSuccess, setQrSignedSuccess] = useState(false);
   const [stockSearch, setStockSearch] = useState("");
   const [stockFilter, setStockFilter] = useState("all");
+  const [profileEmployeeSearch, setProfileEmployeeSearch] = useState("");
+  const [expandedArchiveEmployeeId, setExpandedArchiveEmployeeId] = useState(0);
+  const [activeTab, setActiveTab] = useState<OperationsTab>(initialTab);
+  const [selectedProfileEmployeeId, setSelectedProfileEmployeeId] = useState<number>(0);
+  const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
+  const [profileStartDate, setProfileStartDate] = useState<string>("");
+  const [profileEndDate, setProfileEndDate] = useState<string>("");
 
   const refresh = () => Promise.all([utils.portal.operations.invalidate({ workspaceId }), utils.portal.organization.invalidate({ workspaceId })]);
   const createEpi = trpc.portal.createEpiItem.useMutation({ onSuccess: async () => { setEpiName(""); setCaNumber(""); setManufacturer(""); setStockQuantity("0"); setMinimumStock("0"); setExpiresAt(""); await refresh(); toast.success("Item de EPI registrado."); }, onError: error => toast.error(error.message) });
   const createDelivery = trpc.portal.createEpiDelivery.useMutation({ onSuccess: async () => { setDeliveryEpiId(0); setDeliveryEmployeeId(0); setDeliveryKind("initial"); setDeliveryQuantity("1"); setDeliveredAt(""); setReplacementDueAt(""); setDeliveryNotes(""); await refresh(); toast.success("Entrega de EPI registrada no histórico."); }, onError: error => toast.error(error.message) });
   const createRequirement = trpc.portal.createEpiRequirement.useMutation({ onSuccess: async () => { setRequirementRoleId(0); setRequirementEpiId(0); await refresh(); toast.success("Requisito de EPI vinculado à função."); }, onError: error => toast.error(error.message) });
   const createOccurrence = trpc.portal.createSstOccurrence.useMutation({ onSuccess: async () => { setOccurrenceDepartmentId(0); setOccurrenceEmployeeId(0); setOccurredAt(""); setOccurrenceSummary(""); await refresh(); toast.success("Ocorrência SST registrada."); }, onError: error => toast.error(error.message) });
+  const createReturn = trpc.portal.createEpiReturn.useMutation({
+    onSuccess: async () => {
+      await utils.portal.operations.invalidate({ workspaceId });
+      toast.success("Devolução ou troca registrada e estoque atualizado com sucesso!");
+    },
+    onError: err => toast.error(err.message)
+  });
 
   if (workspace.isLoading || organization.isLoading || operations.isLoading) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  if (workspace.error || organization.error || operations.error) return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-[#f3c4b1] bg-white p-10 text-center shadow-sm"><AlertTriangle className="mx-auto h-10 w-10 text-[#d7694d]" /><h2 className="mt-4 text-xl font-bold text-[#17343b]">Não foi possível abrir este ambiente.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#668087]">Verifique se o ambiente ainda está ativo e se sua conta possui vínculo com ele. Você pode retornar à escolha de ambientes para continuar.</p><Link href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Voltar aos ambientes</Link></section></DashboardLayout>;
   if (!workspaceId || !workspace.data) return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#e98766]" /><h2 className="mt-4 text-xl font-bold">Selecione um ambiente para abrir o Controle de EPIs.</h2><Link href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</Link></section></DashboardLayout>;
 
   const current = workspace.data;
@@ -88,6 +107,18 @@ export default function Operations() {
     const matchesSearch = !stockSearch.trim() || item.name.toLowerCase().includes(stockSearch.toLowerCase()) || (item.caNumber && item.caNumber.toLowerCase().includes(stockSearch.toLowerCase()));
     const matchesFilter = stockFilter === "all" || (stockFilter === "critical" && item.stockQuantity <= item.minimumStock) || (stockFilter === "ok" && item.stockQuantity > item.minimumStock);
     return matchesSearch && matchesFilter;
+  });
+
+  const normalizedProfileSearch = profileEmployeeSearch.trim().toLocaleLowerCase("pt-BR");
+  const profileEmployees = employees.filter(employee => {
+    if (!normalizedProfileSearch) return true;
+    const searchable = [
+      employee.fullName,
+      (employee as any).registration,
+      (employee as any).employeeCode,
+      (employee as any).cpf,
+    ].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR");
+    return searchable.includes(normalizedProfileSearch);
   });
 
   const handleMobileSign = () => {
@@ -120,19 +151,6 @@ export default function Operations() {
     });
     toast.success("Comprovante digital em PDF baixado com sucesso!");
   };
-
-  const [activeTab, setActiveTab] = useState<"overview" | "stock" | "deliveries" | "requirements" | "alerts" | "employee_profile">("overview");
-  const [selectedProfileEmployeeId, setSelectedProfileEmployeeId] = useState<number>(0);
-  const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
-  const [profileStartDate, setProfileStartDate] = useState<string>("");
-  const [profileEndDate, setProfileEndDate] = useState<string>("");
-  const createReturn = trpc.portal.createEpiReturn.useMutation({
-    onSuccess: async () => {
-      await utils.portal.operations.invalidate({ workspaceId });
-      toast.success("Devolução ou troca registrada e estoque atualizado com sucesso!");
-    },
-    onError: err => toast.error(err.message)
-  });
 
   return <DashboardLayout title="Controle de EPIs"><div className="mx-auto max-w-7xl space-y-6">
     <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Centro Operacional de EPIs</p><h2 className="mt-2 text-3xl font-bold">Controle Avançado de EPIs e CA</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Gerenciamento inteligente de estoque, Certificados de Aprovação (CA), fichas de entrega com assinatura digital via QR Code e histórico por trabalhador.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-3"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{replacementDue.length}</b>reposições próximas</div></div></div></section>
@@ -456,6 +474,16 @@ export default function Operations() {
                   <p className="text-xs text-[#668087]">Histórico centralizado de EPIs entregues, status de aceite digital, devoluções e download dos recibos.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative min-w-[220px]">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#668087]" />
+                    <Input
+                      value={profileEmployeeSearch}
+                      onChange={e => setProfileEmployeeSearch(e.target.value)}
+                      placeholder="Buscar funcionário..."
+                      aria-label="Buscar funcionário nas fichas de EPI"
+                      className="h-10 rounded-xl border-[#cfe3de] bg-white pl-9 text-xs font-semibold text-[#23454b]"
+                    />
+                  </div>
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
                     value={selectedProfileEmployeeId}
@@ -490,8 +518,46 @@ export default function Operations() {
                 </div>
               </div>
 
+              <section className="rounded-[1.75rem] border border-[#d7c8b5] bg-gradient-to-br from-[#f4eee5] via-[#eee4d5] to-[#e8dccb] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.7),0_12px_30px_rgba(117,84,48,.08)]" aria-labelledby="epi-archive-title">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#8a5a37] text-[#fff8ed] shadow-[0_5px_12px_rgba(91,58,34,.18)]"><Archive className="h-5 w-5" /></span>
+                    <div>
+                      <h4 id="epi-archive-title" className="text-base font-bold text-[#5b3a25]">Armário de fichas arquivadas</h4>
+                      <p className="text-xs text-[#795d48]">Abra uma gaveta para consultar as fichas e ações do funcionário.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.1em] text-[#795d48]"><span className="rounded-full bg-[#fff8ed] px-2.5 py-1">{profileEmployees.length} funcionários</span><span className="rounded-full bg-[#fff0e9] px-2.5 py-1 text-[#bd6e4f]">{profileEmployees.filter(employee => epiDeliveries.some(delivery => delivery.employeeId === employee.id && (!delivery.signedByName || delivery.signedByName.includes("Pendente")))).length} pendências</span></div>
+                </div>
+                <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {profileEmployees.map(employee => {
+                    const employeeDeliveries = epiDeliveries.filter(delivery => delivery.employeeId === employee.id);
+                    const pendingCount = employeeDeliveries.filter(delivery => !delivery.signedByName || delivery.signedByName.includes("Pendente")).length;
+                    const isExpanded = expandedArchiveEmployeeId === employee.id;
+                    return (
+                      <button
+                        key={`drawer-${employee.id}`}
+                        type="button"
+                        onClick={() => { setExpandedArchiveEmployeeId(isExpanded ? 0 : employee.id); setSelectedProfileEmployeeId(employee.id); }}
+                        className={`group relative overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isExpanded ? "border-[#8a5a37] bg-[#fffaf2] shadow-md" : "border-[#d6c4ad] bg-[#f8f1e6] hover:border-[#b58b65]"}`}
+                        aria-expanded={isExpanded}
+                        aria-controls={`employee-file-${employee.id}`}
+                      >
+                        <span className="absolute inset-x-0 top-0 h-1 bg-[#b88758] opacity-70" />
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="flex min-w-0 items-center gap-2.5"><FolderOpen className={`h-5 w-5 shrink-0 ${isExpanded ? "text-[#8a5a37]" : "text-[#b88758]"}`} /><span className="min-w-0"><strong className="block truncate text-sm font-bold text-[#5b3a25]">{employee.fullName}</strong><small className="mt-0.5 block text-xs text-[#795d48]">Gaveta {String(employee.id).padStart(2, "0")} · {employeeDeliveries.length} ficha(s)</small></span></span>
+                          <ChevronDown className={`h-4 w-4 shrink-0 text-[#8a5a37] transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </div>
+                        <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]"><span className="text-[#8c6d52]">{isExpanded ? "Gaveta aberta" : "Abrir gaveta"}</span>{pendingCount > 0 ? <span className="rounded-full bg-[#fff0e9] px-2 py-1 text-[#bd6e4f]">{pendingCount} pendente(s)</span> : <span className="rounded-full bg-[#e8f6f1] px-2 py-1 text-[#0c7474]">Regular</span>}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!profileEmployees.length && <div className="mt-4 rounded-xl border border-dashed border-[#c9b69e] bg-[#fffaf2] p-5 text-center text-sm text-[#795d48]">Nenhum funcionário encontrado. Ajuste a busca ou limpe os filtros.</div>}
+              </section>
+
               <div className="space-y-4">
-                {employees.filter(emp => !selectedProfileEmployeeId || emp.id === selectedProfileEmployeeId).map(employee => {
+                {profileEmployees.filter(emp => !selectedProfileEmployeeId || emp.id === selectedProfileEmployeeId).map(employee => {
                   const empDeliveries = epiDeliveries.filter(d => {
                     if (d.employeeId !== employee.id) return false;
                     const isPending = !d.signedByName || d.signedByName.includes("Pendente");
@@ -505,7 +571,7 @@ export default function Operations() {
                   const hasPending = empDeliveries.some(d => !d.signedByName || d.signedByName.includes("Pendente"));
 
                   return (
-                    <div key={employee.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-5 space-y-4 shadow-sm">
+                    <div id={`employee-file-${employee.id}`} key={employee.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-5 space-y-4 shadow-sm scroll-mt-6">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#eef4f2] pb-3">
                         <div>
                           <div className="flex items-center gap-2">
