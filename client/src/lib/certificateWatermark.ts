@@ -10,6 +10,52 @@ export type CertificateWatermarkTheme = {
   kind: "cipa" | "electricity" | "noise" | "fire" | "confined" | "height";
 };
 
+export type CertificateWatermarkVariantId = "photographic" | "technical" | "contour" | "minimal";
+
+export type CertificateWatermarkVariant = {
+  id: CertificateWatermarkVariantId;
+  label: string;
+  description: string;
+  helper: string;
+  imageOpacity: number;
+  overlayOpacity: number;
+};
+
+export const certificateWatermarkVariants: CertificateWatermarkVariant[] = [
+  {
+    id: "photographic",
+    label: "Fotografia temática",
+    description: "Imagem relacionada à NR ocupando a página inteira com leitura suave.",
+    helper: "Mais expressiva",
+    imageOpacity: 0.12,
+    overlayOpacity: 0,
+  },
+  {
+    id: "technical",
+    label: "Painel técnico",
+    description: "Fotografia concentrada em uma faixa lateral com linhas técnicas e acabamento editorial.",
+    helper: "Equilíbrio entre imagem e dados",
+    imageOpacity: 0.16,
+    overlayOpacity: 0.08,
+  },
+  {
+    id: "contour",
+    label: "Contorno industrial",
+    description: "Imagem centralizada com moldura de contorno e transparência reforçada para documentos formais.",
+    helper: "Visual corporativo",
+    imageOpacity: 0.09,
+    overlayOpacity: 0.04,
+  },
+  {
+    id: "minimal",
+    label: "Fundo minimalista",
+    description: "Selo visual discreto no centro da página, priorizando o conteúdo e a impressão econômica.",
+    helper: "Máxima legibilidade",
+    imageOpacity: 0.065,
+    overlayOpacity: 0,
+  },
+];
+
 export const certificateWatermarkThemes: Record<CertificateNr, CertificateWatermarkTheme> = {
   "NR-05": {
     nr: "NR-05",
@@ -69,4 +115,8 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
 
 export function getCertificateWatermarkTheme(nr: CertificateNr) {
   return certificateWatermarkThemes[nr];
+}
+
+export function getCertificateWatermarkVariant(id: CertificateWatermarkVariantId) {
+  return certificateWatermarkVariants.find(variant => variant.id === id) ?? certificateWatermarkVariants[0];
 }

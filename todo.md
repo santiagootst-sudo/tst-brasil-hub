@@ -354,3 +354,8 @@
 - [x] Adicionar impressão direta ao modal de pré-visualização do certificado.
 - [x] Criar testes para identidade visual, remoção do QR Code, impressão e novas marcas d'água.
 - [x] Validar testes, build e salvar checkpoint da nova versão.
+
+- [x] Criar galeria de temas visuais alternativos de marca d'água por NR.
+- [x] Permitir que o instrutor selecione variações de estilo (Fotografia temática, Contorno industrial, Painel técnico, Fundo minimalista).
+- [x] Atualizar o gerador em PDF e a pré-visualização interativa para respeitar a variação escolhida.
+- [x] Adicionar testes automatizados e validar build e interface.

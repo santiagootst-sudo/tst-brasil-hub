@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { certificateCatalog, certificateNrs, certificateDescription } from "../client/src/lib/certificateCatalog";
-import { certificateWatermarkThemes } from "../client/src/lib/certificateWatermark";
+import { certificateWatermarkThemes, certificateWatermarkVariants } from "../client/src/lib/certificateWatermark";
 
 const generatorSource = readFileSync(resolve(process.cwd(), "client/src/components/CertificateGeneratorPanel.tsx"), "utf8");
 const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/pages/Certificates.tsx"), "utf8");
@@ -62,6 +62,23 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(certificateWatermarkThemes["NR-10"].kind).toBe("electricity");
     expect(certificateWatermarkThemes["NR-33"].kind).toBe("confined");
     expect(certificateWatermarkThemes["NR-35"].kind).toBe("height");
+  });
+
+  it("oferece quatro variações acessíveis de marca d'água e aplica a escolha no PDF e na prévia", () => {
+    expect(certificateWatermarkVariants.map(variant => variant.id)).toEqual(["photographic", "technical", "contour", "minimal"]);
+    expect(new Set(certificateWatermarkVariants.map(variant => variant.label)).size).toBe(4);
+    for (const variant of certificateWatermarkVariants) {
+      expect(variant.description.length).toBeGreaterThan(20);
+      expect(variant.imageOpacity).toBeGreaterThan(0);
+      expect(variant.imageOpacity).toBeLessThanOrEqual(0.2);
+    }
+    expect(generatorSource).toContain("watermarkVariant: CertificateWatermarkVariantId");
+    expect(generatorSource).toContain("certificateWatermarkVariants.map");
+    expect(generatorSource).toContain("aria-pressed={selected}");
+    expect(generatorSource).toContain("getCertificateWatermarkVariant(form.watermarkVariant)");
+    expect(generatorSource).toContain('variant.id === "technical"');
+    expect(generatorSource).toContain('variant.id === "contour"');
+    expect(generatorSource).toContain('variant.id === "minimal"');
   });
 
   it("oferece prévia modal antes do download e arquivamento", () => {
