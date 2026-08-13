@@ -12,11 +12,11 @@
 - [x] Validar no fluxo real da rota do PGR o bloqueio e a liberação por estado de assinatura.
 - [x] Validar visualmente os fluxos críticos do portal antes da entrega.
 - [x] Implementar e validar enforcement de permissões por papel do workspace (owner, manager e member) nas ações do portal.
-- [ ] Homologar o PGR integrado com autosave, exportação, isolamento entre ambientes e bloqueio/liberação por assinatura.
+- [x] Homologar o PGR integrado com autosave, exportação, isolamento entre ambientes e bloqueio/liberação por assinatura.
 - [x] Propagar os metadados de usuário e plano à assinatura para processar cancelamentos e alterações de status corretamente.
 - [x] Exibir os estados de retorno e cancelamento de cobrança na interface do portal.
-- [ ] Registrar e testar o webhook em sandbox com um ciclo completo de assinatura.
-- [ ] Homologar checkout, webhook, cancelamento e bloqueio de acesso quando o sandbox Stripe estiver disponível.
+- [x] Registrar e testar o webhook em sandbox com um ciclo completo de assinatura.
+- [x] Homologar checkout, webhook, cancelamento e bloqueio de acesso quando o sandbox Stripe estiver disponível.
 - [x] Evoluir os fluxos do PGR e dos ambientes de trabalho sem dependência da homologação de pagamentos.
 - [x] Criar os primeiros módulos compartilhados de Biblioteca e Certificados, conectados ao menu autenticado.
 - [x] Implementar fluxos mínimos funcionais para abrir materiais da Biblioteca e iniciar registros reais de Certificados.
