@@ -423,4 +423,9 @@
 - [x] Implementar calendário interativo de reuniões ordinárias mensais da CIPA com agendamento, status e lembretes visuais.
 - [x] Implementar importação de planilhas de funcionários (CSV/TXT) para preencher a lista de votação e o cadastro de candidatos.
 - [x] Atualizar suíte de testes automatizados com validação para o calendário e a importação de planilhas.
-- [ ] Publicar checkpoint da evolução e registrar instruções de homologação.
+- [x] Publicar checkpoint da evolução e registrar instruções de homologação.
+
+- [x] Implementar geração automática de ata de reunião em PDF para encontros concluídos da CIPA.
+- [x] Implementar exportação do calendário de reuniões para arquivo iCalendar (.ics).
+- [x] Atualizar suíte de testes unitários com validação para atas e formato .ics.
+- [x] Publicar checkpoint da evolução e registrar instruções de homologação.

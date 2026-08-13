@@ -46,6 +46,7 @@ import {
   type CipaFormData,
 } from "@/lib/cipaAssistant";
 import { buildEmployeeElectionDocuments, createMonthlyMeetings, employeesToCsvTemplate, parseCipaEmployeeFile, type CipaEmployee } from "@/lib/cipaImport";
+import { buildMeetingMinutesContent, meetingsToIcs, type CipaMeetingItem } from "@/lib/cipaCalendar";
 
 const steps = [
   { label: "Empresa", icon: ShieldCheck },
@@ -328,6 +329,35 @@ export default function CipaAssistant() {
     setMeetings(current => current.map(meeting => meeting.id === meetingId ? { ...meeting, status } : meeting));
   };
 
+  const downloadMeetingMinutes = (meeting: CipaMeeting) => {
+    const content = buildMeetingMinutesContent(meeting, form.empresa);
+    const meetingDoc = {
+      id: `ata-${meeting.id}`,
+      title: `Ata de Reunião CIPA · ${meeting.date}`,
+      category: "gestao" as const,
+      description: `Ata gerada automaticamente para a reunião de ${meeting.date}.`,
+      content,
+    };
+    downloadDocument(meetingDoc);
+    toast.success("Ata de reunião gerada em PDF.");
+  };
+
+  const exportMeetingsIcs = () => {
+    if (!meetings.length) {
+      toast.error("Nenhuma reunião agendada no calendário para exportar.");
+      return;
+    }
+    const icsContent = meetingsToIcs(meetings, form.empresa);
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "calendario-cipa-reunioes.ics";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Calendário exportado para .ics (compatível com Google e Outlook).");
+  };
+
   const handleEmployeeImport = async (file: File | undefined) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".csv") && !file.name.toLowerCase().endsWith(".txt")) {
@@ -461,14 +491,14 @@ export default function CipaAssistant() {
               <SectionCard icon={CalendarDays} eyebrow="Etapa 05 · acompanhamento" title="Reuniões ordinárias da CIPA">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div><p className="text-sm leading-6 text-[#668087]">Planeje a rotina mensal da comissão, acompanhe o status de cada encontro e mantenha o calendário vinculado ao ambiente ativo.</p></div>
-                  <div className="flex items-center gap-2"><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(-1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button><span className="min-w-36 text-center text-sm font-bold capitalize text-[#315158]">{monthLabel(selectedMonth)}</span><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button></div>
+                  <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={exportMeetingsIcs} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><Download className="mr-1.5 h-3.5 w-3.5" /> Exportar .ics</Button><div className="flex items-center gap-1"><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(-1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button><span className="min-w-32 text-center text-sm font-bold capitalize text-[#315158]">{monthLabel(selectedMonth)}</span><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button></div></div>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-2xl border border-[#e4efec]">
                   <div className="grid grid-cols-7 border-b border-[#e4efec] bg-[#f7fcfa]">{["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => <span key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-wide text-[#83a09a]">{day}</span>)}</div>
                   <div className="grid grid-cols-7">{visibleCalendarDays.map((day, index) => { const dayKey = day ? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}` : ""; const dayMeetings = dayKey ? meetings.filter(meeting => meeting.date === dayKey) : []; return <button key={`${dayKey || "empty"}-${index}`} type="button" disabled={!day} onClick={() => dayKey && setSelectedMeetingDate(dayKey)} className={`min-h-20 border-b border-r border-[#eef4f2] p-2 text-left transition ${!day ? "cursor-default bg-[#fbfdfc]" : selectedMeetingDate === dayKey ? "bg-[#e8f6f1]" : "bg-white hover:bg-[#f7fcfa]"}`} aria-label={day ? `Selecionar ${day.toLocaleDateString("pt-BR")}` : undefined}>{day && <><span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${selectedMeetingDate === dayKey ? "bg-[#0c7474] text-white" : "text-[#315158]"}`}>{day.getDate()}</span>{dayMeetings.map(meeting => <span key={meeting.id} className={`mt-2 block truncate rounded-md px-1.5 py-1 text-[9px] font-bold ${meeting.status === "realizada" ? "bg-[#e8f6f1] text-[#0c7474]" : meeting.status === "cancelada" ? "bg-[#fff0e9] text-[#b85c36]" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{meeting.time} · Reunião</span>)}</>}</button>; })}</div>
                 </div>
                 <div className="mt-5 grid gap-4 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4 md:grid-cols-[1fr_140px_1fr_auto] md:items-end"><Field label="Primeira reunião do ciclo"><Input type="date" value={selectedMeetingDate} onChange={event => setSelectedMeetingDate(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Horário"><Input type="time" value={meetingTime} onChange={event => setMeetingTime(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Pauta ou observação"><Input value={meetingNotes} onChange={event => setMeetingNotes(event.target.value)} placeholder="Ex.: inspeção mensal e SIPAT" className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Button type="button" onClick={addMonthlyMeetings} className="h-11 rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Plus className="mr-2 h-4 w-4" /> Gerar 12 meses</Button></div>
-                <div className="mt-5 space-y-2">{visibleMeetings.length ? visibleMeetings.map(meeting => <div key={meeting.id} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]"><CalendarDays className="h-4 w-4" /></div><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{formatDate(meeting.date)} · {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><select value={meeting.status} onChange={event => updateMeetingStatus(meeting.id, event.target.value as CipaMeeting["status"])} className="h-9 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-bold text-[#315158] outline-none"><option value="agendada">Agendada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div>) : <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada neste mês. Escolha a primeira data e gere o ciclo mensal.</p>}</div>
+                <div className="mt-5 space-y-2">{visibleMeetings.length ? visibleMeetings.map(meeting => <div key={meeting.id} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]"><CalendarDays className="h-4 w-4" /></div><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{formatDate(meeting.date)} · {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><div className="flex shrink-0 items-center gap-2">{meeting.status === "realizada" && <Button type="button" variant="outline" onClick={() => downloadMeetingMinutes(meeting)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><FileText className="mr-1.5 h-3.5 w-3.5" /> Baixar Ata PDF</Button>}<select value={meeting.status} onChange={event => updateMeetingStatus(meeting.id, event.target.value as CipaMeeting["status"])} className="h-9 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-bold text-[#315158] outline-none"><option value="agendada">Agendada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div></div>) : <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada neste mês. Escolha a primeira data e gere o ciclo mensal.</p>}</div>
               </SectionCard>
 
               <SectionCard icon={FileSpreadsheet} eyebrow="Etapa 05 · base de funcionários" title="Importar planilha para votação e candidatos">
