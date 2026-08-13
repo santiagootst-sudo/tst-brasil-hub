@@ -17,3 +17,9 @@ A página interna de downloads do navegador confirmou o arquivo `Certificado_NR-
 O arquivo baixado tem 15.375 bytes, foi produzido pelo jsPDF, possui **2 páginas A4** e não está criptografado. A extração textual confirmou a frente com certificado, participante, CPF, empresa, NR-35, validade, local, conclusão, instrutora e registro; o verso contém os oito itens do conteúdo programático, conteúdo prático integrado, contato, instrução de validação, registro e QR Code.
 
 `pdfimages -list` identificou uma imagem RGB de 240×240 px na página 2, consistente com o QR Code incorporado. A exportação da imagem para PNG também foi concluída sem erro.
+
+## Personalização visual
+
+A tela autenticada do gerador passou a exibir a seção **Identidade visual da empresa**, com controles acessíveis de cor de fundo e cor de destaque, além do upload de logotipo específico da emissão. A prévia dinâmica foi renderizada com a composição existente e preparada para refletir esses tokens no fundo, molduras e textos de destaque do certificado.
+
+A suíte de TypeScript e testes foi executada após a alteração: 34 arquivos de teste e 128 testes passaram. O envio por e-mail permanece deliberadamente pendente até a configuração de provedor e remetente verificado.

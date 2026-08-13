@@ -32,6 +32,10 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain("watermarkOpacity");
     expect(generatorSource).toContain("qrDataUrl");
     expect(generatorSource).toContain("logoDataUrl");
+    expect(generatorSource).toContain("backgroundColor");
+    expect(generatorSource).toContain("accentColor");
+    expect(generatorSource).toContain("addPageBackground");
+    expect(generatorSource).toContain('type="color"');
   });
 
   it("integra a emissão ao workspace ativo e permite salvar no acervo real", () => {

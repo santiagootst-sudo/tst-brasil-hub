@@ -288,3 +288,7 @@
 - [ ] Validar no navegador a visão de Documentos do TST Autônomo por cliente com certificado real vencido ou próximo.
 - [ ] Registrar evidência observável da rota ou captura que mostre o status documental por cliente.
 - [x] Testar o fluxo completo de emissão de certificado no módulo integrado (prévia, PDF frente e verso, QR Code e acervo).
+- [x] Permitir personalização de cor de fundo, paleta e logotipo da empresa no gerador de certificados.
+- [ ] Adicionar envio do PDF do certificado gerado para o e-mail do funcionário/participante.
+- [ ] Criar testes automatizados para personalização visual e envio de e-mail de certificado.
+- [x] Criar testes automatizados para os controles de personalização visual do certificado.

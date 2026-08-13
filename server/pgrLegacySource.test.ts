@@ -1,11 +1,24 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { storageGetSignedUrl } from "./storage";
 
 const sourcePath = "/home/ubuntu/webdev-static-assets/pgr-pro-portal-integrado.html";
+const sourceKey = "pgr-pro-portal-integrado_2fdf701f.html";
+
+async function readPgrSource() {
+  try {
+    return await readFile(sourcePath, "utf8");
+  } catch {
+    const signedUrl = await storageGetSignedUrl(sourceKey);
+    const response = await fetch(signedUrl);
+    if (!response.ok) throw new Error(`Falha ao ler o HTML legado no armazenamento (${response.status})`);
+    return response.text();
+  }
+}
 
 describe("PGR legado integrado ao Portal TST", () => {
   it("inicia por portalAuth sem exibir login ou permitir saída interna", async () => {
-    const html = await readFile(sourcePath, "utf8");
+    const html = await readPgrSource();
 
     expect(html).toContain("function iniciarSessaoDoPortal()");
     expect(html).toContain("params.get('portalAuth') !== '1'");
@@ -16,7 +29,7 @@ describe("PGR legado integrado ao Portal TST", () => {
   });
 
   it("mantém autosave e exportações do HTML legado disponíveis", async () => {
-    const html = await readFile(sourcePath, "utf8");
+    const html = await readPgrSource();
 
     expect(html).toContain("function salvarDados()");
     expect(html).toContain("localStorage.setItem('pgrDadosV23'");
