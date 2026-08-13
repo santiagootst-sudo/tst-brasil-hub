@@ -513,3 +513,6 @@
 - [x] Atualizar testes unitários, exportação PDF e validação de build de produção.
 
 - [x] Implementar inserção com um clique das sugestões de GHE da IA no inventário do PGR com revisão humana e proteção contra duplicidades.
+
+- [x] Adicionar o módulo Marketplace ao final da barra lateral para ambos os perfis (Prestador e Empresa).
+- [x] Criar a página de pré-lançamento do Marketplace com mensagem de construção, carinha feliz e caixa de feedback interativa.

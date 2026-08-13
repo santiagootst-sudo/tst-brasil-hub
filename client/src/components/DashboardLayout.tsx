@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -148,6 +148,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Cursos e treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
       { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
       { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+      { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
     ] },
   ] : isClt ? [
     { label: "Operação", items: [
@@ -168,20 +169,22 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
     { label: "Conhecimento", items: [
       { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
       { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+      { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
     ] },
   ] : [{ label: "Aplicativos", items: [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
-    { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
-    { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
-    { label: "Estrutura e equipe", hint: "Organize setores, funções e pessoas do ambiente para apoiar a operação de SST.", icon: UsersRound, path: "/app/estrutura" },
-    { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
-    { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
-    { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
-    { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
-    { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
-    { label: "Suporte", icon: Headphones, path: "/app/suporte" },
-    { label: "Certificados", icon: Trophy, path: "/app/certificados" },
-  ] }];
+      { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
+      { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
+      { label: "Estrutura e equipe", hint: "Organize setores, funções e pessoas do ambiente para apoiar a operação de SST.", icon: UsersRound, path: "/app/estrutura" },
+      { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
+      { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
+      { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
+      { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
+      { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
+      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+      { label: "Certificados", icon: Trophy, path: "/app/certificados" },
+      { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
+    ] }];
   const pathWithWorkspace = (path: string) => {
     if (path === "/app") return withWorkspaceContext("/app/visao", workspaceId);
     return withWorkspaceContext(path, workspaceId);
