@@ -386,3 +386,7 @@
 - [x] Adicionar suporte a upload e persistência de imagens reais do mapa de risco e gráficos de matriz visual para renderização direta no relatório exportado.
 - [x] Criar modal e fluxo de pré-visualização (preview) rica na interface do portal, permitindo inspecionar o documento formatado antes do download definitivo.
 - [x] Executar suíte completa de testes automatizados e validar o build de produção com as novas melhorias visuais e funcionais.
+
+- [ ] Reestruturar a página de Controle de EPIs transformando-a em um centro operacional com barra lateral dedicada (sidebar interna) separando as visões: Visão Geral, Estoque e CAs, Entregas e Assinatura Digital, Fichas de EPI por Funcionário, Devoluções e Substituições, e Alertas de Validade.
+- [ ] Remover Acompanhamento SST / Ocorrências da lista secundária de EPIs e integrá-lo ao Dashboard principal (ou painel dedicado de acompanhamento) com alertas visuais e estatísticas críticas.
+- [ ] Atualizar a suíte de testes automatizados e verificar o build de produção.

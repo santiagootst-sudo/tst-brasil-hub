@@ -110,50 +110,302 @@ export default function Operations() {
     toast.success("Comprovante digital em PDF baixado com sucesso!");
   };
 
+  const [activeTab, setActiveTab] = useState<"overview" | "stock" | "deliveries" | "requirements" | "alerts">("overview");
+
   return <DashboardLayout title="Controle de EPIs"><div className="mx-auto max-w-7xl space-y-6">
-    <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Rotina operacional</p><h2 className="mt-2 text-3xl font-bold">EPIs, requisitos e ocorrências em um só lugar.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Registre somente a realidade da empresa: itens disponíveis, requisitos por função e ocorrências que precisam de acompanhamento, sem informações clínicas ou prontuários.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-4"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{replacementDue.length}</b>reposições próximas</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{openOccurrences.length}</b>ocorrências abertas</div></div></div></section>
+    <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Centro Operacional de EPIs</p><h2 className="mt-2 text-3xl font-bold">Controle Avançado de EPIs e CA</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Gerenciamento inteligente de estoque, Certificados de Aprovação (CA), fichas de entrega com assinatura digital via QR Code e histórico por trabalhador.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-3"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{replacementDue.length}</b>reposições próximas</div></div></div></section>
 
     {!companies.length ? <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><HardHat className="mx-auto h-10 w-10 text-[#0c7474]" /><h3 className="mt-4 text-xl font-bold">Cadastre uma empresa antes de controlar a operação.</h3><p className="mt-2 text-sm text-[#668087]">Os EPIs e as ocorrências devem estar vinculados a uma empresa do ambiente.</p><Link href={`/app/pgr?workspace=${current.id}`} className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Abrir empresas e PGR</Link></section> : <>
-      <section className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><label className="block text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Empresa em foco</label><select value={currentCompanyId} onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); setOccurrenceDepartmentId(0); setOccurrenceEmployeeId(0); }} className="mt-3 h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-semibold text-[#23454b] md:max-w-md">{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select></section>
-      <section className="grid gap-5 xl:grid-cols-[1.02fr_.98fr]">
-        <article className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]"><PackageCheck className="h-5 w-5" /></span><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Controle de EPI</p><h3 className="text-lg font-bold">Itens e requisitos por função</h3></div></div>{canManage && <div className="mt-5 grid gap-3 md:grid-cols-2"><Input value={epiName} onChange={event => setEpiName(event.target.value)} placeholder="Nome do EPI" className="md:col-span-2" /><Input value={caNumber} onChange={event => setCaNumber(event.target.value)} placeholder="CA (opcional)" /><Input value={manufacturer} onChange={event => setManufacturer(event.target.value)} placeholder="Fabricante (opcional)" /><Input value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} type="number" min="0" placeholder="Estoque atual" /><Input value={minimumStock} onChange={event => setMinimumStock(event.target.value)} type="number" min="0" placeholder="Estoque mínimo" /><Input value={expiresAt} onChange={event => setExpiresAt(event.target.value)} type="date" className="md:col-span-2" /><Button disabled={createEpi.isPending || epiName.trim().length < 2} onClick={() => createEpi.mutate({ workspaceId, companyId: currentCompanyId, name: epiName.trim(), caNumber: caNumber.trim() || null, manufacturer: manufacturer.trim() || null, stockQuantity: Number(stockQuantity) || 0, minimumStock: Number(minimumStock) || 0, expiresAt: expiresAt ? new Date(`${expiresAt}T12:00:00`) : null })} className="rounded-xl bg-[#0c7474] text-white md:col-span-2"><Plus className="mr-2 h-4 w-4" />Registrar item de EPI</Button></div>}<div className="mt-5 space-y-2">{epiItems.length ? epiItems.map(item => <div key={item.id} className="rounded-xl border border-[#e6f0ee] p-3"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{item.name}</strong><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${item.stockQuantity <= item.minimumStock ? "bg-[#fff0e9] text-[#bd6e4f]" : "bg-[#e8f6f1] text-[#0c7474]"}`}>{item.stockQuantity} em estoque</span></div><small className="mt-1 block text-xs text-[#668087]">{item.caNumber ? `CA ${item.caNumber} · ` : ""}{item.manufacturer ?? "Fabricante não informado"}{item.expiresAt ? ` · validade ${item.expiresAt.toLocaleDateString("pt-BR")}` : ""}</small></div>) : <p className="rounded-xl bg-[#f7fcfa] p-3 text-sm text-[#668087]">Nenhum item de EPI registrado para esta empresa.</p>}</div>
-          {canManage && <div className="mt-5 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4"><div className="flex items-start gap-2"><ClipboardCheck className="mt-0.5 h-4 w-4 text-[#0c7474]" /><div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Entrega e reposição por trabalhador</p><p className="mt-1 text-xs text-[#668087]">A baixa de estoque e o histórico ficam registrados no ambiente selecionado.</p></div></div><div className="mt-3 grid gap-3 md:grid-cols-2"><select value={deliveryEpiId} onChange={event => setDeliveryEpiId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecionar EPI</option>{epiItems.map(item => <option key={item.id} value={item.id}>{item.name} · estoque {item.stockQuantity}</option>)}</select><select value={deliveryEmployeeId} onChange={event => setDeliveryEmployeeId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecionar trabalhador</option>{employees.map(item => <option key={item.id} value={item.id}>{item.fullName}</option>)}</select><select value={deliveryKind} onChange={event => setDeliveryKind(event.target.value as "initial" | "replacement")} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value="initial">Entrega inicial</option><option value="replacement">Reposição / troca</option></select><Input value={deliveryQuantity} onChange={event => setDeliveryQuantity(event.target.value)} type="number" min="1" placeholder="Quantidade" /><Input value={deliveredAt} onChange={event => setDeliveredAt(event.target.value)} type="date" /><Input value={replacementDueAt} onChange={event => setReplacementDueAt(event.target.value)} type="date" /><Input value={signedByName} onChange={event => setSignedByName(event.target.value)} placeholder="Nome de quem assinou / retirou (Aceite digital)" className="md:col-span-2" /><Textarea value={deliveryNotes} onChange={event => setDeliveryNotes(event.target.value)} placeholder="Observação da entrega (opcional)" className="min-h-20 md:col-span-2" /><Button disabled={createDelivery.isPending || !deliveryEpiId || !deliveryEmployeeId || !deliveredAt || !signedByName.trim() || Number(deliveryQuantity) < 1} onClick={() => createDelivery.mutate({ workspaceId, companyId: currentCompanyId, epiItemId: deliveryEpiId, employeeId: deliveryEmployeeId, quantity: Number(deliveryQuantity), deliveryKind, deliveredAt: new Date(`${deliveredAt}T12:00:00`), replacementDueAt: replacementDueAt ? new Date(`${replacementDueAt}T12:00:00`) : null, notes: deliveryNotes.trim() || null, signedByName: signedByName.trim() })} className="rounded-xl bg-[#3173a8] text-white md:col-span-2"><ClipboardPlus className="mr-2 h-4 w-4" />Registrar entrega com aceite digital</Button></div></div>}
-          
-          <div className="mt-4 space-y-3">
-            {epiDeliveries.length ? epiDeliveries.map(item => (
-              <div key={item.id} className="rounded-xl border border-[#dce8f1] bg-[#f8fbfe] p-3.5">
-                <div className="flex items-center justify-between gap-3">
-                  <strong className="text-sm text-[#123f69]">{epiNameById.get(item.epiItemId) ?? "EPI"}</strong>
-                  <span className="rounded-full bg-[#e4f0fa] px-2.5 py-1 text-[10px] font-bold text-[#3173a8]">{item.deliveryKind === "replacement" ? "Reposição / troca" : "Entrega inicial"}</span>
+      <section className="flex flex-col gap-5 lg:flex-row">
+        {/* Sidebar Interna do Centro Operacional */}
+        <aside className="w-full lg:w-72 shrink-0 space-y-3">
+          <div className="rounded-3xl border border-[#dcebe8] bg-white p-4 shadow-sm">
+            <label className="block text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Empresa em foco</label>
+            <select value={currentCompanyId} onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); }} className="mt-2.5 h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-semibold text-[#23454b]">{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select>
+          </div>
+
+          <nav className="rounded-3xl border border-[#dcebe8] bg-white p-3 shadow-sm space-y-1">
+            <button onClick={() => setActiveTab("overview")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "overview" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
+              <span className="flex items-center gap-2.5"><PackageCheck className="h-4 w-4" /> Visão Geral</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{epiItems.length}</span>
+            </button>
+            <button onClick={() => setActiveTab("stock")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "stock" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
+              <span className="flex items-center gap-2.5"><HardHat className="h-4 w-4" /> Estoque, CA e Fabricantes</span>
+              {lowStock.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-[#bd6e4f] text-white">{lowStock.length}</span>}
+            </button>
+            <button onClick={() => setActiveTab("deliveries")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "deliveries" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
+              <span className="flex items-center gap-2.5"><ClipboardCheck className="h-4 w-4" /> Fichas de Entrega</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{epiDeliveries.length}</span>
+            </button>
+            <button onClick={() => setActiveTab("requirements")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "requirements" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
+              <span className="flex items-center gap-2.5"><Smartphone className="h-4 w-4" /> Requisitos por Função</span>
+            </button>
+            <button onClick={() => setActiveTab("alerts")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "alerts" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
+              <span className="flex items-center gap-2.5"><ShieldAlert className="h-4 w-4" /> Validades e Alertas</span>
+              {expiringOrExpired.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-[#bd6e4f] text-white">{expiringOrExpired.length}</span>}
+            </button>
+          </nav>
+        </aside>
+
+        {/* Conteúdo Principal por Aba */}
+        <main className="flex-1 space-y-6">
+          {activeTab === "overview" && (
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-[#102b32]">Resumo de Equipamentos</h3>
+                  <PackageCheck className="h-5 w-5 text-[#0c7474]" />
                 </div>
-                <p className="mt-1 text-xs text-[#47636a]">{employeeNameById.get(item.employeeId) ?? "Trabalhador"} · {item.quantity} unidade(s) · entrega em {item.deliveredAt.toLocaleDateString("pt-BR")}</p>
-                <div className="mt-2 flex items-center justify-between border-t border-[#e2edf5] pt-2">
-                  <small className="text-[11px] text-[#668087]">Assinado por: <b>{item.signedByName}</b></small>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleDownloadReceipt(item)} 
-                      className="h-7 rounded-lg border-[#bddbd5] text-xs font-semibold text-[#0c7474] hover:bg-[#e8f6f1]"
-                    >
-                      <Download className="mr-1 h-3 w-3" /> Baixar PDF
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => { setActiveQrDelivery(item); setQrSignedSuccess(false); }} 
-                      className="h-7 rounded-lg bg-[#3173a8] text-xs font-semibold text-white hover:bg-[#235882]"
-                    >
-                      <QrCode className="mr-1 h-3 w-3" /> Assinatura QR Code
+                <p className="text-xs text-[#5d7479] leading-relaxed">O centro operacional de EPIs garante a conformidade com a NR-06, controlando o estoque, o Certificado de Aprovação (CA) e a assinatura digital dos recibos de entrega.</p>
+                <div className="pt-2 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-[#e6f0ee] bg-[#f7fcfa] p-4 text-center">
+                    <b className="block text-2xl text-[#0c7474]">{epiItems.length}</b>
+                    <span className="text-xs text-[#668087]">Itens cadastrados</span>
+                  </div>
+                  <div className="rounded-2xl border border-[#e6f0ee] bg-[#f7fcfa] p-4 text-center">
+                    <b className="block text-2xl text-[#3173a8]">{epiDeliveries.length}</b>
+                    <span className="text-xs text-[#668087]">Entregas registradas</span>
+                  </div>
+                </div>
+                <Button onClick={() => setActiveTab("stock")} className="w-full rounded-xl bg-[#0c7474] text-white font-bold text-xs">Gerenciar Estoque e CAs</Button>
+              </div>
+
+              <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-bold text-[#102b32]">Fichas e Aceite Digital</h3>
+                  <QrCode className="h-5 w-5 text-[#3173a8]" />
+                </div>
+                <p className="text-xs text-[#5d7479] leading-relaxed">Emita fichas individuais de EPI para os trabalhadores com comprovantes em PDF e simule a assinatura digital móvel via QR Code para auditorias e conformidade.</p>
+                <div className="pt-2 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-[#e2edf5] bg-[#f8fbfe] p-4 text-center">
+                    <b className="block text-2xl text-[#3173a8]">{employees.length}</b>
+                    <span className="text-xs text-[#668087]">Trabalhadores ativos</span>
+                  </div>
+                  <div className="rounded-2xl border border-[#e2edf5] bg-[#f8fbfe] p-4 text-center">
+                    <b className="block text-2xl text-[#bd6e4f]">{replacementDue.length}</b>
+                    <span className="text-xs text-[#668087]">Trocas vencendo</span>
+                  </div>
+                </div>
+                <Button onClick={() => setActiveTab("deliveries")} className="w-full rounded-xl bg-[#3173a8] text-white font-bold text-xs">Ver Fichas de Entrega</Button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "stock" && (
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-[#102b32]">Estoque, CA e Fabricantes</h3>
+                  <p className="text-xs text-[#668087]">Gerenciamento e cadastro de equipamentos com controle de estoque mínimo.</p>
+                </div>
+                <PackageCheck className="h-6 w-6 text-[#0c7474]" />
+              </div>
+
+              {canManage && (
+                <div className="rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-5 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Cadastrar Novo EPI</h4>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input value={epiName} onChange={event => setEpiName(event.target.value)} placeholder="Nome do EPI (ex: Óculos de Proteção Incolor)" className="md:col-span-2" />
+                    <Input value={caNumber} onChange={event => setCaNumber(event.target.value)} placeholder="Número do CA (ex: 12345)" />
+                    <Input value={manufacturer} onChange={event => setManufacturer(event.target.value)} placeholder="Fabricante (ex: 3M / Danny)" />
+                    <Input value={stockQuantity} onChange={event => setStockQuantity(event.target.value)} type="number" min="0" placeholder="Estoque atual" />
+                    <Input value={minimumStock} onChange={event => setMinimumStock(event.target.value)} type="number" min="0" placeholder="Estoque mínimo de alerta" />
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-semibold text-[#5d7479] mb-1">Validade do CA / Certificado (opcional)</label>
+                      <Input value={expiresAt} onChange={event => setExpiresAt(event.target.value)} type="date" />
+                    </div>
+                    <Button disabled={createEpi.isPending || epiName.trim().length < 2} onClick={() => createEpi.mutate({ workspaceId, companyId: currentCompanyId, name: epiName.trim(), caNumber: caNumber.trim() || null, manufacturer: manufacturer.trim() || null, stockQuantity: Number(stockQuantity) || 0, minimumStock: Number(minimumStock) || 0, expiresAt: expiresAt ? new Date(`${expiresAt}T12:00:00`) : null })} className="rounded-xl bg-[#0c7474] text-white md:col-span-2 font-bold text-sm py-2.5">
+                      <Plus className="mr-2 h-4 w-4" /> Salvar EPI no Estoque
                     </Button>
                   </div>
                 </div>
-              </div>
-            )) : <p className="rounded-xl bg-[#f7fbff] p-3 text-sm text-[#668087]">Nenhuma entrega de EPI registrada para esta empresa.</p>}
-          </div>
+              )}
 
-          {canManage && <div className="mt-5 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Requisito por função</p><div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={requirementRoleId} onChange={event => setRequirementRoleId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecionar função</option>{jobRoles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select value={requirementEpiId} onChange={event => setRequirementEpiId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecionar EPI</option>{epiItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><Button disabled={createRequirement.isPending || !requirementRoleId || !requirementEpiId} onClick={() => createRequirement.mutate({ workspaceId, companyId: currentCompanyId, jobRoleId: requirementRoleId, epiItemId: requirementEpiId })} className="rounded-xl bg-[#3173a8] text-white">Vincular</Button></div></div>}<div className="mt-3 space-y-2">{requirements.map(item => <p key={item.id} className="rounded-xl bg-[#f7fbff] px-3 py-2 text-xs text-[#47636a]"><b>{roleName.get(item.jobRoleId) ?? "Função"}</b> requer <b>{epiNameById.get(item.epiItemId) ?? "EPI"}</b></p>)}</div></article>
-        
-        <article className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#fff0e9] text-[#bd6e4f]"><ShieldAlert className="h-5 w-5" /></span><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#bd6e4f]">Acompanhamento SST</p><h3 className="text-lg font-bold">Ocorrências</h3></div></div>{canManage && <div className="mt-5 space-y-3"><select value={occurrenceType} onChange={event => setOccurrenceType(event.target.value as keyof typeof occurrenceLabels)} className="h-10 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm">{Object.entries(occurrenceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><div className="grid gap-3 md:grid-cols-2"><select value={occurrenceDepartmentId} onChange={event => setOccurrenceDepartmentId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Setor (opcional)</option>{departments.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select value={occurrenceEmployeeId} onChange={event => setOccurrenceEmployeeId(Number(event.target.value))} className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Pessoa (opcional)</option>{employees.map(item => <option key={item.id} value={item.id}>{item.fullName}</option>)}</select></div><Input value={occurredAt} onChange={event => setOccurredAt(event.target.value)} type="datetime-local" /><Textarea value={occurrenceSummary} onChange={event => setOccurrenceSummary(event.target.value)} placeholder="Resumo objetivo da ocorrência, sem informações médicas." className="min-h-24" /><Button disabled={createOccurrence.isPending || !occurredAt || occurrenceSummary.trim().length < 10} onClick={() => createOccurrence.mutate({ workspaceId, companyId: currentCompanyId, departmentId: occurrenceDepartmentId || null, employeeId: occurrenceEmployeeId || null, type: occurrenceType, occurredAt: new Date(occurredAt), summary: occurrenceSummary.trim() })} className="w-full rounded-xl bg-[#d67845] text-white"><ClipboardPlus className="mr-2 h-4 w-4" />Registrar ocorrência</Button></div>}<div className="mt-5 space-y-2">{occurrences.length ? occurrences.map(item => <div key={item.id} className="rounded-xl border border-[#f1ded4] p-3"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{occurrenceLabels[item.type]}</strong><span className="text-[10px] font-bold uppercase text-[#bd6e4f]">{item.status === "open" ? "Aberta" : item.status === "under_review" ? "Em análise" : "Encerrada"}</span></div><p className="mt-1 text-sm leading-5 text-[#47636a]">{item.summary}</p><small className="mt-2 block text-xs text-[#668087]">{item.occurredAt.toLocaleString("pt-BR")}</small></div>) : <p className="rounded-xl bg-[#fffaf7] p-3 text-sm text-[#668087]">Nenhuma ocorrência registrada para esta empresa.</p>}</div></article>
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Itens Cadastrados ({epiItems.length})</h4>
+                {epiItems.length ? epiItems.map(item => (
+                  <div key={item.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <strong className="text-sm font-bold text-[#102b32]">{item.name}</strong>
+                        {item.caNumber && <span className="rounded-md bg-[#eaf4fd] px-2 py-0.5 text-[10px] font-bold text-[#3173a8]">CA {item.caNumber}</span>}
+                      </div>
+                      <p className="mt-1 text-xs text-[#668087]">{item.manufacturer ?? "Fabricante não informado"} {item.expiresAt ? `· Validade CA: ${item.expiresAt.toLocaleDateString("pt-BR")}` : ""}</p>
+                    </div>
+                    <span className={`rounded-xl px-3 py-1.5 text-xs font-bold shrink-0 ${item.stockQuantity <= item.minimumStock ? "bg-[#fff0e9] text-[#bd6e4f] border border-[#fdd8cc]" : "bg-[#e8f6f1] text-[#0c7474] border border-[#bbf7d0]"}`}>
+                      {item.stockQuantity} em estoque
+                    </span>
+                  </div>
+                )) : <p className="rounded-2xl bg-[#f7fcfa] p-6 text-center text-sm text-[#668087]">Nenhum EPI cadastrado para esta empresa.</p>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "deliveries" && (
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-[#102b32]">Fichas de Entrega e Aceite Digital</h3>
+                  <p className="text-xs text-[#668087]">Registro de entregas e reposições com baixa automática no estoque.</p>
+                </div>
+                <ClipboardCheck className="h-6 w-6 text-[#3173a8]" />
+              </div>
+
+              {canManage && (
+                <div className="rounded-2xl border border-[#dce8f1] bg-[#f8fbfe] p-5 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#3173a8]">Nova Entrega / Troca de EPI</h4>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <select value={deliveryEpiId} onChange={event => setDeliveryEpiId(Number(event.target.value))} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium">
+                      <option value={0}>Selecionar Equipamento (EPI)</option>
+                      {epiItems.map(item => <option key={item.id} value={item.id}>{item.name} (Estoque: {item.stockQuantity})</option>)}
+                    </select>
+                    <select value={deliveryEmployeeId} onChange={event => setDeliveryEmployeeId(Number(event.target.value))} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium">
+                      <option value={0}>Selecionar Trabalhador</option>
+                      {employees.map(item => <option key={item.id} value={item.id}>{item.fullName}</option>)}
+                    </select>
+                    <select value={deliveryKind} onChange={event => setDeliveryKind(event.target.value as "initial" | "replacement")} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium">
+                      <option value="initial">Entrega Inicial</option>
+                      <option value="replacement">Reposição / Troca</option>
+                    </select>
+                    <Input value={deliveryQuantity} onChange={event => setDeliveryQuantity(event.target.value)} type="number" min="1" placeholder="Quantidade" className="h-11" />
+                    <div>
+                      <label className="block text-xs font-semibold text-[#5d7479] mb-1">Data da Entrega</label>
+                      <Input value={deliveredAt} onChange={event => setDeliveredAt(event.target.value)} type="date" className="h-11" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#5d7479] mb-1">Previsão de Troca (opcional)</label>
+                      <Input value={replacementDueAt} onChange={event => setReplacementDueAt(event.target.value)} type="date" className="h-11" />
+                    </div>
+                    <Input value={signedByName} onChange={event => setSignedByName(event.target.value)} placeholder="Nome do trabalhador para aceite digital" className="md:col-span-2 h-11" />
+                    <Textarea value={deliveryNotes} onChange={event => setDeliveryNotes(event.target.value)} placeholder="Observações sobre a entrega (opcional)" className="min-h-20 md:col-span-2" />
+                    <Button disabled={createDelivery.isPending || !deliveryEpiId || !deliveryEmployeeId || !deliveredAt || !signedByName.trim() || Number(deliveryQuantity) < 1} onClick={() => createDelivery.mutate({ workspaceId, companyId: currentCompanyId, epiItemId: deliveryEpiId, employeeId: deliveryEmployeeId, quantity: Number(deliveryQuantity), deliveryKind, deliveredAt: new Date(`${deliveredAt}T12:00:00`), replacementDueAt: replacementDueAt ? new Date(`${replacementDueAt}T12:00:00`) : null, notes: deliveryNotes.trim() || null, signedByName: signedByName.trim() })} className="rounded-xl bg-[#3173a8] text-white md:col-span-2 font-bold text-sm py-3">
+                      <ClipboardPlus className="mr-2 h-4 w-4" /> Registrar Entrega e Gerar Recibo
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Histórico de Fichas Emitidas ({epiDeliveries.length})</h4>
+                {epiDeliveries.length ? epiDeliveries.map(item => (
+                  <div key={item.id} className="rounded-2xl border border-[#dce8f1] bg-[#f8fbfe] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <strong className="text-sm font-bold text-[#123f69]">{epiNameById.get(item.epiItemId) ?? "EPI"}</strong>
+                        <span className="rounded-full bg-[#e4f0fa] px-2.5 py-0.5 text-[10px] font-bold text-[#3173a8]">{item.deliveryKind === "replacement" ? "Reposição" : "Inicial"}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#47636a]">Trabalhador: <b>{employeeNameById.get(item.employeeId) ?? "Trabalhador"}</b> · {item.quantity} un. · Entregue em {item.deliveredAt.toLocaleDateString("pt-BR")}</p>
+                      <small className="mt-1 block text-[11px] text-[#668087]">Aceite digital assinado por: <b>{item.signedByName}</b></small>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button size="sm" variant="outline" onClick={() => handleDownloadReceipt(item)} className="rounded-xl border-[#bddbd5] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">
+                        <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
+                      </Button>
+                      <Button size="sm" onClick={() => { setActiveQrDelivery(item); setQrSignedSuccess(false); }} className="rounded-xl bg-[#3173a8] text-xs font-bold text-white hover:bg-[#235882]">
+                        <QrCode className="mr-1.5 h-3.5 w-3.5" /> Assinar QR Code
+                      </Button>
+                    </div>
+                  </div>
+                )) : <p className="rounded-2xl bg-[#f8fbfe] p-6 text-center text-sm text-[#668087]">Nenhuma entrega de EPI registrada.</p>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "requirements" && (
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-[#102b32]">Requisitos de EPI por Função</h3>
+                  <p className="text-xs text-[#668087]">Vincule os equipamentos obrigatórios a cada cargo da estrutura da empresa.</p>
+                </div>
+                <Smartphone className="h-6 w-6 text-[#0c7474]" />
+              </div>
+
+              {canManage && (
+                <div className="rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-5 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Vincular EPI à Função</h4>
+                  <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                    <select value={requirementRoleId} onChange={event => setRequirementRoleId(Number(event.target.value))} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium">
+                      <option value={0}>Selecionar Função / Cargo</option>
+                      {jobRoles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
+                    <select value={requirementEpiId} onChange={event => setRequirementEpiId(Number(event.target.value))} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium">
+                      <option value={0}>Selecionar Equipamento (EPI)</option>
+                      {epiItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
+                    <Button disabled={createRequirement.isPending || !requirementRoleId || !requirementEpiId} onClick={() => createRequirement.mutate({ workspaceId, companyId: currentCompanyId, jobRoleId: requirementRoleId, epiItemId: requirementEpiId })} className="rounded-xl bg-[#0c7474] text-white font-bold h-11 px-6">
+                      Vincular
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Vínculos Ativos ({requirements.length})</h4>
+                {requirements.length ? requirements.map(item => (
+                  <div key={item.id} className="rounded-2xl border border-[#e6f0ee] bg-[#f7fcfa] p-4 flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-bold text-[#102b32]">{roleName.get(item.jobRoleId) ?? "Função"}</span>
+                      <span className="mx-2 text-[#668087]">→</span>
+                      <span className="text-sm font-semibold text-[#0c7474]">{epiNameById.get(item.epiItemId) ?? "EPI"}</span>
+                    </div>
+                    <span className="rounded-full bg-[#e8f6f1] px-3 py-1 text-[11px] font-bold text-[#0c7474]">Obrigatório</span>
+                  </div>
+                )) : <p className="rounded-2xl bg-[#f7fcfa] p-6 text-center text-sm text-[#668087]">Nenhum requisito de EPI vinculado a funções.</p>}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "alerts" && (
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-[#102b32]">Validade de CAs, Estoque Mínimo e Reposições</h3>
+                  <p className="text-xs text-[#668087]">Monitoramento preventivo para evitar inconformidades na operação.</p>
+                </div>
+                <ShieldAlert className="h-6 w-6 text-[#bd6e4f]" />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-[#fdd8cc] bg-[#fff0e9] p-5">
+                  <b className="block text-2xl text-[#bd6e4f]">{lowStock.length}</b>
+                  <span className="text-xs font-bold text-[#bd6e4f] uppercase tracking-wider">Estoque Crítico</span>
+                  <p className="mt-2 text-xs text-[#8c4930]">Itens abaixo ou no limite do estoque mínimo configurado.</p>
+                </div>
+                <div className="rounded-2xl border border-[#fef08a] bg-[#fefce8] p-5">
+                  <b className="block text-2xl text-[#a16207]">{expiringOrExpired.length}</b>
+                  <span className="text-xs font-bold text-[#a16207] uppercase tracking-wider">CA com Validade Próxima</span>
+                  <p className="mt-2 text-xs text-[#854d0e]">Certificados de Aprovação (CA) vencendo em até 30 dias.</p>
+                </div>
+                <div className="rounded-2xl border border-[#dce8f1] bg-[#f8fbfe] p-5">
+                  <b className="block text-2xl text-[#3173a8]">{replacementDue.length}</b>
+                  <span className="text-xs font-bold text-[#3173a8] uppercase tracking-wider">Reposições Próximas</span>
+                  <p className="mt-2 text-xs text-[#235882]">Trocas programadas para os trabalhadores nos próximos dias.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Detalhes dos Alertas</h4>
+                {lowStock.map(item => (
+                  <div key={`low-${item.id}`} className="rounded-2xl border border-[#fdd8cc] bg-[#fff5f2] p-4 flex items-center justify-between">
+                    <div>
+                      <strong className="text-sm font-bold text-[#bd6e4f]">{item.name}</strong>
+                      <p className="text-xs text-[#8c4930] mt-0.5">Estoque atual: <b>{item.stockQuantity}</b> · Mínimo recomendado: <b>{item.minimumStock}</b></p>
+                    </div>
+                    <span className="rounded-xl bg-[#bd6e4f] text-white text-xs font-bold px-3 py-1.5">Reposição Necessária</span>
+                  </div>
+                ))}
+                {!lowStock.length && !expiringOrExpired.length && (
+                  <div className="rounded-2xl bg-[#f7fcfa] p-8 text-center">
+                    <CheckCircle2 className="mx-auto h-10 w-10 text-[#0c7474] mb-2" />
+                    <h5 className="text-sm font-bold text-[#102b32]">Nenhum alerta crítico pendente!</h5>
+                    <p className="text-xs text-[#668087] mt-1">O estoque e as validades de CA estão regularizados nesta empresa.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </main>
       </section>
     </>}
 

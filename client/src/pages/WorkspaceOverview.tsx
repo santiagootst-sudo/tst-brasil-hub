@@ -169,7 +169,7 @@ export default function WorkspaceOverview() {
       routine: ["Revisar pendências de capacitação", "Tratar certificados vencidos ou próximos", "Manter o PGR e as evidências atualizados", "Registrar procedimentos e acionar suporte quando necessário"],
       tools: [
         { href: appHref("/app/estrutura"), icon: UsersRound, title: "Estrutura e equipe", text: "Pessoas, setores e funções" },
-        { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle de EPIs", text: "Entrega, estoque e ocorrências SST" },
+        { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle de EPIs", text: "Estoque, CA, fichas de entrega e validade" },
         { href: appHref("/app/inspecoes"), icon: ClipboardCheck, title: "Inspeções e ações", text: "Prevenção e prazos" },
         { href: appHref("/app/treinamentos"), icon: UsersRound, title: "Capacitação da equipe", text: "Planejamento e execução" },
         { href: `${appHref("/app/certificados")}&generator=1`, icon: WandSparkles, title: "Gerador de certificados NR", text: "Emitir e validar certificados" },
@@ -218,10 +218,10 @@ export default function WorkspaceOverview() {
       tone: "coral" as const,
     },
     openOccurrences > 0 && {
-      href: appHref("/app/operacao"),
+      href: appHref("/app/visao"),
       title: `${openOccurrences} ocorrência(s) SST em acompanhamento`,
-      detail: "Registre a análise e mantenha o acompanhamento objetivo, sem dados médicos sensíveis.",
-      icon: CircleAlert,
+      detail: "Monitore os incidentes e mantenha a conformidade objetiva na operação.",
+      icon: ShieldCheck,
       tone: "coral" as const,
     },
     openActionItems.length > 0 && {

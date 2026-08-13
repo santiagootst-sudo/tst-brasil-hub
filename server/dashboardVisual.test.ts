@@ -24,7 +24,7 @@ describe("direção visual do dashboard", () => {
 
   it("mantém o Controle de EPIs explícito no contexto Empresa", () => {
     expect(source).toContain('title: "Controle de EPIs"');
-    expect(source).toContain('text: "Entrega, estoque e ocorrências SST"');
+    expect(source).toContain('text: "Estoque, CA, fichas de entrega e validade"');
     expect(chartsSource).toContain('title="Central de Pendências"');
     expect(chartsSource).toContain('Prioridade operacional');
   });

@@ -13,12 +13,12 @@ describe("navegação do Controle de EPIs", () => {
   });
 
   it("mantém o atalho de EPI no dashboard Empresa e o contexto da rota", () => {
-    expect(workspaceOverview).toContain('title: "Controle de EPIs", text: "Entrega, estoque e ocorrências SST"');
+    expect(workspaceOverview).toContain('title: "Controle de EPIs", text: "Estoque, CA, fichas de entrega e validade"');
     expect(workspaceOverview).toContain('appHref("/app/operacao")');
   });
 
-  it("identifica a página aberta como Controle de EPIs", () => {
+  it("identifica a página aberta como Centro Operacional de EPIs", () => {
     expect(operationsPage).toContain('<DashboardLayout title="Controle de EPIs">');
-    expect(operationsPage).toContain("EPIs, requisitos e ocorrências em um só lugar.");
+    expect(operationsPage).toContain("Centro Operacional de EPIs");
   });
 });
