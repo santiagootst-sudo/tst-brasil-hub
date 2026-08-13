@@ -338,3 +338,7 @@
 - [ ] Criar tabela comparativa de ciclos (Mensal, Trimestral, Anual) destacando que a entrega é integral e o foco é o desconto progressivo.
 
 - [x] Atualizar o hero da landing page com verde translúcido em camadas (glassmorphism/gradient) e imagem de fundo temática de Segurança do Trabalho com tratamento escuro e legível.
+
+- [x] Implementar animações de entrada suaves e refinadas para textos, imagem de fundo e painel do hero.
+- [x] Aprimorar o contraste e adicionar micro-interações de hover e foco nos botões de ação do hero.
+- [x] Otimizar o comportamento da imagem de fundo e do vidro fosco em dispositivos móveis (mobile).

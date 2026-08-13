@@ -84,38 +84,38 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
+      <section className="hub-hero relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-20 bg-cover bg-center"
+          className="hub-hero-bg absolute inset-0 -z-20 bg-cover bg-[position:68%_center] sm:bg-center"
           style={{ backgroundImage: "url('/manus-storage/tst-hub-hero-seguranca_e69cb11f.jpg')" }}
         />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,34,39,.94)_0%,rgba(5,65,70,.78)_42%,rgba(12,116,116,.58)_100%)]" />
+        <div aria-hidden="true" className="hub-hero-overlay absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,34,39,.94)_0%,rgba(5,65,70,.78)_42%,rgba(12,116,116,.58)_100%)]" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[#0c7474]/20 backdrop-blur-[1px]" />
         <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-[#64e2d1]/20 blur-[140px] pointer-events-none" />
         <div className="absolute right-0 bottom-0 h-[400px] w-[400px] rounded-full bg-[#39a77e]/25 blur-[120px] pointer-events-none" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-30 [background-image:radial-gradient(rgba(255,255,255,.2)_1px,transparent_1px)] [background-size:28px_28px]" />
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10 grid gap-12 lg:grid-cols-[1.1fr_.9fr] items-center">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#48c7b8]/40 bg-[#063b43]/60 px-4 py-2 text-xs font-bold text-[#88ddc4] backdrop-blur-sm">
+          <div className="hub-hero-copy">
+            <span className="hub-hero-item hub-hero-item--1 inline-flex items-center gap-2 rounded-full border border-[#48c7b8]/40 bg-[#063b43]/60 px-4 py-2 text-xs font-bold text-[#88ddc4] backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5" /> TST Brasil Hub · Ecossistema completo de SST
             </span>
-            <h1 className="mt-6 font-display text-4xl sm:text-6xl font-extrabold leading-[1.08] tracking-[-.03em] text-white">
+            <h1 className="hub-hero-item hub-hero-item--2 mt-6 font-display text-4xl sm:text-6xl font-extrabold leading-[1.08] tracking-[-.03em] text-white">
               A PLATAFORMA PARA PROFISSIONAIS DE <span className="text-[#64e2d1]">SST QUE QUEREM EVOLUIR</span>.
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-[#d0e6e1]">
+            <p className="hub-hero-item hub-hero-item--3 mt-6 max-w-xl text-lg leading-8 text-[#d0e6e1]">
               Unifique a gestão de PGR, LTCAT, CIPA, EPIs, exames ocupacionais, biblioteca técnica e certificados profissionais com QR Code em um único portal moderno e seguro.
             </p>
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-              <Button onClick={enter} size="lg" className="h-14 rounded-2xl bg-[#0c7474] px-8 text-base text-white hover:bg-[#095a5a] shadow-xl shadow-black/20 border border-[#23b3a6]/40">
+            <div className="hub-hero-item hub-hero-item--4 mt-9 flex flex-col gap-4 sm:flex-row">
+              <Button onClick={enter} size="lg" className="h-14 rounded-2xl border border-[#8ff4e1]/45 bg-[#0c7474] px-8 text-base font-bold text-white shadow-xl shadow-black/25 transition-transform hover:-translate-y-0.5 hover:bg-[#118f89] hover:shadow-2xl hover:shadow-[#64e2d1]/20 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
                 Acessar Plataforma <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Link href="/planos" className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#64e2d1]/40 bg-white/10 px-8 text-sm font-bold text-white hover:bg-white/20 backdrop-blur-sm">
+              <Link href="/planos" className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#a8f4e7]/65 bg-white/15 px-8 text-sm font-bold text-white shadow-lg shadow-black/10 backdrop-blur-md transition-transform hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-xl active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
                 Explorar Planos
               </Link>
             </div>
-            <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#bce3dc]">
+            <div className="hub-hero-item hub-hero-item--5 mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#bce3dc]">
               <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> PGR e Documentos Legais</span>
               <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Certificados com QR Code</span>
               <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Suporte e Treinamentos</span>
@@ -123,7 +123,7 @@ export default function Home() {
           </div>
 
           {/* Workspace Hub Aprimorado com Hover Suave, Seleção e CTAs */}
-          <div className="rounded-[2.5rem] border border-white/20 bg-white p-7 text-[#0d2227] shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="hub-hero-panel rounded-[2.5rem] border border-white/35 bg-white/90 p-7 text-[#0d2227] shadow-2xl shadow-black/30 backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-[#eaf2ef] pb-5">
               <div className="flex items-center gap-3">
                 <BrandLockup compact aria-label="TST Brasil Hub" />
