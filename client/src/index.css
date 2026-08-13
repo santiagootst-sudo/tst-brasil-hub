@@ -308,3 +308,56 @@
   from { opacity: 0; transform: translateY(18px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+
+/* Visão Geral: escala ampliada para leitura confortável em públicos de diferentes idades. */
+.dashboard-readable [class*="text-[9px]"] {
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.dashboard-readable [class*="text-[10px]"] {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.dashboard-readable [class*="text-[11px]"] {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.dashboard-readable .text-xs {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.dashboard-readable .text-sm {
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.dashboard-readable p,
+.dashboard-readable small,
+.dashboard-readable strong,
+.dashboard-readable span {
+  text-wrap: pretty;
+}
+
+.dashboard-readable button,
+.dashboard-readable a {
+  min-height: 2.4rem;
+}
+
+@media (max-width: 639px) {
+  .dashboard-readable [class*="text-[10px]"] {
+    font-size: 0.74rem;
+  }
+
+  .dashboard-readable .text-xs {
+    font-size: 0.86rem;
+  }
+
+  .dashboard-readable .text-sm {
+    font-size: 0.95rem;
+  }
+}

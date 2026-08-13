@@ -403,7 +403,7 @@ export default function WorkspaceOverview() {
     },
   ].filter(Boolean) as Priority[];
 
-  return <DashboardLayout title="Visão geral"><div className="mx-auto max-w-7xl space-y-5">
+  return <DashboardLayout title="Visão geral"><div className="dashboard-readable mx-auto max-w-7xl space-y-5">
     <section className="sticky top-3 z-20 rounded-2xl border border-[#dcebe8] bg-white/95 p-2 shadow-[0_12px_32px_rgba(16,43,50,.08)] backdrop-blur-xl" aria-label="Painéis do ambiente">
       <div className="flex flex-col gap-2">
         <div className="flex gap-2 overflow-x-auto pb-1">

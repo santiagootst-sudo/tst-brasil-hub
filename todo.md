@@ -454,3 +454,7 @@
 - [x] Persistir preferências de layout por workspace no navegador com opção de restaurar o padrão.
 - [x] Atualizar testes unitários e verificar build de produção.
 - [x] Publicar checkpoint final e registrar instruções de homologação.
+
+- [x] Ampliar tamanhos e contraste da tipografia na Visão Geral (dashboard e top bar) para garantir leitura confortável.
+- [x] Atualizar testes unitários, verificar build de produção e capturar prova visual.
+- [x] Publicar checkpoint final da melhoria de acessibilidade tipográfica.
