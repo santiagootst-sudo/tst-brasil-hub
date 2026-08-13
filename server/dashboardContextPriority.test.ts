@@ -17,7 +17,8 @@ describe("prioridades contextuais dos ambientes", () => {
   it("ordena o dashboard CLT para pessoas, conformidade e rotina interna", () => {
     expect(overviewSource).toContain("Pessoas, conformidade e rotina interna em foco.");
     expect(overviewSource).toContain("Capacitação da equipe");
-    expect(overviewSource).toContain("Conformidade documental");
+    expect(overviewSource).toContain("Acervo documental");
+    expect(overviewSource).toContain("Gerador de certificados NR");
     expect(overviewSource).toContain("Roteiro de conformidade");
     expect(overviewSource).toContain("Estrutura e equipe");
   });

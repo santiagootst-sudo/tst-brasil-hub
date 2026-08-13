@@ -135,7 +135,8 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Modelos e anexos", icon: FolderKanban, path: "/app/materiais" },
-      { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
+      { label: "Gerador de certificados NR", icon: Award, path: "/app/certificados?generator=1" },
+      { label: "Acervo documental", icon: Trophy, path: "/app/certificados" },
     ] },
     { label: "Negócio", items: [
       { label: "Controle de EPIs por cliente", icon: HardHat, path: "/app/operacao" },
@@ -155,7 +156,8 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
     ] },
     { label: "Conformidade", items: [
       { label: "Capacitação da equipe", icon: GraduationCap, path: "/app/treinamentos" },
-      { label: "Documentos e certificados", icon: Trophy, path: "/app/certificados" },
+      { label: "Gerador de certificados NR", icon: Award, path: "/app/certificados?generator=1" },
+      { label: "Acervo documental", icon: Trophy, path: "/app/certificados" },
       { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },

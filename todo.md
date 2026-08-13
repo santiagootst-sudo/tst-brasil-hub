@@ -284,3 +284,4 @@
 - [x] Preservar seleção de NR, cursos, validade, marca d'água, logo e geração PDF frente/verso.
 - [x] Integrar o gerador ao módulo de Certificados com contexto de workspace e estados de sucesso/erro.
 - [x] Criar testes automatizados e validar visualmente o novo módulo de certificados.
+- [x] Garantir visibilidade e acesso explícito ao gerador de certificados no ambiente Empresa (TST CLT).

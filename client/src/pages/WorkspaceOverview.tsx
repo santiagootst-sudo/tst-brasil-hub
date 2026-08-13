@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound, WandSparkles } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import InspectionActionSummary from "@/components/InspectionActionSummary";
@@ -172,7 +172,8 @@ export default function WorkspaceOverview() {
         { href: appHref("/app/operacao"), icon: ShieldCheck, title: "Controle de EPIs", text: "Entrega, estoque e ocorrências SST" },
         { href: appHref("/app/inspecoes"), icon: ClipboardCheck, title: "Inspeções e ações", text: "Prevenção e prazos" },
         { href: appHref("/app/treinamentos"), icon: UsersRound, title: "Capacitação da equipe", text: "Planejamento e execução" },
-        { href: appHref("/app/certificados"), icon: Award, title: "Conformidade documental", text: "Validades e evidências" },
+        { href: `${appHref("/app/certificados")}&generator=1`, icon: WandSparkles, title: "Gerador de certificados NR", text: "Emitir e validar certificados" },
+        { href: appHref("/app/certificados"), icon: Award, title: "Acervo documental", text: "Validades e evidências" },
         { href: appHref("/app/pgr"), icon: ShieldCheck, title: "PGR da operação", text: "Riscos e documentos" },
         { href: appHref("/app/materiais"), icon: FolderKanban, title: "Procedimentos internos", text: "Modelos e checklists" },
         { href: appHref("/app/biblioteca"), icon: BookOpen, title: "Biblioteca técnica", text: "Referências oficiais" },
