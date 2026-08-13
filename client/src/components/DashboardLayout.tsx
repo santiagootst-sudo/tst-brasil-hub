@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -134,6 +134,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
     ] },
     { label: "Documentos", items: [
       { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "Assistant CIPA por cliente", icon: ClipboardCheck, path: "/app/cipa" },
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Modelos e anexos", icon: FolderKanban, path: "/app/materiais" },
       { label: "Gerador de certificados NR", icon: Award, path: "/app/certificados?generator=1" },
@@ -159,6 +160,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Capacitação da equipe", icon: GraduationCap, path: "/app/treinamentos" },
       { label: "Gerador de certificados NR", icon: Award, path: "/app/certificados?generator=1" },
       { label: "Acervo documental", icon: Trophy, path: "/app/certificados" },
+      { label: "Assistant CIPA", icon: ClipboardCheck, path: "/app/cipa" },
       { label: "PGR da operação", icon: ShieldCheck, path: "/app/pgr" },
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },

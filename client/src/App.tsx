@@ -6,6 +6,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import AppDashboard from "./pages/AppDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Certificates from "./pages/Certificates";
+import CipaAssistant from "./pages/CipaAssistant";
 import Home from "./pages/Home";
 import Library from "./pages/Library";
 import Materials from "./pages/Materials";
@@ -22,7 +23,7 @@ import Trainings from "./pages/Trainings";
 import WorkspaceOverview from "./pages/WorkspaceOverview";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/planos" component={Pricing} /><Route path="/admin" component={AdminPanel} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/pgr" component={PgrApp} />
+  return <Switch><Route path="/" component={Home} /><Route path="/planos" component={Pricing} /><Route path="/admin" component={AdminPanel} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/cipa" component={CipaAssistant} /><Route path="/app/pgr" component={PgrApp} />
 <Route path="/app/copsoq" component={PsychosocialApp} /><Route path="/app" component={AppDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 

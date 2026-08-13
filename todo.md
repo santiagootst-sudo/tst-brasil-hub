@@ -387,9 +387,9 @@
 - [x] Criar modal e fluxo de pré-visualização (preview) rica na interface do portal, permitindo inspecionar o documento formatado antes do download definitivo.
 - [x] Executar suíte completa de testes automatizados e validar o build de produção com as novas melhorias visuais e funcionais.
 
-- [ ] Reestruturar a página de Controle de EPIs transformando-a em um centro operacional com barra lateral dedicada (sidebar interna) separando as visões: Visão Geral, Estoque e CAs, Entregas e Assinatura Digital, Fichas de EPI por Funcionário, Devoluções e Substituições, e Alertas de Validade.
-- [ ] Remover Acompanhamento SST / Ocorrências da lista secundária de EPIs e integrá-lo ao Dashboard principal (ou painel dedicado de acompanhamento) com alertas visuais e estatísticas críticas.
-- [ ] Atualizar a suíte de testes automatizados e verificar o build de produção.
+- [x] Reestruturar a página de Controle de EPIs transformando-a em um centro operacional com barra lateral dedicada (sidebar interna) separando as visões: Visão Geral, Estoque e CAs, Entregas e Assinatura Digital, Fichas de EPI por Funcionário, Devoluções e Substituições, e Alertas de Validade.
+- [x] Remover Acompanhamento SST / Ocorrências da lista secundária de EPIs e integrá-lo ao Dashboard principal (ou painel dedicado de acompanhamento) com alertas visuais e estatísticas críticas.
+- [x] Atualizar a suíte de testes automatizados e verificar o build de produção.
 
 - [x] Implementar sistema de busca textual e filtros avançados no Centro Operacional de EPIs para localizar equipamentos por nome, número de CA ou requisito de função.
 - [x] Aprimorar a geração de PDF do recibo de entrega em pdfReports.ts para estruturá-lo como uma Ficha de Entrega e Devolução formal pronta para a assinatura física e digital do funcionário.
@@ -403,7 +403,14 @@
 - [x] Criar um painel dedicado no perfil/histórico do funcionário para visualizar, baixar e gerenciar todas as Fichas de Entrega de EPI assinadas digitalmente.
 - [x] Executar suíte completa de testes automatizados e validar o build de produção.
 
-- [ ] Criar alerta visual no painel do funcionário para destacar rapidamente fichas de EPI pendentes de assinatura digital.
-- [ ] Implementar ação de registrar devolução ou troca de EPI direto no painel do funcionário, atualizando o estoque automaticamente.
-- [ ] Adicionar filtros de data e status de assinatura no painel do funcionário.
-- [ ] Executar suíte completa de testes automatizados e validar o build de produção.
+- [x] Criar alerta visual no painel do funcionário para destacar rapidamente fichas de EPI pendentes de assinatura digital.
+- [x] Implementar ação de registrar devolução ou troca de EPI direto no painel do funcionário, atualizando o estoque automaticamente.
+- [x] Adicionar filtros de data e status de assinatura no painel do funcionário.
+- [x] Executar suíte completa de testes automatizados e validar o build de produção.
+
+- [x] Auditar e adaptar a estrutura funcional do HTML enviado para o padrão React/tRPC do Portal TST.
+- [x] Criar o módulo Assistant CIPA com formulário de empresa, composição, cronograma eleitoral e sugestão de dimensionamento.
+- [x] Integrar o Assistant CIPA à navegação contextual dos ambientes Prestador de Serviço e Empresa.
+- [x] Implementar a geração e o gerenciamento visual dos documentos da CIPA sem dados fictícios persistidos.
+- [x] Validar responsividade, acessibilidade, permissões por workspace e cobertura automatizada do módulo Assistant CIPA.
+- [ ] Publicar checkpoint da integração do Assistant CIPA e registrar instruções de homologação.
