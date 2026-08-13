@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS, OAUTH_STATE_COOKIE, decodeOAuthState } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS, OAUTH_STATE_COOKIE, OAUTH_STATE_COOKIE_FALLBACK, decodeOAuthState } from "@shared/const";
 import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
@@ -24,12 +24,16 @@ export function registerOAuthRoutes(app: Express) {
     // startLogin set in the browser that began this login. An attacker can
     // forge `state`, but cannot plant this cookie in the victim's browser.
     const { nonce } = decodeOAuthState(state);
-    const expectedNonce = parseCookieHeader(req.headers.cookie ?? "")[OAUTH_STATE_COOKIE];
+    const requestCookies = parseCookieHeader(req.headers.cookie ?? "");
+    const expectedNonce = requestCookies[OAUTH_STATE_COOKIE] ?? requestCookies[OAUTH_STATE_COOKIE_FALLBACK];
     if (!nonce || nonce !== expectedNonce) {
+      console.warn("[OAuth] State rejected: nonce cookie missing or mismatched");
       res.status(403).json({ error: "invalid oauth state" });
       return;
     }
+    const secureRequest = req.protocol === "https:" || req.headers["x-forwarded-proto"] === "https";
     res.clearCookie(OAUTH_STATE_COOKIE, { path: "/", secure: true, sameSite: "none" });
+    res.clearCookie(OAUTH_STATE_COOKIE_FALLBACK, { path: "/", secure: secureRequest, sameSite: secureRequest ? "none" : "lax" });
 
     try {
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);

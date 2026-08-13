@@ -14,7 +14,8 @@ describe("proteções do fluxo de autenticação", () => {
 
   it("deduplica tentativas automáticas de login em uma janela curta", () => {
     expect(constSource).toContain('const LOGIN_REDIRECT_LOCK = "portal-tst-login-redirect"');
-    expect(constSource).toContain("if (automatic && Number.isFinite(lastRedirect) && now - lastRedirect < LOGIN_REDIRECT_LOCK_TTL) return;");
+    expect(constSource).toContain("const lockTtl = automatic ? LOGIN_REDIRECT_LOCK_TTL : LOGIN_REDIRECT_MANUAL_LOCK_TTL;");
+    expect(constSource).toContain("if (lastRedirect > 0 && now - lastRedirect < lockTtl) return;");
     expect(mainSource).toContain("startLogin({ automatic: true });");
     expect(authHookSource).toContain("startLogin({ automatic: true });");
   });

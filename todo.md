@@ -275,3 +275,4 @@
 - [x] Gerar versão simplificada do logotipo e favicon baseados na nova identidade.
 - [x] Atualizar a tela de login e escolha de perfil com a nova marca TST Brasil Hub.
 - [x] Validar responsividade, testes e salvar checkpoint final.
+- [x] Diagnosticar e corrigir o erro `invalid oauth state` no retorno do login OAuth.
