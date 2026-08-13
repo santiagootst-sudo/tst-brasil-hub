@@ -330,3 +330,5 @@
 - [x] Executar suíte de testes e validar o build de produção.
 
 - [x] Criar a habilidade reutilizável tst-hub-evolution-workflow para padronizar o desenvolvimento, homologação e suporte de plataformas SaaS de SST.
+
+- [x] Conduzir auditoria de prontidão do portal para testes por usuários terceiros (link público, Stripe sandbox, webhook, isolamento e suporte via WhatsApp).
