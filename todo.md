@@ -293,3 +293,9 @@
 - [ ] Criar testes automatizados para personalização visual e envio de e-mail de certificado.
 - [x] Criar testes automatizados para os controles de personalização visual do certificado.
 - [x] Documentar os requisitos e o procedimento futuro para ativar o envio de certificados por e-mail.
+
+- [ ] Homologação ao vivo: criar empresa temporária no workspace Autônomo e registrar evidência da jornada empresa → PGR
+- [ ] Homologação ao vivo: criar visita temporária, alternar planejada/concluída/cancelada e registrar cada transição
+- [ ] Homologação ao vivo: recarregar ou retornar à agenda e confirmar persistência do status da visita
+- [ ] Homologação ao vivo: emitir/cadastrar certificado temporário vinculado à empresa e validar resumo documental por cliente
+- [ ] Homologação ao vivo: abrir PGR Pro e registrar bloqueio ou liberação conforme assinatura do ambiente
