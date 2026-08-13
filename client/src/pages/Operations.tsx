@@ -49,6 +49,8 @@ export default function Operations() {
   const [activeQrDelivery, setActiveQrDelivery] = useState<any | null>(null);
   const [isSigningQr, setIsSigningQr] = useState(false);
   const [qrSignedSuccess, setQrSignedSuccess] = useState(false);
+  const [stockSearch, setStockSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState("all");
 
   const refresh = () => Promise.all([utils.portal.operations.invalidate({ workspaceId }), utils.portal.organization.invalidate({ workspaceId })]);
   const createEpi = trpc.portal.createEpiItem.useMutation({ onSuccess: async () => { setEpiName(""); setCaNumber(""); setManufacturer(""); setStockQuantity("0"); setMinimumStock("0"); setExpiresAt(""); await refresh(); toast.success("Item de EPI registrado."); }, onError: error => toast.error(error.message) });
@@ -81,6 +83,12 @@ export default function Operations() {
   const expiringOrExpired = epiItems.filter(item => item.expiresAt && item.expiresAt.getTime() <= inThirtyDays);
   const replacementDue = epiDeliveries.filter(item => item.replacementDueAt && item.replacementDueAt.getTime() <= inThirtyDays);
   const openOccurrences = occurrences.filter(item => item.status !== "closed");
+
+  const filteredEpiItems = epiItems.filter((item: any) => {
+    const matchesSearch = !stockSearch.trim() || item.name.toLowerCase().includes(stockSearch.toLowerCase()) || (item.caNumber && item.caNumber.toLowerCase().includes(stockSearch.toLowerCase()));
+    const matchesFilter = stockFilter === "all" || (stockFilter === "critical" && item.stockQuantity <= item.minimumStock) || (stockFilter === "ok" && item.stockQuantity > item.minimumStock);
+    return matchesSearch && matchesFilter;
+  });
 
   const handleMobileSign = () => {
     setIsSigningQr(true);
@@ -221,9 +229,20 @@ export default function Operations() {
                 </div>
               )}
 
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Itens Cadastrados ({epiItems.length})</h4>
-                {epiItems.length ? epiItems.map(item => (
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Itens Cadastrados ({epiItems.length})</h4>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input placeholder="Buscar por nome ou CA..." className="h-9 w-60 text-xs rounded-xl" value={stockSearch} onChange={e => setStockSearch(e.target.value)} />
+                    <select className="h-9 text-xs rounded-xl border border-[#cfe3de] bg-white px-2.5 font-semibold text-[#23454b]" value={stockFilter} onChange={e => setStockFilter(e.target.value)}>
+                      <option value="all">Todos os status</option>
+                      <option value="critical">Estoque crítico</option>
+                      <option value="ok">Estoque regular</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filteredEpiItems.length ? filteredEpiItems.map(item => (
                   <div key={item.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-4 flex items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
@@ -236,7 +255,7 @@ export default function Operations() {
                       {item.stockQuantity} em estoque
                     </span>
                   </div>
-                )) : <p className="rounded-2xl bg-[#f7fcfa] p-6 text-center text-sm text-[#668087]">Nenhum EPI cadastrado para esta empresa.</p>}
+                )) : <p className="rounded-2xl bg-[#f7fcfa] p-6 text-center text-sm text-[#668087]">Nenhum EPI encontrado com os filtros aplicados.</p>}
               </div>
             </div>
           )}

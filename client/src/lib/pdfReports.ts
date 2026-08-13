@@ -597,24 +597,52 @@ export function buildInspectionReportPdf(input: InspectionReportInput) {
 }
 
 export function buildEpiReceiptPdf(input: EpiReceiptInput) {
-  const document = setupDocument("Ficha de Entrega de EPI", input.workspaceName, input.generatedAt);
+  const document = setupDocument("Ficha de Controle e Entrega de EPI (NR-06)", input.workspaceName, input.generatedAt);
   const worker = input.workerName || input.employeeName || "Colaborador";
+  
+  // Cabeçalho de Identificação
+  document.setFillColor(242, 250, 248);
+  document.roundedRect(16, 55, 178, 22, 3, 3, "F");
   document.setFont("helvetica", "bold");
-  document.setFontSize(11);
-  document.text("Empresa", 16, 62);
+  document.setFontSize(10);
+  document.setTextColor(12, 116, 116);
+  document.text("DADOS DA EMPRESA E TRABALHADOR", 20, 62);
   document.setFont("helvetica", "normal");
-  document.text(input.companyName, 55, 62);
-  document.setFont("helvetica", "bold");
-  document.text("Colaborador", 16, 70);
-  document.setFont("helvetica", "normal");
-  document.text(worker, 55, 70);
+  document.setFontSize(9);
+  document.setTextColor(71, 99, 106);
+  document.text(`Empresa: ${input.companyName}`, 20, 69);
+  document.text(`Colaborador(a): ${worker}`, 105, 69);
 
   let y = 86;
   document.setTextColor(12, 116, 116);
   document.setFont("helvetica", "bold");
-  document.setFontSize(12);
-  document.text("Detalhes do Equipamento e Entrega", 16, y);
-  y += 9;
+  document.setFontSize(11);
+  document.text("01. TERMO DE RESPONSABILIDADE E RECEBIMENTO", 16, y);
+  y += 6;
+
+  document.setFont("helvetica", "normal");
+  document.setFontSize(8.5);
+  document.setTextColor(71, 99, 106);
+  const termText = "Declaro para os devidos fins, nos termos da Norma Regulamentadora NR-06 (Portaria MTP nº 6.721/2020), que recebi da empresa os Equipamentos de Proteção Individual (EPI) abaixo relacionados, em perfeito estado de conservação e uso. Comprometo-me a usá-los exclusivamente para o fim a que se destinam, responsabilizando-me pela guarda, higienização, conservação e comunicação imediata caso ocorra qualquer dano que os tornem impróprios para uso.";
+  y = writeWrapped(document, termText, 16, y, 178) + 8;
+
+  document.setTextColor(12, 116, 116);
+  document.setFont("helvetica", "bold");
+  document.setFontSize(11);
+  document.text("02. RELAÇÃO DE EQUIPAMENTOS ENTREGUES", 16, y);
+  y += 8;
+
+  // Tabela de Itens
+  document.setFillColor(12, 116, 116);
+  document.rect(16, y, 178, 7, "F");
+  document.setTextColor(255, 255, 255);
+  document.setFont("helvetica", "bold");
+  document.setFontSize(8);
+  document.text("Item / Equipamento (EPI)", 19, y + 5);
+  document.text("CA", 110, y + 5);
+  document.text("Qtd", 135, y + 5);
+  document.text("Condição / Data", 150, y + 5);
+  y += 7;
 
   const itemsList = input.items?.length ? input.items : [{
     epiName: input.epiName || "EPI Geral",
@@ -624,21 +652,41 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
   }];
 
   itemsList.forEach((item, index) => {
-    y = ensureSpace(document, y);
+    y = ensureSpace(document, y, 10);
+    document.setFillColor(index % 2 === 0 ? 247 : 255, 252, 251);
+    document.rect(16, y, 178, 8, "F");
     document.setTextColor(16, 43, 50);
     document.setFont("helvetica", "bold");
-    document.setFontSize(10);
-    document.text(`${index + 1}. ${item.epiName} (CA: ${item.caNumber})`, 16, y);
+    document.setFontSize(8);
+    document.text(`${index + 1}. ${item.epiName}`, 19, y + 5);
     document.setFont("helvetica", "normal");
-    document.setTextColor(71, 99, 106);
-    document.setFontSize(9);
-    document.text(`Data: ${formatDate(item.deliveryDate)} · Condição: ${item.condition || "Novo"}`, 20, y + 5);
-    if (input.signedByName) {
-      document.text(`Assinado digitalmente por: ${input.signedByName}`, 20, y + 10);
-      y += 5;
-    }
-    y += 12;
+    document.text(String(item.caNumber || "N/I"), 110, y + 5);
+    document.text("1 un.", 135, y + 5);
+    document.text(`${item.condition || "Novo"} (${formatDate(item.deliveryDate)})`, 150, y + 5);
+    y += 8;
   });
+
+  y += 18;
+  y = ensureSpace(document, y, 40);
+
+  // Bloco de Assinatura
+  document.setDrawColor(189, 205, 201);
+  document.line(30, y + 15, 95, y + 15);
+  document.line(115, y + 15, 180, y + 15);
+
+  document.setFont("helvetica", "bold");
+  document.setFontSize(8.5);
+  document.setTextColor(16, 43, 50);
+  document.text("Assinatura do(a) Trabalhador(a)", 42, y + 20);
+  document.text("Responsável pela Entrega (TST)", 125, y + 20);
+
+  if (input.signedByName) {
+    document.setFont("helvetica", "normal");
+    document.setFontSize(7.5);
+    document.setTextColor(12, 116, 116);
+    document.text(`Aceite digital verificado: ${input.signedByName}`, 35, y + 25);
+  }
+
   return document;
 }
 

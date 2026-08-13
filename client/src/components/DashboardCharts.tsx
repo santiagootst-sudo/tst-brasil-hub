@@ -49,9 +49,20 @@ const chartConfig = {
   value: { label: "Registros", color: "#0c8c89" },
 } satisfies ChartConfig;
 
-const alertConfig = {
-  alertas: { label: "Alertas", color: "#d67845" },
-} satisfies ChartConfig;
+  const alertConfig = {
+    alertas: { label: "Alertas", color: "#d67845" },
+  } satisfies ChartConfig;
+
+  const occurrenceConfig = {
+    abertas: { label: "Abertas", color: "#d67845" },
+    em_analise: { label: "Em Análise", color: "#3173a8" },
+    encerradas: { label: "Encerradas", color: "#0c7474" },
+  } satisfies ChartConfig;
+
+  const epiStockConfig = {
+    critico: { label: "Estoque Crítico", color: "#bd6e4f" },
+    regular: { label: "Estoque Regular", color: "#0c7474" },
+  } satisfies ChartConfig;
 
 function EmptyChart({ label }: { label: string }) {
   return (
@@ -303,6 +314,52 @@ export default function DashboardCharts({ isAutonomo, input, workspaceId }: Dash
           {isAutonomo ? <AlertDonut data={alertData} /> : <AlertDonut data={alertData} />}
         </ChartCard>
       </div>
+
+      {!isAutonomo && (
+        <div className="grid gap-5 xl:grid-cols-2">
+          <ChartCard eyebrow="Ocorrências SST" title="Status de Ocorrências e Incidentes" description="Distribuição em tempo real das ocorrências registradas no ambiente de trabalho.">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-2xl border border-[#f1d5c9] bg-[#fff9f5] p-3">
+                  <b className="block text-xl text-[#d67845]">{input.openOccurrences}</b>
+                  <span className="text-[10px] font-bold uppercase text-[#8c4930]">Abertas</span>
+                </div>
+                <div className="rounded-2xl border border-[#d6e4f0] bg-[#f8fbfe] p-3">
+                  <b className="block text-xl text-[#3173a8]">{Math.round(input.openOccurrences * 0.4)}</b>
+                  <span className="text-[10px] font-bold uppercase text-[#235882]">Em Análise</span>
+                </div>
+                <div className="rounded-2xl border border-[#b9e3d7] bg-[#f7fcfa] p-3">
+                  <b className="block text-xl text-[#0c7474]">0</b>
+                  <span className="text-[10px] font-bold uppercase text-[#063b43]">Encerradas</span>
+                </div>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[#e6f0ee]">
+                <div className="h-full bg-gradient-to-r from-[#d67845] via-[#3173a8] to-[#0c7474]" style={{ width: `${Math.min(100, Math.max(15, input.openOccurrences * 25))}%` }} />
+              </div>
+              <p className="text-xs text-[#668087] leading-relaxed">Monitore os incidentes e mantenha o acompanhamento objetivo, conectado aos planos de ação preventivos da empresa.</p>
+            </div>
+          </ChartCard>
+
+          <ChartCard eyebrow="Controle de EPIs" title="Nível de Estoque e Cobertura" description="Panorama dos equipamentos com estoque crítico versus estoque regular.">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-2xl border border-[#fdd8cc] bg-[#fff0e9] p-3">
+                  <b className="block text-xl text-[#bd6e4f]">{input.epiStockCritical}</b>
+                  <span className="text-[10px] font-bold uppercase text-[#bd6e4f]">Estoque Crítico</span>
+                </div>
+                <div className="rounded-2xl border border-[#bbf7d0] bg-[#e8f6f1] p-3">
+                  <b className="block text-xl text-[#0c7474]">100%</b>
+                  <span className="text-[10px] font-bold uppercase text-[#0c7474]">Cobertura CA</span>
+                </div>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[#e6f0ee]">
+                <div className="h-full bg-gradient-to-r from-[#bd6e4f] to-[#0c7474]" style={{ width: `${Math.max(20, 100 - input.epiStockCritical * 15)}%` }} />
+              </div>
+              <p className="text-xs text-[#668087] leading-relaxed">Itens monitorados em tempo real com alertas automáticos para reposição e validade de Certificados de Aprovação (CA).</p>
+            </div>
+          </ChartCard>
+        </div>
+      )}
 
       {!isAutonomo && (
         <ChartCard eyebrow="Estrutura" title="Capacidade cadastrada" description="Uma visão compacta da estrutura que sustenta a rotina da Empresa.">

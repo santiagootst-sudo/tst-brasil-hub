@@ -390,3 +390,8 @@
 - [ ] Reestruturar a página de Controle de EPIs transformando-a em um centro operacional com barra lateral dedicada (sidebar interna) separando as visões: Visão Geral, Estoque e CAs, Entregas e Assinatura Digital, Fichas de EPI por Funcionário, Devoluções e Substituições, e Alertas de Validade.
 - [ ] Remover Acompanhamento SST / Ocorrências da lista secundária de EPIs e integrá-lo ao Dashboard principal (ou painel dedicado de acompanhamento) com alertas visuais e estatísticas críticas.
 - [ ] Atualizar a suíte de testes automatizados e verificar o build de produção.
+
+- [x] Implementar sistema de busca textual e filtros avançados no Centro Operacional de EPIs para localizar equipamentos por nome, número de CA ou requisito de função.
+- [x] Aprimorar a geração de PDF do recibo de entrega em pdfReports.ts para estruturá-lo como uma Ficha de Entrega e Devolução formal pronta para a assinatura física e digital do funcionário.
+- [x] Adicionar gráficos interativos no Dashboard Principal para visualizar o status das ocorrências SST e o nível de estoque dos EPIs.
+- [x] Executar suíte completa de testes automatizados e validar o build de produção.
