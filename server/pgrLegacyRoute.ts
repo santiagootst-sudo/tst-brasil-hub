@@ -29,6 +29,22 @@ html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100
 </style><script>
 (function () {
   var portalBackUrl = '/app/pgr?workspace=${workspaceId}';
+  var portalStoragePrefix = 'tst-pgr-workspace-${workspaceId}-';
+  var portalStorage = window.localStorage;
+  var nativeSetItem = portalStorage.setItem.bind(portalStorage);
+  var nativeGetItem = portalStorage.getItem.bind(portalStorage);
+  var nativeRemoveItem = portalStorage.removeItem.bind(portalStorage);
+  var nativeKey = portalStorage.key.bind(portalStorage);
+  function scopedStorageKey(key) {
+    return String(key).indexOf(portalStoragePrefix) === 0 ? String(key) : portalStoragePrefix + String(key);
+  }
+  portalStorage.setItem = function (key, value) { return nativeSetItem(scopedStorageKey(key), value); };
+  portalStorage.getItem = function (key) { return nativeGetItem(scopedStorageKey(key)); };
+  portalStorage.removeItem = function (key) { return nativeRemoveItem(scopedStorageKey(key)); };
+  portalStorage.key = function (index) {
+    var rawKey = nativeKey(index);
+    return rawKey && rawKey.indexOf(portalStoragePrefix) === 0 ? rawKey.slice(portalStoragePrefix.length) : rawKey;
+  };
   function activatePortalMode() {
     document.documentElement.classList.add('portal-tst-embedded');
     var login = document.getElementById('loginContainer');

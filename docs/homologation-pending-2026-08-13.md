@@ -6,7 +6,7 @@ Após a entrega do dashboard, logout, perfil editável e skeletons animados, os 
 
 | Item | Fluxo | Estado atual | Evidência ou bloqueio |
 |---|---|---|---|
-| 15 | PGR com autosave, exportação, isolamento e bloqueio/liberação por assinatura | Pendente | Requer validação manual do aplicativo legado e estado de assinatura em ambiente autenticado. |
+| 15 | PGR com autosave, exportação, isolamento e bloqueio/liberação por assinatura | Parcial | Autosave, exportação e isolamento por workspace agora têm cobertura automatizada; falta validar manualmente o aplicativo legado e o bloqueio/liberação em sessão com assinatura. |
 | 18 | Webhook Stripe em sandbox | Pendente | Requer ciclo real de checkout/webhook no sandbox Stripe configurado. |
 | 19 | Checkout, webhook, cancelamento e bloqueio Stripe | Pendente | Requer sandbox Stripe disponível e credenciais/eventos reais. |
 | 72 | Criar empresa, criar PGR pelo card e abrir projeto recém-criado | Pendente | Requer sessão autenticada com permissão e dados de teste autorizados pelo proprietário. |
