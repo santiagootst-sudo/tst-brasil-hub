@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CalendarDays, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound, WandSparkles } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CalendarDays, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, Eye, EyeOff, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, RotateCcw, Settings2, ShieldCheck, UsersRound, WandSparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { daysUntilCipaMeeting, isCipaMeetingUrgent } from "@/lib/cipaUrgency";
+import { defaultSummaryOrder, moveSummaryWidget as moveSummaryWidgetInOrder, normalizeSummaryLayout, toggleSummaryWidget as toggleSummaryWidgetInList, type SummaryWidgetId } from "@/lib/summaryLayout";
 
 type Priority = {
   href: string;
@@ -19,6 +20,12 @@ type Priority = {
 
 type DashboardView = "resumo" | "cipa" | "epis" | "inspecoes" | "documentos";
 type GlobalPeriod = "all" | "30" | "90" | "365";
+const summaryWidgetLabels: Record<SummaryWidgetId, { label: string; description: string }> = {
+  alerts: { label: "Alertas críticos", description: "EPIs, estoque e CAs que pedem ação" },
+  hero: { label: "Panorama do ambiente", description: "Contexto e indicadores centrais" },
+  priorities: { label: "Prioridades e rotina", description: "Foco da semana e próximos passos" },
+  cipa: { label: "CIPA", description: "Reuniões e pendências da comissão" },
+};
 
 type PeriodRecord = {
   createdAt?: Date | string | null;
@@ -62,9 +69,14 @@ export default function WorkspaceOverview() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardView>("resumo");
   const [globalPeriod, setGlobalPeriod] = useState<GlobalPeriod>("all");
   const [readAlertKeys, setReadAlertKeys] = useState<string[]>([]);
+  const [isCustomizingSummary, setIsCustomizingSummary] = useState(false);
+  const [summaryOrder, setSummaryOrder] = useState<SummaryWidgetId[]>(defaultSummaryOrder);
+  const [hiddenSummaryWidgets, setHiddenSummaryWidgets] = useState<SummaryWidgetId[]>([]);
+  const [summaryLayoutReady, setSummaryLayoutReady] = useState(false);
   const search = useSearch();
   const workspaceId = workspaceIdFromSearch(search) ?? 0;
   const readAlertsStorageKey = `tst-brasil-hub-dashboard-read-alerts-${workspaceId}`;
+  const summaryLayoutStorageKey = `tst-brasil-hub-dashboard-summary-layout-${workspaceId}`;
   useEffect(() => {
     if (workspaceId <= 0 || typeof window === "undefined") return;
     try {
@@ -74,6 +86,39 @@ export default function WorkspaceOverview() {
       setReadAlertKeys([]);
     }
   }, [readAlertsStorageKey, workspaceId]);
+  useEffect(() => {
+    if (workspaceId <= 0 || typeof window === "undefined") return;
+    setSummaryLayoutReady(false);
+    try {
+      const raw = window.localStorage.getItem(summaryLayoutStorageKey);
+      const parsed = raw ? JSON.parse(raw) : null;
+      const normalized = normalizeSummaryLayout(parsed);
+      setSummaryOrder(normalized.order);
+      setHiddenSummaryWidgets(normalized.hidden);
+    } catch {
+      setSummaryOrder(defaultSummaryOrder);
+      setHiddenSummaryWidgets([]);
+    }
+    setSummaryLayoutReady(true);
+  }, [summaryLayoutStorageKey, workspaceId]);
+  useEffect(() => {
+    if (!summaryLayoutReady || workspaceId <= 0 || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(summaryLayoutStorageKey, JSON.stringify({ order: summaryOrder, hidden: hiddenSummaryWidgets }));
+    } catch {
+      // A preferência local é opcional; o layout atual continua disponível na sessão.
+    }
+  }, [hiddenSummaryWidgets, summaryLayoutReady, summaryLayoutStorageKey, summaryOrder, workspaceId]);
+  const moveSummaryWidget = (id: SummaryWidgetId, direction: "up" | "down") => {
+    setSummaryOrder(previous => moveSummaryWidgetInOrder(previous, id, direction));
+  };
+  const toggleSummaryWidget = (id: SummaryWidgetId) => {
+    setHiddenSummaryWidgets(previous => toggleSummaryWidgetInList(previous, id));
+  };
+  const resetSummaryLayout = () => {
+    setSummaryOrder(defaultSummaryOrder);
+    setHiddenSummaryWidgets([]);
+  };
   const markAlertAsRead = (key: string) => {
     setReadAlertKeys(previous => {
       const next = previous.includes(key) ? previous : [...previous, key];
@@ -366,15 +411,23 @@ export default function WorkspaceOverview() {
         </div>
         <div className="flex flex-col gap-2 rounded-xl border border-[#e6f0ee] bg-[#f7fcfa] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#668087]"><CalendarClock className="h-3.5 w-3.5 text-[#0c7474]" />Período global <span className="normal-case font-semibold tracking-normal text-[#0c7474]">{periodLabel}</span></div>
-          <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar período global">
-            {(["all", "30", "90", "365"] as const).map(value => <button key={value} type="button" onClick={() => setGlobalPeriod(value)} aria-pressed={globalPeriod === value} className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${globalPeriod === value ? "bg-white text-[#0c7474] shadow-sm ring-1 ring-[#b9e3d7]" : "text-[#668087] hover:bg-white hover:text-[#315158]"}`}>{value === "all" ? "Tudo" : value === "365" ? "12 meses" : `${value} dias`}</button>)}
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Controles da Visão Geral">
+            <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar período global">
+              {(["all", "30", "90", "365"] as const).map(value => <button key={value} type="button" onClick={() => setGlobalPeriod(value)} aria-pressed={globalPeriod === value} className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${globalPeriod === value ? "bg-white text-[#0c7474] shadow-sm ring-1 ring-[#b9e3d7]" : "text-[#668087] hover:bg-white hover:text-[#315158]"}`}>{value === "all" ? "Tudo" : value === "365" ? "12 meses" : `${value} dias`}</button>)}
+            </div>
+            <button type="button" onClick={() => setIsCustomizingSummary(previous => !previous)} aria-expanded={isCustomizingSummary} className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${isCustomizingSummary ? "bg-[#0c7474] text-white" : "text-[#668087] hover:bg-white hover:text-[#315158]"}`}><Settings2 className="h-3.5 w-3.5" />{isCustomizingSummary ? "Concluir" : "Personalizar"}</button>
           </div>
         </div>
+        {isCustomizingSummary && <div className="rounded-xl border border-[#b9e3d7] bg-gradient-to-br from-[#f7fcfa] to-white p-3 shadow-inner" role="region" aria-label="Personalizar widgets do Resumo">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold text-[#315158]">Organize seu Resumo</p><p className="mt-0.5 text-[10px] text-[#668087]">O layout é salvo neste ambiente e pode ser restaurado quando quiser.</p></div><button type="button" onClick={resetSummaryLayout} className="inline-flex items-center gap-1.5 self-start rounded-lg border border-[#dcebe8] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#0c7474] transition hover:border-[#a9d4c8]"><RotateCcw className="h-3.5 w-3.5" />Restaurar padrão</button></div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">{summaryOrder.map((id, index) => { const meta = summaryWidgetLabels[id]; const hidden = hiddenSummaryWidgets.includes(id); return <div key={id} className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 ${hidden ? "border-[#e6f0ee] bg-[#f5f8f7] opacity-70" : "border-[#dcebe8] bg-white"}`}><div className="flex min-w-0 items-center gap-2"><button type="button" onClick={() => toggleSummaryWidget(id)} aria-pressed={!hidden} aria-label={`${hidden ? "Mostrar" : "Ocultar"} ${meta.label}`} className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${hidden ? "bg-[#e9efed] text-[#8aa19e]" : "bg-[#e8f6f1] text-[#0c7474]"}`}>{hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</button><span className="min-w-0"><strong className="block truncate text-[11px] text-[#315158]">{meta.label}</strong><small className="block truncate text-[10px] text-[#8aa19e]">{meta.description}</small></span></div><div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => moveSummaryWidget(id, "up")} disabled={index === 0} aria-label={`Mover ${meta.label} para cima`} className="grid h-7 w-7 place-items-center rounded-lg text-[#668087] transition hover:bg-[#e8f6f1] hover:text-[#0c7474] disabled:cursor-not-allowed disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button><button type="button" onClick={() => moveSummaryWidget(id, "down")} disabled={index === summaryOrder.length - 1} aria-label={`Mover ${meta.label} para baixo`} className="grid h-7 w-7 place-items-center rounded-lg text-[#668087] transition hover:bg-[#e8f6f1] hover:text-[#0c7474] disabled:cursor-not-allowed disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button></div></div>; })}</div>
+        </div>}
       </div>
     </section>
 
-    {activeDashboard === "resumo" ? <div className="space-y-7">
-    {(epiStockCritical > 0 || epiExpiring > 0) && (
+    {activeDashboard === "resumo" ? <div className="flex flex-col gap-7">
+    {!hiddenSummaryWidgets.includes("alerts") && (epiStockCritical > 0 || epiExpiring > 0) && (
+      <div style={{ order: summaryOrder.indexOf("alerts") }}>
       <section className="rounded-3xl border border-[#f1d5c9] bg-gradient-to-r from-[#fff9f5] via-[#fff4ec] to-[#fef8f5] p-5 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3.5">
@@ -397,14 +450,15 @@ export default function WorkspaceOverview() {
           </div>
         </div>
       </section>
+      </div>
     )}
 
-    <section className={`relative overflow-hidden rounded-[2rem] border p-7 shadow-[0_22px_60px_rgba(28,74,77,0.10)] lg:p-9 ${context.color}`}>
+    {!hiddenSummaryWidgets.includes("hero") && <div style={{ order: summaryOrder.indexOf("hero") }}><section className={`relative overflow-hidden rounded-[2rem] border p-7 shadow-[0_22px_60px_rgba(28,74,77,0.10)] lg:p-9 ${context.color}`}>
       <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#8edec7]/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-[-8rem] left-1/3 h-64 w-64 rounded-full bg-[#b9defc]/15 blur-3xl" />
       <div className="relative flex flex-col justify-between gap-7 lg:flex-row lg:items-start"><div><span className={`inline-flex rounded-full border border-white/80 bg-white/75 px-3 py-1 text-[10px] font-bold uppercase tracking-[.14em] shadow-sm ${context.accent}`}>{context.label}</span><p className={`mt-5 text-xs font-bold uppercase tracking-[.14em] ${context.accent}`}>{context.eyebrow}</p><h2 className="mt-2 max-w-3xl text-3xl font-semibold tracking-[-.03em] text-[#173b43] lg:text-4xl">{context.headline}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-[#5d7479]">{context.description}</p></div><Link href="/app" className="inline-flex items-center gap-2 rounded-xl border border-white/80 bg-white/45 px-4 py-2 text-sm font-bold text-[#0c7474] shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/75">Alternar contexto <ArrowRight className="h-4 w-4" /></Link></div>
       <div className="relative mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">{context.stats.map(({ label, value, icon: Icon, tone }) => <div key={label} className="rounded-2xl border border-white/80 bg-white/55 p-4 shadow-[0_8px_24px_rgba(28,74,77,0.06)] backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:bg-white/75 hover:shadow-[0_14px_30px_rgba(28,74,77,0.10)]"><span className={`grid h-9 w-9 place-items-center rounded-xl ${tone === "coral" ? "bg-[#fff0e8] text-[#cf754a]" : tone === "blue" ? "bg-[#edf5fb] text-[#3173a8]" : "bg-[#e8f6f1] text-[#0c7474]"}`}><Icon className="h-4 w-4" /></span><p className="mt-4 text-3xl font-semibold tracking-tight text-[#173b43]">{value}</p><p className="mt-1 text-xs text-[#668087]">{label}</p></div>)}</div>
-    </section>
+    </section></div>}
 
     {!isAutonomo && <section className="hidden rounded-3xl border border-[#d7e4f0] bg-[#f8fbff] p-6 shadow-sm"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#3173a8]">Risco e prevenção</p><h3 className="mt-1 text-xl font-bold">Visão de risco e ações internas</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Acompanhamento consolidado a partir do PGR, inspeções, EPIs, ocorrências e plano de ação registrados no ambiente.</p></div><Link href={appHref("/app/inspecoes")} className="inline-flex text-sm font-bold text-[#3173a8] hover:text-[#123f69]">Abrir inspeções e ações →</Link></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6"><Link href={appHref("/app/pgr")} className="rounded-2xl border border-[#d6e4f0] bg-white p-4 transition hover:border-[#9cc0df]"><ShieldCheck className="h-5 w-5 text-[#3173a8]" /><b className="mt-3 block text-2xl">{current.pgrProjects.length}</b><span className="text-xs text-[#668087]">PGRs vinculados</span></Link><Link href={appHref("/app/estrutura")} className="rounded-2xl border border-[#d6e4f0] bg-white p-4 transition hover:border-[#9cc0df]"><BriefcaseBusiness className="h-5 w-5 text-[#3173a8]" /><b className="mt-3 block text-2xl">{activeJobRoles.length}</b><span className="text-xs text-[#668087]">Funções ativas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#d6e4f0] bg-white p-4 transition hover:border-[#9cc0df]"><ClipboardCheck className="h-5 w-5 text-[#3173a8]" /><b className="mt-3 block text-2xl">{plannedInspections}</b><span className="text-xs text-[#668087]">Inspeções planejadas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#f1d5c9] bg-white p-4 transition hover:border-[#e6af96]"><ClipboardCheck className="h-5 w-5 text-[#d67845]" /><b className="mt-3 block text-2xl">{openActionItems.length}</b><span className="text-xs text-[#668087]">Ações em aberto</span></Link><Link href={appHref("/app/operacao")} className="rounded-2xl border border-[#f1d5c9] bg-white p-4 transition hover:border-[#e6af96]"><ShieldCheck className="h-5 w-5 text-[#d67845]" /><b className="mt-3 block text-2xl">{epiAlerts}</b><span className="text-xs text-[#668087]">Alertas de EPI</span></Link><Link href={appHref("/app/operacao")} className="rounded-2xl border border-[#f1d5c9] bg-white p-4 transition hover:border-[#e6af96]"><CircleAlert className="h-5 w-5 text-[#d67845]" /><b className="mt-3 block text-2xl">{openOccurrences}</b><span className="text-xs text-[#668087]">Ocorrências abertas</span></Link></div></section>}
 
@@ -415,12 +469,12 @@ export default function WorkspaceOverview() {
     <section className="hidden rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm">
 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Indicadores de SST</p><h3 className="mt-1 text-xl font-bold">Cobertura atual de prevenção</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Snapshot calculado exclusivamente dos registros deste ambiente. Tendências históricas serão exibidas quando houver histórico suficiente de períodos anteriores.</p></div><Link href={appHref("/app/inspecoes")} className="text-sm font-bold text-[#0c7474] hover:text-[#063b43]">Abrir módulo →</Link></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#d6e4f0] bg-[#f8fbff] p-4 transition hover:border-[#9cc0df]"><ClipboardCheck className="h-5 w-5 text-[#3173a8]" /><b className="mt-3 block text-2xl">{allInspections.length}</b><span className="text-xs text-[#668087]">Inspeções registradas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#b9e3d7] bg-[#f7fcfa] p-4 transition hover:border-[#8dcfb9]"><CheckCircle2 className="h-5 w-5 text-[#0c7474]" /><b className="mt-3 block text-2xl">{inspectionCompletionRate === null ? "—" : `${inspectionCompletionRate}%`}</b><span className="text-xs text-[#668087]">Inspeções concluídas</span></Link><Link href={appHref("/app/inspecoes")} className={`rounded-2xl border p-4 transition ${overdueInspections ? "border-[#f1d5c9] bg-[#fff9f5] hover:border-[#e6af96]" : "border-[#dcebe8] bg-white hover:border-[#a9d4c8]"}`}><CalendarClock className={`h-5 w-5 ${overdueInspections ? "text-[#d67845]" : "text-[#0c7474]"}`} /><b className="mt-3 block text-2xl">{overdueInspections}</b><span className="text-xs text-[#668087]">Inspeções atrasadas</span></Link><Link href={appHref("/app/inspecoes")} className={`rounded-2xl border p-4 transition ${overdueActionItems ? "border-[#f1d5c9] bg-[#fff9f5] hover:border-[#e6af96]" : "border-[#dcebe8] bg-white hover:border-[#a9d4c8]"}`}><CircleAlert className={`h-5 w-5 ${overdueActionItems ? "text-[#d67845]" : "text-[#0c7474]"}`} /><b className="mt-3 block text-2xl">{overdueActionItems}</b><span className="text-xs text-[#668087]">Ações atrasadas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-2xl border border-[#dcebe8] bg-white p-4 transition hover:border-[#a9d4c8]"><CheckSquare2 className="h-5 w-5 text-[#0c7474]" /><b className="mt-3 block text-2xl">{actionCompletionRate === null ? "—" : `${actionCompletionRate}%`}</b><span className="text-xs text-[#668087]">Ações concluídas</span></Link></div></section>
 
-    <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+    {!hiddenSummaryWidgets.includes("priorities") && <div style={{ order: summaryOrder.indexOf("priorities") }}><section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
       <article className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">{context.nextTitle}</p><h3 className="mt-1 text-xl font-bold">{context.priorityTitle}</h3></div><ClipboardCheck className="h-5 w-5 text-[#0c7474]" /></div><div className="mt-5 space-y-3">{priorities.length ? priorities.map(({ href, title, detail, icon: Icon, tone }) => <Link key={title} href={href} className={`flex items-center justify-between rounded-2xl border p-4 transition hover:translate-x-0.5 ${tone === "coral" ? "border-[#f1d5c9] bg-[#fff9f5] hover:border-[#e6af96]" : tone === "blue" ? "border-[#d6e4f0] bg-[#f8fbff] hover:border-[#a9c9e4]" : "border-[#b9e3d7] bg-[#f7fcfa] hover:border-[#8dcfb9]"}`}><span className="pr-4"><strong className="block text-sm">{title}</strong><small className="mt-1 block text-xs leading-5 text-[#668087]">{detail}</small></span><Icon className={`h-5 w-5 shrink-0 ${tone === "coral" ? "text-[#d67845]" : tone === "blue" ? "text-[#3173a8]" : "text-[#0c7474]"}`} /></Link>) : <div className="flex items-center gap-3 rounded-2xl border border-[#b9e3d7] bg-[#f7fcfa] p-4"><CheckCircle2 className="h-5 w-5 text-[#39a77e]" /><p className="text-sm text-[#315158]">Nenhuma pendência calculada a partir dos registros reais deste ambiente.</p></div>}</div></article>
       <article className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Foco da semana</p><h3 className="mt-1 text-xl font-bold">{context.routineTitle}</h3><ol className="mt-5 space-y-3">{context.routine.map((step, index) => <li key={step} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#e8f6f1] text-xs font-bold text-[#0c7474]">{index + 1}</span><p className="pt-1 text-sm leading-5 text-[#47636a]">{step}</p></li>)}</ol></article>
-    </section>
+    </section></div>}
 
-    <section className={`rounded-[2rem] border p-6 shadow-[0_14px_45px_rgba(16,43,50,.055)] transition-colors lg:p-7 ${cipaHasUrgentMeeting ? "border-[#f1c9ba] bg-[linear-gradient(135deg,#fff9f5_0%,#ffffff_58%,#fff2eb_100%)]" : "border-[#dcebe8] bg-white"}`}>
+    {!hiddenSummaryWidgets.includes("cipa") && <div style={{ order: summaryOrder.indexOf("cipa") }}><section className={`rounded-[2rem] border p-6 shadow-[0_14px_45px_rgba(16,43,50,.055)] transition-colors lg:p-7 ${cipaHasUrgentMeeting ? "border-[#f1c9ba] bg-[linear-gradient(135deg,#fff9f5_0%,#ffffff_58%,#fff2eb_100%)]" : "border-[#dcebe8] bg-white"}`}>
       <div className="flex flex-col justify-between gap-4 border-b border-[#edf4f1] pb-5 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <div className={`grid h-11 w-11 place-items-center rounded-2xl shadow-sm ${cipaHasUrgentMeeting ? "bg-[#fff0e9] text-[#c76845]" : "bg-[#e8f6f1] text-[#0c7474]"}`}><CalendarDays className="h-5 w-5" /></div>
@@ -449,7 +503,7 @@ export default function WorkspaceOverview() {
           </div>
         </div>
       </div>
-    </section>
+    </section></div>}
 
     <section className="hidden rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Ferramentas compartilhadas</p><h3 className="mt-1 text-xl font-bold">Atalhos na ordem da sua rotina</h3></div><p className="max-w-sm text-sm text-[#668087]">As mesmas ferramentas permanecem disponíveis nos dois ambientes; a ordem muda conforme a prioridade de trabalho.</p></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{context.tools.map(({ href, icon: Icon, title, text }, index) => <Link key={title} href={href} className="group flex items-center gap-3 rounded-2xl border border-[#e6f0ee] p-4 transition hover:border-[#a9d4c8] hover:bg-[#fbfefd]"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]"><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">{title}</strong><small className="text-xs text-[#668087]">{text}</small></span><span className="text-xs font-bold text-[#90ada9] group-hover:text-[#0c7474]">0{index + 1}</span></Link>)}</div></section>
     </div>
