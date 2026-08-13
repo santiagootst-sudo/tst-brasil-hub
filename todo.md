@@ -524,3 +524,6 @@
 - [x] Adicionar favoritos com estrela interativa e seção de acesso rápido no topo da Biblioteca.
 - [x] Criar histórico de leitura para exibir normas e documentos abertos recentemente.
 - [x] Implementar botão de download em PDF para cada norma e documento oficial.
+
+- [x] Adicionar barra de pesquisa nas seções de favoritos e histórico da Biblioteca.
+- [x] Implementar filtro refinado por temas e categorias para as Normas Regulamentadoras.

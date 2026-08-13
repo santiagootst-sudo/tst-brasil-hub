@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen } from "lucide-react";
+import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 const libraryItems = [
@@ -11,6 +11,7 @@ const libraryItems = [
     title: "Disposições Gerais e Gerenciamento de Riscos (GRO/PGR)",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Gestão e Riscos",
     description: "Diretrizes sobre o Gerenciamento de Riscos Ocupacionais (GRO) e elaboração do PGR.",
     badge: "Obrigatória",
     color: "from-[#063b43] to-[#0c7474]",
@@ -21,6 +22,7 @@ const libraryItems = [
     title: "Comissão Interna de Prevenção de Acidentes e Assédio (CIPA)",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Organização e CIPA",
     description: "Requisitos para constituição, dimensionamento e funcionamento da CIPA e prevenção ao assédio.",
     badge: "Obrigatória",
     color: "from-[#123f69] to-[#2165a9]",
@@ -31,6 +33,7 @@ const libraryItems = [
     title: "Equipamentos de Proteção Individual (EPI)",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Proteção Coletiva e Individual",
     description: "Regras sobre fornecimento, uso, higienização, CA e responsabilidades sobre EPIs.",
     badge: "Obrigatória",
     color: "from-[#0c7474] to-[#14b8a6]",
@@ -41,6 +44,7 @@ const libraryItems = [
     title: "Programa de Controle Médico de Saúde Ocupacional (PCMSO)",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Saúde Ocupacional",
     description: "Diretrizes de rastreio e diagnóstico precoce dos agravos à saúde relacionados ao trabalho.",
     badge: "Obrigatória",
     color: "from-[#1d4ed8] to-[#3b82f6]",
@@ -51,6 +55,7 @@ const libraryItems = [
     title: "Avaliação e Controle das Exposições Ocupacionais",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Gestão e Riscos",
     description: "Metodologia para identificação e avaliação de agentes físicos, químicos e biológicos.",
     badge: "Técnica",
     color: "from-[#0f766e] to-[#14b8a6]",
@@ -61,6 +66,7 @@ const libraryItems = [
     title: "Segurança em Instalações e Serviços em Eletricidade",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Segurança Especializada",
     description: "Medidas preventivas e procedimentos para trabalhos com eletricidade.",
     badge: "Segurança",
     color: "from-[#b45309] to-[#d97706]",
@@ -71,6 +77,7 @@ const libraryItems = [
     title: "Segurança no Trabalho em Máquinas e Equipamentos",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Segurança Especializada",
     description: "Requisitos técnicos de segurança para fabricação, importação e operação de máquinas.",
     badge: "Industrial",
     color: "from-[#475569] to-[#64748b]",
@@ -81,6 +88,7 @@ const libraryItems = [
     title: "Atividades e Operações Insalubres",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Saúde Ocupacional",
     description: "Limites de tolerância e caracterização de insalubridade por agentes ambientais.",
     badge: "Legal",
     color: "from-[#b91c1c] to-[#ef4444]",
@@ -91,6 +99,7 @@ const libraryItems = [
     title: "Atividades e Operações Perigosas",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Segurança Especializada",
     description: "Parâmetros para caracterização de periculosidade (explosivos, inflamáveis, radiações, eletricidade).",
     badge: "Legal",
     color: "from-[#c2410c] to-[#f97316]",
@@ -101,6 +110,7 @@ const libraryItems = [
     title: "Segurança na Indústria da Construção",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Setor Específico",
     description: "Diretrizes de planejamento e organização para canteiros de obras.",
     badge: "Construção",
     color: "from-[#854d0e] to-[#ca8a04]",
@@ -111,6 +121,7 @@ const libraryItems = [
     title: "Trabalho em Altura",
     kind: "Norma Oficial",
     category: "Normas Regulamentadoras",
+    theme: "Segurança Especializada",
     description: "Requisitos para planejamento, organização e execução de trabalhos em altura superior a 2 metros.",
     badge: "Altura",
     color: "from-[#1e3a8a] to-[#2563eb]",
@@ -121,6 +132,7 @@ const libraryItems = [
     title: "Manual de Orientação GRO e PGR da NR-01",
     kind: "Manual MTE",
     category: "Manuais Oficiais",
+    theme: "Gestão e Riscos",
     description: "Orientações oficiais detalhadas sobre a implementação do Gerenciamento de Riscos Ocupacionais.",
     badge: "Prático",
     color: "from-[#065f46] to-[#047857]",
@@ -131,6 +143,7 @@ const libraryItems = [
     title: "Perguntas e Respostas Oficiais sobre GRO e PGR",
     kind: "Perguntas Frequentes",
     category: "Manuais Oficiais",
+    theme: "Gestão e Riscos",
     description: "Esclarecimentos oficiais do MTE para dúvidas recorrentes na elaboração de inventários de riscos.",
     badge: "Consulta",
     color: "from-[#312e81] to-[#4f46e5]",
@@ -145,6 +158,9 @@ export default function Library() {
   const { loading } = useAuth({ redirectOnUnauthenticated: true });
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("Todas");
+  const [activeTheme, setActiveTheme] = useState<string>("Todos");
+  const [favSearch, setFavSearch] = useState("");
+  const [histSearch, setHistSearch] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
 
@@ -177,7 +193,7 @@ export default function Library() {
   };
 
   const recordHistory = (code: string) => {
-    const updated = [code, ...history.filter(c => c !== code)].slice(0, 8);
+    const updated = [code, ...history.filter(c => c !== code)].slice(0, 10);
     setHistory(updated);
     try {
       localStorage.setItem(HIST_KEY(), JSON.stringify(updated));
@@ -189,7 +205,6 @@ export default function Library() {
     recordHistory(item.code);
     toast.loading(`Preparando PDF da ${item.code}...`, { id: "pdf-download" });
     setTimeout(() => {
-      // Simular download de PDF oficial
       const content = `TST Brasil Hub - Cópia de Estudo e Consulta\nNorma: ${item.code} - ${item.title}\nDescrição: ${item.description}\nLink oficial MTE: ${item.url}\n\nEste documento foi gerado pelo portal para consulta técnica.`;
       const blob = new Blob([content], { type: "application/pdf" });
       const link = document.createElement("a");
@@ -203,6 +218,7 @@ export default function Library() {
   };
 
   const categories = ["Todas", "Normas Regulamentadoras", "Manuais Oficiais", "Favoritos ⭐"];
+  const themes = ["Todos", "Gestão e Riscos", "Organização e CIPA", "Proteção Coletiva e Individual", "Saúde Ocupacional", "Segurança Especializada", "Setor Específico"];
 
   const filtered = libraryItems.filter(item => {
     if (activeCategory === "Favoritos ⭐") {
@@ -210,11 +226,20 @@ export default function Library() {
     } else if (activeCategory !== "Todas" && item.category !== activeCategory) {
       return false;
     }
+    if (activeTheme !== "Todos" && item.theme !== activeTheme) {
+      return false;
+    }
     return `${item.code} ${item.title} ${item.description}`.toLocaleLowerCase("pt-BR").includes(term.toLocaleLowerCase("pt-BR"));
   });
 
-  const favoriteItems = libraryItems.filter(item => favorites.includes(item.code));
-  const historyItems = history.map(code => libraryItems.find(i => i.code === code)).filter(Boolean) as typeof libraryItems;
+  const favoriteItems = libraryItems
+    .filter(item => favorites.includes(item.code))
+    .filter(item => `${item.code} ${item.title} ${item.description}`.toLocaleLowerCase("pt-BR").includes(favSearch.toLocaleLowerCase("pt-BR")));
+
+  const historyItems = history
+    .map(code => libraryItems.find(i => i.code === code))
+    .filter(Boolean)
+    .filter(item => item && `${item.code} ${item.title} ${item.description}`.toLocaleLowerCase("pt-BR").includes(histSearch.toLocaleLowerCase("pt-BR"))) as typeof libraryItems;
 
   if (loading) return null;
 
@@ -229,7 +254,7 @@ export default function Library() {
             </span>
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Biblioteca Técnica e Normas Regulamentadoras</h2>
             <p className="text-sm leading-6 text-[#d9eeea]">
-              Explore o acervo completo de Normas Regulamentadoras (NRs) e manuais oficiais. Favorite suas normas principais para acesso rápido no topo e baixe os documentos em PDF.
+              Explore o acervo completo de Normas Regulamentadoras (NRs) e manuais oficiais. Utilize os filtros temáticos por assunto e pesquise diretamente em seus favoritos e histórico.
             </p>
           </div>
 
@@ -257,16 +282,41 @@ export default function Library() {
           </div>
         </section>
 
+        {/* Filtro por Temas / Categorias */}
+        <section className="flex flex-wrap items-center gap-2 bg-white p-4 rounded-2xl border border-[#dcebe8] shadow-xs">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#0c7474] mr-2">
+            <Filter className="h-4 w-4" /> Tema:
+          </span>
+          {themes.map(theme => (
+            <button
+              key={theme}
+              onClick={() => setActiveTheme(theme)}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${activeTheme === theme ? "bg-[#0c7474] text-white shadow-xs" : "bg-[#f4faf8] text-[#49636a] hover:bg-[#e8f6f1]"}`}
+            >
+              {theme}
+            </button>
+          ))}
+        </section>
+
         {/* Seção de Acesso Rápido: Favoritos no Topo */}
-        {favoriteItems.length > 0 && activeCategory === "Todas" && !term && (
-          <section className="space-y-3 rounded-3xl border border-[#b9e3d7] bg-[#f4faf8] p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+        {favorites.length > 0 && activeCategory === "Todas" && !term && (
+          <section className="space-y-4 rounded-3xl border border-[#b9e3d7] bg-[#f4faf8] p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Star className="h-5 w-5 fill-[#f59e0b] text-[#f59e0b]" />
                 <h3 className="text-lg font-bold text-[#102b32]">Normas Favoritas (Acesso Rápido)</h3>
               </div>
-              <span className="text-xs font-bold text-[#0c7474]">{favoriteItems.length} fixa(s)</span>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
+                <Input
+                  value={favSearch}
+                  onChange={e => setFavSearch(e.target.value)}
+                  placeholder="Filtrar favoritos..."
+                  className="h-9 rounded-xl border-[#cfe3de] bg-white pl-9 text-xs"
+                />
+              </div>
             </div>
+
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {favoriteItems.map(item => (
                 <div key={`fav-${item.code}`} className="flex items-center justify-between rounded-2xl border border-[#cfe3de] bg-white p-3.5 shadow-xs">
@@ -295,17 +345,32 @@ export default function Library() {
                   </div>
                 </div>
               ))}
+              {favoriteItems.length === 0 && (
+                <p className="col-span-full text-center text-xs text-[#668087] py-2">Nenhum favorito encontrado com esse termo.</p>
+              )}
             </div>
           </section>
         )}
 
         {/* Seção de Histórico de Leitura */}
-        {historyItems.length > 0 && !term && activeCategory === "Todas" && (
-          <section className="space-y-3 rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm">
-            <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-[#2165a9]" />
-              <h3 className="text-lg font-bold text-[#102b32]">Histórico de Leitura recente</h3>
+        {history.length > 0 && !term && activeCategory === "Todas" && (
+          <section className="space-y-4 rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-[#2165a9]" />
+                <h3 className="text-lg font-bold text-[#102b32]">Histórico de Leitura recente</h3>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
+                <Input
+                  value={histSearch}
+                  onChange={e => setHistSearch(e.target.value)}
+                  placeholder="Filtrar histórico..."
+                  className="h-9 rounded-xl border-[#cfe0f1] bg-white pl-9 text-xs"
+                />
+              </div>
             </div>
+
             <div className="flex flex-wrap gap-3">
               {historyItems.map(item => (
                 <a
@@ -317,9 +382,12 @@ export default function Library() {
                   className="inline-flex items-center gap-2 rounded-xl border border-[#cfe0f1] bg-white px-3.5 py-2 text-xs font-semibold text-[#102b32] shadow-xs hover:border-[#2165a9] transition"
                 >
                   <span className="rounded bg-[#2165a9]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#2165a9]">{item.code}</span>
-                  <span className="max-w-[180px] truncate">{item.title.split("—")[0]}</span>
+                  <span className="max-w-[200px] truncate">{item.title.split("—")[0]}</span>
                 </a>
               ))}
+              {historyItems.length === 0 && (
+                <p className="text-xs text-[#668087] py-2">Nenhum item do histórico corresponde à busca.</p>
+              )}
             </div>
           </section>
         )}
@@ -413,7 +481,7 @@ export default function Library() {
               </span>
               <h4 className="text-lg font-bold text-[#102b32]">Nenhum material encontrado</h4>
               <p className="mx-auto max-w-sm text-xs leading-5 text-[#668087]">
-                Tente buscar por outro termo ou selecione a categoria "Todas" para visualizar o catálogo completo de NRs.
+                Tente buscar por outro termo ou ajuste os filtros temáticos para visualizar as normas.
               </p>
             </div>
           )}
