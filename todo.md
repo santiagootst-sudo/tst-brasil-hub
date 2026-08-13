@@ -374,3 +374,10 @@
 - [x] Auditar a estrutura do PGR-MIRAMAR.pdf (capa, controle de revisão, identificação da empresa e da contratada, GHE, matriz de riscos, plano de ação e assinaturas).
 - [x] Incorporar na exportação PDF do Portal TST a renderização completa das seções do PGR (capa institucional com logo, sumário dinâmico, identificação completa, inventário GHE, matriz de riscos e plano de ação estruturado).
 - [x] Validar a integridade dos testes automatizados e o build de produção após a evolução da exportação do PGR.
+
+- [ ] Executar validação prática do Gerador de PGR preenchendo dados fictícios, exportando o PDF nativo e comparando paginação, capa, tabelas, matrizes e assinaturas com os arquivos de referência fornecidos.
+
+- [ ] Ajustar a capa do PGR para reproduzir os elementos legais dos exemplos: logotipos, local/data, aviso de guarda documental, declaração de assinatura eletrônica, responsável técnico e quadro de versão/identificação/revisão.
+- [ ] Garantir que a primeira página e o controle de revisão reflitam a identidade visual e os campos configuráveis da empresa/consultoria.
+- [ ] Validar e documentar o mapa de risco: o PDF deve informar claramente quando a planta e os círculos ainda não foram cadastrados, sem apresentar a área vazia como mapa final completo.
+- [ ] Reexportar o PGR de homologação após os ajustes e repetir a comparação visual com os dois PDFs de referência.
