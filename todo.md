@@ -173,9 +173,9 @@
 - [x] Cobrir autorização, transições de acesso e isolamento do painel com testes automatizados.
 - [x] Validar visualmente o painel administrativo e salvar checkpoint.
 - [x] Validar no navegador o dashboard com usuário sem vínculo ao workspace ou com acesso administrativo suspenso, registrando o bloqueio.
-- [ ] Validar no navegador a jornada sem dados preexistentes: criar empresa, enviar logo, criar PGR pelo card e abrir o projeto recém-criado.
+- [x] Validar no navegador a jornada sem dados preexistentes: criar empresa, enviar logo, criar PGR pelo card e abrir o projeto recém-criado.
 - [x] Validar separadamente no navegador a alternância Autônomo/CLT como fluxo completo, incluindo carregamento, troca e persistência da navegação.
-- [ ] Promover a conta autenticada mais recente de Vanderson a administrador sem remover o administrador existente e validar o painel `/admin`.
+- [x] Promover a conta autenticada mais recente de Vanderson a administrador sem remover o administrador existente e validar o painel `/admin`.
 - [x] Diagnosticar e corrigir o erro React removeChild na reconciliação de componentes e portais.
 - [x] Evoluir o gerenciador de EPI do ambiente TST CLT com ficha individual por trabalhador, aceite digital na entrega, devolução com condição do equipamento, histórico consolidado e central de alertas operacionais.
 - [x] Reconstruir a landing page do Portal TST Brasil alinhada à referência visual (hero com gradiente teal e atmosfera luminosa, cards de ambiente estilizados, seções de recursos e 3 passos com conteúdos exclusivos sem duplicação).
@@ -269,8 +269,8 @@
 - [x] Executar testes e salvar checkpoint da melhoria da entrada de perfis.
 - [x] Adicionar botão de troca rápida de perfil no menu principal e topo do dashboard, com opção de zerar ou alterar a escolha lembrada.
 - [x] Redesenhar os gráficos do dashboard com uma composição visualmente rica, usando transparências em camadas, gradientes fluidos e indicadores de tendências e status.
-- [ ] Validar a interatividade, as microinterações e a responsividade em desktop e mobile.
-- [ ] Salvar checkpoint e entregar a nova experiência visual expressiva.
+- [x] Validar a interatividade, as microinterações e a responsividade em desktop e mobile.
+- [x] Salvar checkpoint e entregar a nova experiência visual expressiva.
 - [x] Criar diretrizes de cores e kit de identidade visual para temas claro e escuro do TST Brasil Hub.
 - [x] Gerar versão simplificada do logotipo e favicon baseados na nova identidade.
 - [x] Atualizar a tela de login e escolha de perfil com a nova marca TST Brasil Hub.
