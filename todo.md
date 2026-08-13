@@ -516,3 +516,5 @@
 
 - [x] Adicionar o módulo Marketplace ao final da barra lateral para ambos os perfis (Prestador e Empresa).
 - [x] Criar a página de pré-lançamento do Marketplace com mensagem de construção, carinha feliz e caixa de feedback interativa.
+
+- [x] Adicionar animação de sucesso fluida e mensagem de agradecimento dedicada após o envio do feedback no Marketplace.

@@ -67,25 +67,31 @@ export default function Marketplace() {
           </div>
 
           {submitted ? (
-            <div className="mt-6 rounded-2xl border border-[#b9e3d7] bg-[#f0faf7] p-8 text-center space-y-3">
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#0c7474] text-white">
-                <CheckCircle2 className="h-6 w-6" />
+            <div className="mt-6 animate-in fade-in zoom-in-95 duration-300 rounded-3xl border border-[#b9e3d7] bg-gradient-to-br from-[#f0faf7] to-[#e8f6f1] p-8 text-center space-y-4 shadow-sm">
+              <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#0c7474] text-white shadow-lg animate-bounce">
+                <CheckCircle2 className="h-8 w-8" />
               </span>
-              <h4 className="text-lg font-bold text-[#102b32]">Feedback recebido com carinho!</h4>
-              <p className="mx-auto max-w-md text-xs leading-5 text-[#4a6b73]">
-                Suas sugestões são fundamentais para moldarmos o Marketplace do TST Brasil Hub exatamente com o que você precisa no dia a dia.
+              <div className="space-y-1">
+                <span className="inline-block rounded-full bg-[#0c7474]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#0c7474]">
+                  Muito obrigado pela contribuição!
+                </span>
+                <h4 className="text-xl font-bold text-[#102b32]">Feedback enviado com sucesso!</h4>
+              </div>
+              <p className="mx-auto max-w-md text-sm leading-6 text-[#3a5a61]">
+                Sua opinião é o que nos move a construir a melhor plataforma de Segurança do Trabalho do Brasil. Nossa equipe de engenharia e produto já recebeu sua mensagem.
               </p>
-              <Button
-                onClick={() => {
-                  setSubmitted(false);
-                  setFeedback("");
-                  setEmail("");
-                }}
-                variant="outline"
-                className="mt-2 rounded-xl border-[#0c7474] text-[#0c7474]"
-              >
-                Enviar outro feedback
-              </Button>
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    setSubmitted(false);
+                    setFeedback("");
+                    setEmail("");
+                  }}
+                  className="rounded-xl bg-[#0c7474] px-6 text-sm font-bold text-white shadow-md hover:bg-[#095c5c]"
+                >
+                  Enviar novo feedback
+                </Button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
