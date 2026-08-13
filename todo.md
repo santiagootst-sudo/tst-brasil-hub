@@ -453,4 +453,4 @@
 - [x] Implementar sistema de customização do painel de Resumo com reordenação e visibilidade de widgets.
 - [x] Persistir preferências de layout por workspace no navegador com opção de restaurar o padrão.
 - [x] Atualizar testes unitários e verificar build de produção.
-- [ ] Publicar checkpoint final e registrar instruções de homologação.
+- [x] Publicar checkpoint final e registrar instruções de homologação.
