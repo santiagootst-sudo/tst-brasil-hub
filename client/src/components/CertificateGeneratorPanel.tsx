@@ -28,6 +28,7 @@ import {
 } from "@/lib/certificateCatalog";
 
 export type GeneratedCertificatePayload = {
+  companyId: number | null;
   participantName: string;
   trainingName: string;
   issuedAt: Date;
@@ -38,12 +39,14 @@ export type GeneratedCertificatePayload = {
 
 type CertificateGeneratorPanelProps = {
   workspaceName: string;
+  companies?: Array<{ id: number; name: string }>;
   canManage: boolean;
   isPersisting?: boolean;
   onPersist?: (payload: GeneratedCertificatePayload) => void;
 };
 
 type FormState = {
+  companyId: number | null;
   participantName: string;
   cpf: string;
   company: string;
@@ -63,10 +66,11 @@ type FormState = {
   saveToArchive: boolean;
 };
 
-const initialForm = (): FormState => ({
+const initialForm = (companies: Array<{ id: number; name: string }> = []): FormState => ({
+  companyId: companies.length === 1 ? companies[0].id : null,
   participantName: "",
   cpf: "",
-  company: "",
+  company: companies.length === 1 ? companies[0].name : "",
   nr: "NR-35",
   course: certificateCatalog["NR-35"].courses[0].name,
   validity: "24",
@@ -283,8 +287,8 @@ async function generateCertificatePdf(form: FormState, logoDataUrl: string | nul
   };
 }
 
-export default function CertificateGeneratorPanel({ workspaceName, canManage, isPersisting = false, onPersist }: CertificateGeneratorPanelProps) {
-  const [form, setForm] = useState<FormState>(initialForm);
+export default function CertificateGeneratorPanel({ workspaceName, companies = [], canManage, isPersisting = false, onPersist }: CertificateGeneratorPanelProps) {
+  const [form, setForm] = useState<FormState>(() => initialForm(companies));
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -322,7 +326,7 @@ export default function CertificateGeneratorPanel({ workspaceName, canManage, is
   };
 
   const reset = () => {
-    setForm(initialForm());
+    setForm(initialForm(companies));
     setLogoDataUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -335,13 +339,14 @@ export default function CertificateGeneratorPanel({ workspaceName, canManage, is
     try {
       const result = await generateCertificatePdf(form, logoDataUrl);
       if (form.saveToArchive && onPersist) {
-        onPersist({
+          onPersist({
+          companyId: form.companyId,
           participantName: form.participantName.trim(),
           trainingName: `${form.nr} · ${result.courseTitle}`,
           issuedAt: new Date(`${form.completionDate}T12:00:00`),
           expiresAt,
           referenceUrl: form.validationUrl.trim() || null,
-          notes: [
+            notes: [
             form.company.trim() ? `Empresa: ${form.company.trim()}` : null,
             `CPF: ${form.cpf.trim()}`,
             form.location.trim() ? `Local: ${form.location.trim()}` : null,
@@ -380,6 +385,7 @@ export default function CertificateGeneratorPanel({ workspaceName, canManage, is
           <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 shadow-sm sm:grid-cols-2">
             <label className="text-xs font-bold text-[#315158] sm:col-span-2">Nome do participante <span className="text-[#c85e55]">*</span><div className="relative mt-2"><UserRound className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#81a49e]" /><Input value={form.participantName} onChange={event => setField("participantName", event.target.value)} className="h-11 rounded-xl border-[#d5e8e2] pl-10" placeholder="Nome completo" /></div></label>
             <label className="text-xs font-bold text-[#315158]">CPF <span className="text-[#c85e55]">*</span><Input value={form.cpf} onChange={event => setField("cpf", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="000.000.000-00" /></label>
+            {companies.length > 0 && <label className="text-xs font-bold text-[#315158]">Vincular ao cliente <span className="font-normal text-[#78928d]">(opcional)</span><select value={form.companyId ?? ""} onChange={event => { const companyId = Number(event.target.value); const company = companies.find(item => item.id === companyId); setForm(current => ({ ...current, companyId: companyId > 0 ? companyId : null, company: company?.name ?? (companyId > 0 ? current.company : "") })); }} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]"><option value="">Sem vínculo com cliente</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>}
             <label className="text-xs font-bold text-[#315158]">Empresa / organização<Input value={form.company} onChange={event => setField("company", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="Nome da empresa" /></label>
             <label className="text-xs font-bold text-[#315158]">Norma Regulamentadora<select value={form.nr} onChange={event => handleNrChange(event.target.value as CertificateNr)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{certificateNrs.map(nr => <option key={nr} value={nr}>{nr} · {certificateCatalog[nr].title}</option>)}</select></label>
             <label className="text-xs font-bold text-[#315158]">Curso / capacitação<select value={form.course} onChange={event => setField("course", event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{definition.courses.map(course => <option key={course.name} value={course.name}>{course.name} · {course.workload}</option>)}</select></label>

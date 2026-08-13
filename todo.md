@@ -285,3 +285,5 @@
 - [x] Integrar o gerador ao módulo de Certificados com contexto de workspace e estados de sucesso/erro.
 - [x] Criar testes automatizados e validar visualmente o novo módulo de certificados.
 - [x] Garantir visibilidade e acesso explícito ao gerador de certificados no ambiente Empresa (TST CLT).
+- [ ] Validar no navegador a visão de Documentos do TST Autônomo por cliente com certificado real vencido ou próximo.
+- [ ] Registrar evidência observável da rota ou captura que mostre o status documental por cliente.

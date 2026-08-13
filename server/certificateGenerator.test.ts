@@ -37,8 +37,12 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
   it("integra a emissão ao workspace ativo e permite salvar no acervo real", () => {
     expect(certificatesPageSource).toContain("<CertificateGeneratorPanel");
     expect(certificatesPageSource).toContain("workspaceName={activeWorkspace.name}");
+    expect(certificatesPageSource).toContain("companies={activeWorkspaceDetail.data?.companies ?? []}");
     expect(certificatesPageSource).toContain("onPersist={persistGeneratedCertificate}");
+    expect(certificatesPageSource).toContain("companyId: payload.companyId ?? undefined");
     expect(certificatesPageSource).toContain('category: "certificate"');
     expect(certificatesPageSource).toContain("utils.portal.certificates.invalidate");
+    expect(generatorSource).toContain("companyId: number | null");
+    expect(generatorSource).toContain("Vincular ao cliente");
   });
 });
