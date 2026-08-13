@@ -81,6 +81,14 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain('variant.id === "minimal"');
   });
 
+  it("oferece upload de imagem personalizada para marca d'água com fallback para a NR", () => {
+    expect(generatorSource).toContain("customWatermarkDataUrl");
+    expect(generatorSource).toContain("handleCustomWatermark");
+    expect(generatorSource).toContain("customWatermarkInputRef");
+    expect(generatorSource).toContain("Enviar marca d’água personalizada da empresa");
+    expect(generatorSource).toContain("Restaurar NR");
+  });
+
   it("oferece prévia modal antes do download e arquivamento", () => {
     expect(generatorSource).toContain("DialogTitle");
     expect(generatorSource).toContain("Confira o certificado antes de baixar");

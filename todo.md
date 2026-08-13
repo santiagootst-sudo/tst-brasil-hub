@@ -359,3 +359,8 @@
 - [x] Permitir que o instrutor selecione variações de estilo (Fotografia temática, Contorno industrial, Painel técnico, Fundo minimalista).
 - [x] Atualizar o gerador em PDF e a pré-visualização interativa para respeitar a variação escolhida.
 - [x] Adicionar testes automatizados e validar build e interface.
+
+- [x] Adicionar upload de imagem personalizada para marca d'água (separado do logo institucional).
+- [x] Implementar validação de arquivo, prévia e opção de remover para voltar à imagem temática da NR.
+- [x] Integrar a imagem customizada à galeria de estilos, prévia HTML e PDF frente/verso.
+- [x] Atualizar suíte de testes, validar build e interface.
