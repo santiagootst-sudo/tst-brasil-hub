@@ -1,9 +1,10 @@
-import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound, WandSparkles } from "lucide-react";
+import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CalendarDays, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound, WandSparkles } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import InspectionActionSummary from "@/components/InspectionActionSummary";
 import DashboardCharts from "@/components/DashboardCharts";
 import { trpc } from "@/lib/trpc";
+
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
 type Priority = {
@@ -116,6 +117,22 @@ export default function WorkspaceOverview() {
     overdueActionItems,
     plannedTrainings,
   };
+
+  const cipaMeetingsKey = `tst-brasil-hub-cipa-meetings-${current.id}`;
+  let cipaMeetingsList: { id: string; date: string; time: string; title: string; status: "agendada" | "realizada" | "cancelada"; notes: string }[] = [];
+  try {
+    const rawMeetings = typeof window !== "undefined" ? window.localStorage.getItem(cipaMeetingsKey) : null;
+    if (rawMeetings) cipaMeetingsList = JSON.parse(rawMeetings);
+  } catch {
+    cipaMeetingsList = [];
+  }
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const upcomingCipaMeetings = cipaMeetingsList.filter((meeting: { status: string; date: string }) => meeting.status === "agendada" && meeting.date >= todayStr).slice(0, 3);
+  const pendingCipaTasks = [
+    { title: "Validação do Dimensionamento (NR-05)", completed: false },
+    { title: "Homologação do Calendário Anual de Reuniões", completed: cipaMeetingsList.length >= 12 },
+    { title: "Eleição e Posse da Gestão da CIPA", completed: false },
+  ];
 
   const context = isAutonomo
     ? {
@@ -310,6 +327,37 @@ export default function WorkspaceOverview() {
     <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
       <article className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">{context.nextTitle}</p><h3 className="mt-1 text-xl font-bold">{context.priorityTitle}</h3></div><ClipboardCheck className="h-5 w-5 text-[#0c7474]" /></div><div className="mt-5 space-y-3">{priorities.length ? priorities.map(({ href, title, detail, icon: Icon, tone }) => <Link key={title} href={href} className={`flex items-center justify-between rounded-2xl border p-4 transition hover:translate-x-0.5 ${tone === "coral" ? "border-[#f1d5c9] bg-[#fff9f5] hover:border-[#e6af96]" : tone === "blue" ? "border-[#d6e4f0] bg-[#f8fbff] hover:border-[#a9c9e4]" : "border-[#b9e3d7] bg-[#f7fcfa] hover:border-[#8dcfb9]"}`}><span className="pr-4"><strong className="block text-sm">{title}</strong><small className="mt-1 block text-xs leading-5 text-[#668087]">{detail}</small></span><Icon className={`h-5 w-5 shrink-0 ${tone === "coral" ? "text-[#d67845]" : tone === "blue" ? "text-[#3173a8]" : "text-[#0c7474]"}`} /></Link>) : <div className="flex items-center gap-3 rounded-2xl border border-[#b9e3d7] bg-[#f7fcfa] p-4"><CheckCircle2 className="h-5 w-5 text-[#39a77e]" /><p className="text-sm text-[#315158]">Nenhuma pendência calculada a partir dos registros reais deste ambiente.</p></div>}</div></article>
       <article className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Foco da semana</p><h3 className="mt-1 text-xl font-bold">{context.routineTitle}</h3><ol className="mt-5 space-y-3">{context.routine.map((step, index) => <li key={step} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#e8f6f1] text-xs font-bold text-[#0c7474]">{index + 1}</span><p className="pt-1 text-sm leading-5 text-[#47636a]">{step}</p></li>)}</ol></article>
+    </section>
+
+    <section className="rounded-[2rem] border border-[#dcebe8] bg-white p-6 shadow-[0_14px_45px_rgba(16,43,50,.055)] lg:p-7">
+      <div className="flex flex-col justify-between gap-4 border-b border-[#edf4f1] pb-5 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474] shadow-sm"><CalendarDays className="h-5 w-5" /></div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">Gestão ativa NR-05</p>
+            <h3 className="mt-1 text-xl font-bold text-[#102b32]">Próximas reuniões e pendências da CIPA</h3>
+          </div>
+        </div>
+        <Link href={appHref("/app/cipa")} className="inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#063b43]">Abrir Assistant CIPA <ArrowRight className="h-4 w-4" /></Link>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-[#e4efec] bg-[#f7fcfa] p-5">
+          <h4 className="text-sm font-bold text-[#315158]">Próximas reuniões ordinárias</h4>
+          <p className="mt-1 text-xs text-[#668087]">Encontros agendados no calendário oficial deste ambiente.</p>
+          <div className="mt-4 space-y-3">
+            {upcomingCipaMeetings.length ? upcomingCipaMeetings.map(meeting => <div key={meeting.id} className="flex items-center justify-between rounded-xl border border-[#dcebe8] bg-white p-3.5 shadow-sm"><div><p className="text-xs font-bold text-[#102b32]">{meeting.title}</p><p className="mt-1 text-[11px] text-[#668087]">{meeting.date} às {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div><span className="rounded-full bg-[#eaf4fd] px-2.5 py-1 text-[10px] font-bold text-[#3173a8]">Agendada</span></div>) : <div className="rounded-xl border border-dashed border-[#cfe3de] bg-white p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada. Acesse o Assistant CIPA para gerar o ciclo de 12 meses.</div>}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#e4efec] bg-[#f7fcfa] p-5">
+          <h4 className="text-sm font-bold text-[#315158]">Tarefas pendentes da comissão</h4>
+          <p className="mt-1 text-xs text-[#668087]">Itens obrigatórios para o cumprimento da NR-05.</p>
+          <div className="mt-4 space-y-3">
+            {pendingCipaTasks.map((task, index) => <div key={index} className="flex items-center justify-between rounded-xl border border-[#dcebe8] bg-white p-3.5 shadow-sm"><div className="flex items-center gap-3"><span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${task.completed ? "bg-[#0c7474] text-white" : "bg-[#f2f5f4] text-[#83a09a]"}`}>{task.completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</span><span className="text-xs font-semibold text-[#315158]">{task.title}</span></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${task.completed ? "bg-[#e8f6f1] text-[#0c7474]" : "bg-[#fff0e9] text-[#b85c36]"}`}>{task.completed ? "Concluído" : "Pendente"}</span></div>)}
+          </div>
+        </div>
+      </div>
     </section>
 
     <section className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Ferramentas compartilhadas</p><h3 className="mt-1 text-xl font-bold">Atalhos na ordem da sua rotina</h3></div><p className="max-w-sm text-sm text-[#668087]">As mesmas ferramentas permanecem disponíveis nos dois ambientes; a ordem muda conforme a prioridade de trabalho.</p></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{context.tools.map(({ href, icon: Icon, title, text }, index) => <Link key={title} href={href} className="group flex items-center gap-3 rounded-2xl border border-[#e6f0ee] p-4 transition hover:border-[#a9d4c8] hover:bg-[#fbfefd]"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]"><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><strong className="block text-sm">{title}</strong><small className="text-xs text-[#668087]">{text}</small></span><span className="text-xs font-bold text-[#90ada9] group-hover:text-[#0c7474]">0{index + 1}</span></Link>)}</div></section>

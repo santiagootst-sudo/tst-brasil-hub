@@ -64,6 +64,7 @@ type CipaMeeting = {
   title: string;
   status: "agendada" | "realizada" | "cancelada";
   notes: string;
+  attachments?: { id: string; name: string; type: "foto" | "documento"; url: string }[];
 };
 
 function meetingsStorageKey(workspaceId: number) {
@@ -329,17 +330,54 @@ export default function CipaAssistant() {
     setMeetings(current => current.map(meeting => meeting.id === meetingId ? { ...meeting, status } : meeting));
   };
 
+  const addMeetingAttachment = (meetingId: string, file: File | undefined, type: "foto" | "documento") => {
+    if (!file) return;
+    if (file.size > 3_000_000) {
+      toast.error("O anexo deve ter no máximo 3 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result) return;
+      setMeetings(current => current.map(meeting => {
+        if (meeting.id !== meetingId) return meeting;
+        const currentAttachments = meeting.attachments || [];
+        return {
+          ...meeting,
+          attachments: [...currentAttachments, { id: crypto.randomUUID(), name: file.name, type, url: result }],
+        };
+      }));
+      toast.success(`${type === "foto" ? "Foto de inspeção" : "Documento"} anexado à reunião.`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeMeetingAttachment = (meetingId: string, attachmentId: string) => {
+    setMeetings(current => current.map(meeting => meeting.id === meetingId ? { ...meeting, attachments: (meeting.attachments || []).filter(item => item.id !== attachmentId) } : meeting));
+    toast.success("Anexo removido.");
+  };
+
   const downloadMeetingMinutes = (meeting: CipaMeeting) => {
-    const content = buildMeetingMinutesContent(meeting, form.empresa);
+    let content = buildMeetingMinutesContent(meeting, form.empresa);
+    const attachments = meeting.attachments || [];
+    if (attachments.length) {
+      const notesLines = [
+        "",
+        "5. ANEXOS, FOTOS DE INSPEÇÃO E REGISTROS COMPLEMENTARES",
+        ...attachments.map(att => `- [${att.type.toUpperCase()}] ${att.name} (Registrado e arquivado no acervo digital do TST Brasil Hub)`),
+      ];
+      content += "\n" + notesLines.join("\n");
+    }
     const meetingDoc = {
       id: `ata-${meeting.id}`,
       title: `Ata de Reunião CIPA · ${meeting.date}`,
       category: "gestao" as const,
-      description: `Ata gerada automaticamente para a reunião de ${meeting.date}.`,
+      description: `Ata gerada automaticamente para a reunião de ${meeting.date} com ${attachments.length} anexo(s).`,
       content,
     };
     downloadDocument(meetingDoc);
-    toast.success("Ata de reunião gerada em PDF.");
+    toast.success("Ata de reunião gerada em PDF com os anexos incluídos.");
   };
 
   const exportMeetingsIcs = () => {
@@ -498,7 +536,7 @@ export default function CipaAssistant() {
                   <div className="grid grid-cols-7">{visibleCalendarDays.map((day, index) => { const dayKey = day ? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}` : ""; const dayMeetings = dayKey ? meetings.filter(meeting => meeting.date === dayKey) : []; return <button key={`${dayKey || "empty"}-${index}`} type="button" disabled={!day} onClick={() => dayKey && setSelectedMeetingDate(dayKey)} className={`min-h-20 border-b border-r border-[#eef4f2] p-2 text-left transition ${!day ? "cursor-default bg-[#fbfdfc]" : selectedMeetingDate === dayKey ? "bg-[#e8f6f1]" : "bg-white hover:bg-[#f7fcfa]"}`} aria-label={day ? `Selecionar ${day.toLocaleDateString("pt-BR")}` : undefined}>{day && <><span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${selectedMeetingDate === dayKey ? "bg-[#0c7474] text-white" : "text-[#315158]"}`}>{day.getDate()}</span>{dayMeetings.map(meeting => <span key={meeting.id} className={`mt-2 block truncate rounded-md px-1.5 py-1 text-[9px] font-bold ${meeting.status === "realizada" ? "bg-[#e8f6f1] text-[#0c7474]" : meeting.status === "cancelada" ? "bg-[#fff0e9] text-[#b85c36]" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{meeting.time} · Reunião</span>)}</>}</button>; })}</div>
                 </div>
                 <div className="mt-5 grid gap-4 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4 md:grid-cols-[1fr_140px_1fr_auto] md:items-end"><Field label="Primeira reunião do ciclo"><Input type="date" value={selectedMeetingDate} onChange={event => setSelectedMeetingDate(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Horário"><Input type="time" value={meetingTime} onChange={event => setMeetingTime(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Pauta ou observação"><Input value={meetingNotes} onChange={event => setMeetingNotes(event.target.value)} placeholder="Ex.: inspeção mensal e SIPAT" className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Button type="button" onClick={addMonthlyMeetings} className="h-11 rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Plus className="mr-2 h-4 w-4" /> Gerar 12 meses</Button></div>
-                <div className="mt-5 space-y-2">{visibleMeetings.length ? visibleMeetings.map(meeting => <div key={meeting.id} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]"><CalendarDays className="h-4 w-4" /></div><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{formatDate(meeting.date)} · {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><div className="flex shrink-0 items-center gap-2">{meeting.status === "realizada" && <Button type="button" variant="outline" onClick={() => downloadMeetingMinutes(meeting)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><FileText className="mr-1.5 h-3.5 w-3.5" /> Baixar Ata PDF</Button>}<select value={meeting.status} onChange={event => updateMeetingStatus(meeting.id, event.target.value as CipaMeeting["status"])} className="h-9 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-bold text-[#315158] outline-none"><option value="agendada">Agendada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div></div>) : <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada neste mês. Escolha a primeira data e gere o ciclo mensal.</p>}</div>
+                <div className="mt-5 space-y-2">{visibleMeetings.length ? visibleMeetings.map(meeting => <div key={meeting.id} className="rounded-2xl border border-[#edf4f1] bg-white p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]"><CalendarDays className="h-4 w-4" /></div><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{formatDate(meeting.date)} · {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><div className="flex flex-wrap items-center gap-2">{meeting.status === "realizada" && <Button type="button" variant="outline" onClick={() => downloadMeetingMinutes(meeting)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><FileText className="mr-1.5 h-3.5 w-3.5" /> Baixar Ata PDF</Button>}<label className="inline-flex cursor-pointer items-center rounded-xl border border-[#dcebe8] bg-[#f7fcfa] px-3 py-2 text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><ImageUp className="mr-1.5 h-3.5 w-3.5" /> Anexar foto<input type="file" accept="image/*" className="sr-only" onChange={event => addMeetingAttachment(meeting.id, event.target.files?.[0], "foto")} /></label><label className="inline-flex cursor-pointer items-center rounded-xl border border-[#dcebe8] bg-[#f7fcfa] px-3 py-2 text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><Upload className="mr-1.5 h-3.5 w-3.5" /> Anexar doc<input type="file" accept=".pdf,.doc,.docx,.txt,.csv" className="sr-only" onChange={event => addMeetingAttachment(meeting.id, event.target.files?.[0], "documento")} /></label><select value={meeting.status} onChange={event => updateMeetingStatus(meeting.id, event.target.value as CipaMeeting["status"])} className="h-9 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-bold text-[#315158] outline-none"><option value="agendada">Agendada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div></div>{meeting.attachments && meeting.attachments.length > 0 && <div className="mt-3 flex flex-wrap gap-2 border-t border-[#edf4f1] pt-3">{meeting.attachments.map(att => <span key={att.id} className="inline-flex items-center gap-1.5 rounded-full border border-[#dcebe8] bg-[#f7fcfa] px-3 py-1 text-[11px] font-semibold text-[#315158]"><span>{att.type === "foto" ? "📷" : "📄"}</span><span className="max-w-[160px] truncate">{att.name}</span><button type="button" onClick={() => removeMeetingAttachment(meeting.id, att.id)} className="ml-1 text-[#83a09a] hover:text-[#b85c36]" aria-label="Remover anexo"><X className="h-3 w-3" /></button></span>)}</div>}</div>) : <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada neste mês. Escolha a primeira data e gere o ciclo mensal.</p>}</div>
               </SectionCard>
 
               <SectionCard icon={FileSpreadsheet} eyebrow="Etapa 05 · base de funcionários" title="Importar planilha para votação e candidatos">

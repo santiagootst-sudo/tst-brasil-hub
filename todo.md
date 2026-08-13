@@ -429,3 +429,8 @@
 - [x] Implementar exportação do calendário de reuniões para arquivo iCalendar (.ics).
 - [x] Atualizar suíte de testes unitários com validação para atas e formato .ics.
 - [x] Publicar checkpoint da evolução e registrar instruções de homologação.
+
+- [x] Implementar suporte para anexar fotos de inspeções e documentos nas reuniões e atas de CIPA.
+- [x] Criar widget no painel principal (WorkspaceOverview) com próximas reuniões e tarefas da CIPA.
+- [x] Atualizar testes unitários e verificar build de produção.
+- [x] Publicar checkpoint final e registrar instruções de homologação.
