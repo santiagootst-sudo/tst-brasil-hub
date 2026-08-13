@@ -413,4 +413,9 @@
 - [x] Integrar o Assistant CIPA à navegação contextual dos ambientes Prestador de Serviço e Empresa.
 - [x] Implementar a geração e o gerenciamento visual dos documentos da CIPA sem dados fictícios persistidos.
 - [x] Validar responsividade, acessibilidade, permissões por workspace e cobertura automatizada do módulo Assistant CIPA.
-- [ ] Publicar checkpoint da integração do Assistant CIPA e registrar instruções de homologação.
+- [x] Publicar checkpoint da integração do Assistant CIPA e registrar instruções de homologação.
+
+- [x] Adicionar seção de histórico de documentos gerados na sessão para visualização e re-download a qualquer momento.
+- [x] Personalizar a exportação em PDF para incluir identidade visual do TST Brasil Hub, cabeçalho profissional e espaço dedicado à logo da empresa.
+- [x] Adicionar tooltips interativos nos campos de grau de risco e número de empregados com orientações detalhadas da NR-04 e NR-05.
+- [x] Atualizar testes automatizados, verificar build de produção e publicar checkpoint da nova evolução.
