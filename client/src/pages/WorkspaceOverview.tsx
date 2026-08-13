@@ -6,6 +6,7 @@ import DashboardCharts from "@/components/DashboardCharts";
 import { trpc } from "@/lib/trpc";
 
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
+import { daysUntilCipaMeeting, isCipaMeetingUrgent } from "@/lib/cipaUrgency";
 
 type Priority = {
   href: string;
@@ -128,6 +129,8 @@ export default function WorkspaceOverview() {
   }
   const todayStr = new Date().toISOString().slice(0, 10);
   const upcomingCipaMeetings = cipaMeetingsList.filter((meeting: { status: string; date: string }) => meeting.status === "agendada" && meeting.date >= todayStr).slice(0, 3);
+  const urgentCipaMeetings = upcomingCipaMeetings.filter(meeting => isCipaMeetingUrgent(meeting.date));
+  const cipaHasUrgentMeeting = urgentCipaMeetings.length > 0;
   const pendingCipaTasks = [
     { title: "Validação do Dimensionamento (NR-05)", completed: false },
     { title: "Homologação do Calendário Anual de Reuniões", completed: cipaMeetingsList.length >= 12 },
@@ -329,12 +332,12 @@ export default function WorkspaceOverview() {
       <article className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Foco da semana</p><h3 className="mt-1 text-xl font-bold">{context.routineTitle}</h3><ol className="mt-5 space-y-3">{context.routine.map((step, index) => <li key={step} className="flex gap-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#e8f6f1] text-xs font-bold text-[#0c7474]">{index + 1}</span><p className="pt-1 text-sm leading-5 text-[#47636a]">{step}</p></li>)}</ol></article>
     </section>
 
-    <section className="rounded-[2rem] border border-[#dcebe8] bg-white p-6 shadow-[0_14px_45px_rgba(16,43,50,.055)] lg:p-7">
+    <section className={`rounded-[2rem] border p-6 shadow-[0_14px_45px_rgba(16,43,50,.055)] transition-colors lg:p-7 ${cipaHasUrgentMeeting ? "border-[#f1c9ba] bg-[linear-gradient(135deg,#fff9f5_0%,#ffffff_58%,#fff2eb_100%)]" : "border-[#dcebe8] bg-white"}`}>
       <div className="flex flex-col justify-between gap-4 border-b border-[#edf4f1] pb-5 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474] shadow-sm"><CalendarDays className="h-5 w-5" /></div>
+          <div className={`grid h-11 w-11 place-items-center rounded-2xl shadow-sm ${cipaHasUrgentMeeting ? "bg-[#fff0e9] text-[#c76845]" : "bg-[#e8f6f1] text-[#0c7474]"}`}><CalendarDays className="h-5 w-5" /></div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">Gestão ativa NR-05</p>
+            <p className={`text-[10px] font-bold uppercase tracking-[.16em] ${cipaHasUrgentMeeting ? "text-[#c76845]" : "text-[#0c8c89]"}`}>{cipaHasUrgentMeeting ? `Atenção · ${urgentCipaMeetings.length} reunião(ões) em até 3 dias` : "Gestão ativa NR-05"}</p>
             <h3 className="mt-1 text-xl font-bold text-[#102b32]">Próximas reuniões e pendências da CIPA</h3>
           </div>
         </div>
@@ -346,7 +349,7 @@ export default function WorkspaceOverview() {
           <h4 className="text-sm font-bold text-[#315158]">Próximas reuniões ordinárias</h4>
           <p className="mt-1 text-xs text-[#668087]">Encontros agendados no calendário oficial deste ambiente.</p>
           <div className="mt-4 space-y-3">
-            {upcomingCipaMeetings.length ? upcomingCipaMeetings.map(meeting => <div key={meeting.id} className="flex items-center justify-between rounded-xl border border-[#dcebe8] bg-white p-3.5 shadow-sm"><div><p className="text-xs font-bold text-[#102b32]">{meeting.title}</p><p className="mt-1 text-[11px] text-[#668087]">{meeting.date} às {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div><span className="rounded-full bg-[#eaf4fd] px-2.5 py-1 text-[10px] font-bold text-[#3173a8]">Agendada</span></div>) : <div className="rounded-xl border border-dashed border-[#cfe3de] bg-white p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada. Acesse o Assistant CIPA para gerar o ciclo de 12 meses.</div>}
+            {upcomingCipaMeetings.length ? upcomingCipaMeetings.map(meeting => { const days = daysUntilCipaMeeting(meeting.date); const isUrgent = isCipaMeetingUrgent(meeting.date); const urgencyLabel = days === 0 ? "Hoje" : days === 1 ? "Amanhã" : `Em ${days} dias`; return <div key={meeting.id} className={`flex items-center justify-between rounded-xl border p-3.5 shadow-sm transition ${isUrgent ? "border-[#efb59f] bg-[#fff8f4] shadow-[0_8px_22px_rgba(198,104,69,.10)]" : "border-[#dcebe8] bg-white"}`}><div className="flex min-w-0 items-center gap-3"><div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${isUrgent ? "bg-[#ffe4d8] text-[#c76845]" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{isUrgent ? <AlertTriangle className="h-4 w-4" /> : <CalendarDays className="h-4 w-4" />}</div><div className="min-w-0"><p className="truncate text-xs font-bold text-[#102b32]">{meeting.title}</p><p className="mt-1 truncate text-[11px] text-[#668087]">{meeting.date} às {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><span className={`ml-3 shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${isUrgent ? "bg-[#ffe4d8] text-[#b85c36] motion-safe:animate-pulse motion-reduce:animate-none" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{isUrgent ? urgencyLabel : "Agendada"}</span></div>; }) : <div className="rounded-xl border border-dashed border-[#cfe3de] bg-white p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada. Acesse o Assistant CIPA para gerar o ciclo de 12 meses.</div>}
           </div>
         </div>
 

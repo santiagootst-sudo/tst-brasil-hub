@@ -434,3 +434,7 @@
 - [x] Criar widget no painel principal (WorkspaceOverview) com próximas reuniões e tarefas da CIPA.
 - [x] Atualizar testes unitários e verificar build de produção.
 - [x] Publicar checkpoint final e registrar instruções de homologação.
+
+- [x] Implementar alertas visuais de urgência no widget da CIPA para reuniões nos próximos 3 dias.
+- [x] Atualizar suíte de testes e verificar build de produção.
+- [x] Publicar checkpoint final e registrar instruções de homologação.
