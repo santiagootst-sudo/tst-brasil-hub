@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { certificateCatalog, certificateNrs, certificateDescription } from "../client/src/lib/certificateCatalog";
+import { certificateWatermarkThemes, getCertificateWatermarkSvgDataUrl } from "../client/src/lib/certificateWatermark";
 
 const generatorSource = readFileSync(resolve(process.cwd(), "client/src/components/CertificateGeneratorPanel.tsx"), "utf8");
 const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/pages/Certificates.tsx"), "utf8");
@@ -29,7 +30,7 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain('import QRCode from "qrcode"');
     expect(generatorSource).toContain('import { GState, jsPDF } from "jspdf"');
     expect(generatorSource).toContain('doc.addPage()');
-    expect(generatorSource).toContain('doc.save(`Certificado_');
+    expect(generatorSource).toContain('const fileName = `Certificado_');
     expect(generatorSource).toContain("watermarkOpacity");
     expect(generatorSource).toContain("qrDataUrl");
     expect(generatorSource).toContain("logoDataUrl");
@@ -47,6 +48,30 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain("Salvar modelo");
     expect(generatorSource).toContain("previewQrDataUrl");
     expect(generatorSource).toContain("QR Code de validação na prévia");
+  });
+
+  it("mantém uma marca d'água temática e sincronizável para cada NR", () => {
+    for (const nr of certificateNrs) {
+      const theme = certificateWatermarkThemes[nr];
+      const svg = getCertificateWatermarkSvgDataUrl(nr, theme.color, 0.12);
+      expect(theme.label.length).toBeGreaterThan(0);
+      expect(theme.description.length).toBeGreaterThan(0);
+      expect(svg).toContain("data:image/svg+xml");
+      expect(svg).toContain(encodeURIComponent(theme.color));
+    }
+    expect(certificateWatermarkThemes["NR-10"].kind).toBe("electricity");
+    expect(certificateWatermarkThemes["NR-33"].kind).toBe("confined");
+    expect(certificateWatermarkThemes["NR-35"].kind).toBe("height");
+  });
+
+  it("oferece prévia modal antes do download e arquivamento", () => {
+    expect(generatorSource).toContain("DialogTitle");
+    expect(generatorSource).toContain("Confira o certificado antes de baixar");
+    expect(generatorSource).toContain("Pré-visualização do certificado em PDF");
+    expect(generatorSource).toContain("handleDownloadPreview");
+    expect(generatorSource).toContain("doc.output(\"blob\")");
+    expect(generatorSource).toContain("Baixar PDF e salvar no acervo");
+    expect(generatorSource).toContain("getCertificateWatermarkSvgDataUrl");
   });
 
   it("integra a emissão ao workspace ativo e permite salvar no acervo real", () => {

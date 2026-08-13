@@ -7,6 +7,8 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Download,
+  Eye,
   FileDown,
   ImagePlus,
   Loader2,
@@ -16,9 +18,19 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   certificateCatalog,
@@ -26,6 +38,10 @@ import {
   certificateNrs,
   type CertificateNr,
 } from "@/lib/certificateCatalog";
+import {
+  getCertificateWatermarkSvgDataUrl,
+  getCertificateWatermarkTheme,
+} from "@/lib/certificateWatermark";
 
 export type GeneratedCertificatePayload = {
   companyId: number | null;
@@ -51,6 +67,24 @@ type ProgramTemplate = {
   nr: CertificateNr;
   content: string;
   updatedAt: string;
+};
+
+type CertificatePdfResult = {
+  registration: string;
+  courseTitle: string;
+  validityText: string;
+  selectedCourse: (typeof certificateCatalog)[CertificateNr]["courses"][number];
+  programItems: string[];
+  pdfBlob: Blob;
+  fileName: string;
+};
+
+type CertificatePreviewState = {
+  url: string;
+  fileName: string;
+  result: CertificatePdfResult;
+  form: FormState;
+  expiresAt: Date | null;
 };
 
 type FormState = {
@@ -109,7 +143,7 @@ const initialForm = (companies: Array<{ id: number; name: string }> = []): FormS
   validationUrl: "",
   phone: "",
   nr33Role: "Supervisor de entrada",
-  watermarkText: "TST BRASIL HUB",
+  watermarkText: getCertificateWatermarkTheme("NR-35").label,
   watermarkOpacity: 0.12,
   backgroundColor: "#f7f2e8",
   accentColor: "#2b9a90",
@@ -151,13 +185,70 @@ function addFrame(doc: jsPDF, primaryColor: string) {
   doc.rect(14, 14, 269, 182);
 }
 
-function addWatermark(doc: jsPDF, text: string, opacity: number, enabled: boolean) {
-  if (!enabled || !text.trim()) return;
+function addWatermarkArtwork(doc: jsPDF, nr: CertificateNr, color: string, opacity: number, enabled: boolean) {
+  if (!enabled) return;
+  const theme = getCertificateWatermarkTheme(nr);
+  const artOpacity = Math.max(0.035, Math.min(opacity * 0.9, 0.24));
+  doc.setGState(new GState({ opacity: artOpacity }));
+  doc.setDrawColor(color);
+  doc.setLineWidth(1.1);
+  doc.setLineCap("round");
+  doc.setLineJoin("round");
+
+  if (theme.kind === "electricity") {
+    doc.lines([[34, -48], [22, 0], [-6, 47], [10, 0], [-18, 59], [42, -74], [-13, 0]], 220, 63);
+    doc.line(40, 54, 73, 54);
+    doc.line(40, 157, 76, 157);
+    doc.circle(28, 54, 4);
+    doc.circle(28, 157, 4);
+    doc.circle(83, 54, 2.2);
+    doc.circle(83, 157, 2.2);
+  } else if (theme.kind === "height") {
+    doc.line(34, 170, 263, 170);
+    doc.lines([[48, -86], [24, 35], [23, -49], [56, 100]], 54, 170);
+    doc.ellipse(214, 83, 42, 29);
+    doc.circle(214, 83, 3.5);
+    doc.line(214, 87, 214, 123);
+    doc.line(214, 98, 198, 116);
+    doc.line(214, 98, 234, 109);
+  } else if (theme.kind === "confined") {
+    doc.ellipse(148.5, 105, 83, 58);
+    doc.ellipse(148.5, 105, 54, 39);
+    doc.ellipse(148.5, 105, 27, 20);
+    doc.circle(148.5, 105, 6);
+    doc.line(148.5, 44, 148.5, 27);
+    doc.line(148.5, 183, 148.5, 166);
+    doc.line(65.5, 105, 48, 105);
+    doc.line(249.5, 105, 232, 105);
+  } else if (theme.kind === "noise") {
+    doc.lines([[17, -20], [17, 20], [17, -20], [17, 20], [17, -20], [17, 20], [17, -20], [17, 20]], 76, 104);
+    doc.lines([[14, -14], [14, 14], [14, -14], [14, 14], [14, -14], [14, 14], [14, -14], [14, 14]], 93, 137);
+    doc.circle(148.5, 105, 52);
+  } else if (theme.kind === "fire") {
+    doc.lines([[0, -28], [15, -22], [19, -43], [34, 14], [23, -13], [35, 39], [-30, 30], [-42, -5], [-28, -43], [-15, 12], [-11, -30]], 148.5, 151);
+    doc.lines([[0, -9], [8, -13], [11, -20], [19, 10], [-10, 19], [-19, 7], [-9, -18], [-8, 5]], 148.5, 141);
+  } else {
+    doc.circle(105, 81, 24);
+    doc.circle(192, 81, 24);
+    doc.lines([[0, 24], [0, 38]], 105, 105);
+    doc.lines([[0, 24], [0, 38]], 192, 105);
+    doc.line(148.5, 49, 148.5, 133);
+    doc.line(119, 91, 178, 91);
+  }
+
+  doc.setGState(new GState({ opacity: 1 }));
+}
+
+function addWatermark(doc: jsPDF, nr: CertificateNr, text: string, opacity: number, enabled: boolean) {
+  if (!enabled) return;
+  const theme = getCertificateWatermarkTheme(nr);
+  addWatermarkArtwork(doc, nr, theme.color, opacity, enabled);
+  if (!text.trim()) return;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(58);
-  doc.setTextColor(195, 205, 202);
-  doc.setGState(new GState({ opacity }));
-  doc.text(text.trim().toUpperCase(), 148.5, 110, { align: "center", angle: -38 });
+  doc.setFontSize(47);
+  doc.setTextColor(theme.color);
+  doc.setGState(new GState({ opacity: Math.min(opacity * 0.72, 0.16) }));
+  doc.text(text.trim().toUpperCase(), 148.5, 113, { align: "center", angle: -32 });
   doc.setGState(new GState({ opacity: 1 }));
 }
 
@@ -193,7 +284,7 @@ async function generateCertificatePdf(form: FormState, logoDataUrl: string | nul
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   addPageBackground(doc, form.backgroundColor);
-  addWatermark(doc, form.watermarkText, form.watermarkOpacity, form.watermarkEnabled);
+  addWatermark(doc, form.nr, form.watermarkText, form.watermarkOpacity, form.watermarkEnabled);
   addFrame(doc, primaryColor);
 
   if (logoDataUrl) {
@@ -281,7 +372,7 @@ async function generateCertificatePdf(form: FormState, logoDataUrl: string | nul
 
   doc.addPage();
   addPageBackground(doc, form.backgroundColor);
-  addWatermark(doc, form.watermarkText, form.watermarkOpacity, form.watermarkEnabled);
+  addWatermark(doc, form.nr, form.watermarkText, form.watermarkOpacity, form.watermarkEnabled);
   addFrame(doc, primaryColor);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
@@ -333,14 +424,27 @@ async function generateCertificatePdf(form: FormState, logoDataUrl: string | nul
   doc.text(`Registro: ${registration}`, 277, 194, { align: "right" });
 
   const safeName = form.participantName.trim().replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "") || "participante";
-  doc.save(`Certificado_${form.nr}_${safeName}.pdf`);
+  const fileName = `Certificado_${form.nr}_${safeName}.pdf`;
   return {
     registration,
     courseTitle,
     validityText,
     selectedCourse,
     programItems,
+    pdfBlob: doc.output("blob"),
+    fileName,
   };
+}
+
+function downloadCertificateBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export default function CertificateGeneratorPanel({ workspaceName, companies = [], canManage, isPersisting = false, onPersist }: CertificateGeneratorPanelProps) {
@@ -353,11 +457,15 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
   const [templateName, setTemplateName] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
+  const [certificatePreview, setCertificatePreview] = useState<CertificatePreviewState | null>(null);
+  const [previewScale, setPreviewScale] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const definition = certificateCatalog[form.nr];
   const selectedCourse = definition.courses.find(course => course.name === form.course) ?? definition.courses[0];
   const programItems = form.programContent.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+  const watermarkTheme = getCertificateWatermarkTheme(form.nr);
+  const watermarkSvgDataUrl = getCertificateWatermarkSvgDataUrl(form.nr, watermarkTheme.color, form.watermarkOpacity);
   const expiresAt = useMemo(() => {
     if (form.validity === "Indeterminada" || !form.completionDate) return null;
     const date = new Date(`${form.completionDate}T12:00:00`);
@@ -368,6 +476,10 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
   useEffect(() => {
     setTemplates(getStoredTemplates());
   }, []);
+
+  useEffect(() => () => {
+    if (certificatePreview?.url) URL.revokeObjectURL(certificatePreview.url);
+  }, [certificatePreview?.url]);
 
   useEffect(() => {
     let active = true;
@@ -450,42 +562,63 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
     if (signatureInputRef.current) signatureInputRef.current.value = "";
   };
 
-  const handleGenerate = async () => {
-    if (!form.participantName.trim()) return toast.error("Informe o nome do participante.");
-    if (!form.cpf.trim()) return toast.error("Informe o CPF do participante.");
-    if (!form.instructor.trim()) return toast.error("Informe o instrutor ou responsável técnico.");
-    if (!form.validationUrl.trim()) return toast.error("Informe a URL de validação para inserir o QR Code no verso.");
-    if (!form.programContent.split(/\r?\n/).some(item => item.trim())) return toast.error("Mantenha ao menos um tópico no conteúdo programático.");
+  const validateForm = () => {
+    if (!form.participantName.trim()) return "Informe o nome do participante.";
+    if (!form.cpf.trim()) return "Informe o CPF do participante.";
+    if (!form.instructor.trim()) return "Informe o instrutor ou responsável técnico.";
+    if (!form.validationUrl.trim()) return "Informe a URL de validação para inserir o QR Code no verso.";
+    if (!form.programContent.split(/\r?\n/).some(item => item.trim())) return "Mantenha ao menos um tópico no conteúdo programático.";
+    return null;
+  };
+
+  const persistCertificate = (snapshot: FormState, result: CertificatePdfResult, snapshotExpiresAt: Date | null) => {
+    if (!snapshot.saveToArchive || !onPersist) return;
+    onPersist({
+      companyId: snapshot.companyId,
+      participantName: snapshot.participantName.trim(),
+      trainingName: `${snapshot.nr} · ${result.courseTitle}`,
+      issuedAt: new Date(`${snapshot.completionDate}T12:00:00`),
+      expiresAt: snapshotExpiresAt,
+      referenceUrl: snapshot.validationUrl.trim() || null,
+      notes: [
+        snapshot.company.trim() ? `Empresa: ${snapshot.company.trim()}` : null,
+        `CPF: ${snapshot.cpf.trim()}`,
+        snapshot.location.trim() ? `Local: ${snapshot.location.trim()}` : null,
+        snapshot.instructor.trim() ? `Instrutor: ${snapshot.instructor.trim()}` : null,
+        snapshot.instructorRegistration.trim() ? `Registro: ${snapshot.instructorRegistration.trim()}` : null,
+        `Carga horária: ${result.selectedCourse.workload}`,
+        `Conteúdo programático: ${result.programItems.join(" | ")}`,
+        `Registro do certificado: ${result.registration}`,
+      ].filter(Boolean).join(" · "),
+    });
+  };
+
+  const handlePreview = async () => {
+    const validationError = validateForm();
+    if (validationError) return toast.error(validationError);
     setIsGenerating(true);
     try {
-      const result = await generateCertificatePdf(form, logoDataUrl, signatureDataUrl);
-      if (form.saveToArchive && onPersist) {
-          onPersist({
-          companyId: form.companyId,
-          participantName: form.participantName.trim(),
-          trainingName: `${form.nr} · ${result.courseTitle}`,
-          issuedAt: new Date(`${form.completionDate}T12:00:00`),
-          expiresAt,
-          referenceUrl: form.validationUrl.trim() || null,
-            notes: [
-            form.company.trim() ? `Empresa: ${form.company.trim()}` : null,
-            `CPF: ${form.cpf.trim()}`,
-            form.location.trim() ? `Local: ${form.location.trim()}` : null,
-            form.instructor.trim() ? `Instrutor: ${form.instructor.trim()}` : null,
-            form.instructorRegistration.trim() ? `Registro: ${form.instructorRegistration.trim()}` : null,
-            `Carga horária: ${result.selectedCourse.workload}`,
-            `Conteúdo programático: ${result.programItems.join(" | ")}`,
-            `Registro do certificado: ${result.registration}`,
-          ].filter(Boolean).join(" · "),
-        });
-      }
-      toast.success(form.saveToArchive ? "PDF gerado e certificado adicionado ao acervo." : "PDF frente e verso gerado com sucesso.");
+      const snapshot = { ...form };
+      const snapshotExpiresAt = expiresAt;
+      const result = await generateCertificatePdf(snapshot, logoDataUrl, signatureDataUrl);
+      const url = URL.createObjectURL(result.pdfBlob);
+      setCertificatePreview({ url, fileName: result.fileName, result, form: snapshot, expiresAt: snapshotExpiresAt });
+      setPreviewScale(1);
+      toast.success("Prévia do certificado pronta para conferência.");
     } catch (error) {
-      console.error("[CertificateGenerator] Falha ao gerar certificado", error);
-      toast.error("Não foi possível gerar o PDF. Revise os dados e tente novamente.");
+      console.error("[CertificateGenerator] Falha ao preparar prévia", error);
+      toast.error("Não foi possível preparar a prévia. Revise os dados e tente novamente.");
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleDownloadPreview = () => {
+    if (!certificatePreview) return;
+    downloadCertificateBlob(certificatePreview.result.pdfBlob, certificatePreview.fileName);
+    persistCertificate(certificatePreview.form, certificatePreview.result, certificatePreview.expiresAt);
+    setCertificatePreview(null);
+    toast.success(certificatePreview.form.saveToArchive ? "PDF baixado e certificado adicionado ao acervo." : "PDF frente e verso baixado com sucesso.");
   };
 
   return (
@@ -527,11 +660,41 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
           <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 sm:grid-cols-2"><div className="sm:col-span-2"><p className="text-xs font-bold text-[#315158]">Assinatura digital do instrutor</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Envie uma imagem PNG/JPG com fundo transparente ou branco. Ela aparecerá automaticamente acima da assinatura do responsável na frente do certificado e na prévia.</p><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center"><div className="grid h-16 w-44 place-items-center overflow-hidden rounded-xl border border-dashed border-[#b9dcd2] bg-white">{signatureDataUrl ? <img src={signatureDataUrl} alt="Prévia da assinatura digital" className="h-full w-full object-contain" /> : <span className="px-3 text-center text-[10px] text-[#78928d]">Sem assinatura carregada</span>}</div><div className="flex flex-wrap items-center gap-3"><input ref={signatureInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handleSignature(event.target.files?.[0])} className="max-w-[210px] text-xs text-[#58736f] file:mr-2 file:rounded-lg file:border-0 file:bg-[#e6f6f0] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#0c7474]" />{signatureDataUrl && <button type="button" onClick={() => { setSignatureDataUrl(null); if (signatureInputRef.current) signatureInputRef.current.value = ""; }} className="text-xs font-bold text-[#b85c36] hover:underline">Remover</button>}<label className="flex items-center gap-2 text-xs font-bold text-[#315158]"><input type="checkbox" checked={form.signatureEnabled} onChange={event => setField("signatureEnabled", event.target.checked)} className="h-4 w-4 accent-[#0c8c89]" />Aplicar na frente</label></div></div></div><div className="sm:col-span-2"><p className="text-xs font-bold text-[#315158]">Identidade visual da empresa</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Escolha a cor de fundo e o tom de destaque usados no PDF e na prévia. O logo carregado acima é específico desta emissão.</p></div><label className="flex items-center justify-between gap-3 rounded-xl border border-[#e1efeb] bg-[#f7fcfa] px-3 py-2.5 text-xs font-bold text-[#315158]">Fundo do certificado<input aria-label="Cor de fundo do certificado" type="color" value={form.backgroundColor} onChange={event => setField("backgroundColor", event.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent p-0" /></label><label className="flex items-center justify-between gap-3 rounded-xl border border-[#e1efeb] bg-[#f7fcfa] px-3 py-2.5 text-xs font-bold text-[#315158]">Cor de destaque<input aria-label="Cor de destaque do certificado" type="color" value={form.accentColor} onChange={event => setField("accentColor", event.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent p-0" /></label></div>
           <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 sm:grid-cols-2"><div className="sm:col-span-2 flex items-center justify-between gap-4"><div><p className="text-xs font-bold text-[#315158]">Marca d’água</p><p className="mt-1 text-xs text-[#78928d]">Use uma identificação discreta nas duas páginas.</p></div><button type="button" role="switch" aria-checked={form.watermarkEnabled} onClick={() => setField("watermarkEnabled", !form.watermarkEnabled)} className={`relative h-6 w-11 rounded-full transition ${form.watermarkEnabled ? "bg-[#0c8c89]" : "bg-[#c9d9d5]"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${form.watermarkEnabled ? "left-6" : "left-1"}`} /></button></div><label className="text-xs font-bold text-[#315158]">Texto da marca d’água<Input disabled={!form.watermarkEnabled} value={form.watermarkText} onChange={event => setField("watermarkText", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="Ex.: TST Brasil Hub" /></label><label className="text-xs font-bold text-[#315158]">Opacidade · {form.watermarkOpacity.toFixed(2)}<input disabled={!form.watermarkEnabled} type="range" min="0.05" max="0.4" step="0.05" value={form.watermarkOpacity} onChange={event => setField("watermarkOpacity", Number(event.target.value))} className="mt-4 w-full accent-[#0c8c89]" /></label></div>
           <div className="flex flex-col gap-3 rounded-2xl border border-[#d9ebe4] bg-[#eff9f4] p-4 text-sm text-[#315158] sm:flex-row sm:items-center sm:justify-between"><label className="flex items-center gap-3"><input type="checkbox" checked={form.saveToArchive} onChange={event => setField("saveToArchive", event.target.checked)} className="h-4 w-4 accent-[#0c8c89]" /><span><strong>Salvar também no acervo</strong><span className="mt-0.5 block text-xs text-[#66827c]">Registra o certificado no ambiente ativo após gerar o PDF.</span></span></label><span className="inline-flex items-center gap-1 text-xs font-bold text-[#0c7474]"><BadgeCheck className="h-4 w-4" />Sem dados fictícios</span></div>
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={reset} className="h-11 rounded-xl border-[#cfe3dd] text-[#496b67]"><RotateCcw className="mr-2 h-4 w-4" />Limpar formulário</Button><Button type="button" onClick={handleGenerate} disabled={isGenerating || isPersisting || !canManage} className="h-11 rounded-xl bg-[#0c8c89] px-5 text-white shadow-[0_10px_24px_rgba(12,140,137,.22)] hover:bg-[#08706f] disabled:opacity-60">{isGenerating || isPersisting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}{isGenerating ? "Montando PDF..." : isPersisting ? "Salvando no acervo..." : "Gerar certificado frente e verso"}</Button></div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={reset} className="h-11 rounded-xl border-[#cfe3dd] text-[#496b67]"><RotateCcw className="mr-2 h-4 w-4" />Limpar formulário</Button><Button type="button" onClick={handlePreview} disabled={isGenerating || isPersisting || !canManage} className="h-11 rounded-xl bg-[#0c8c89] px-5 text-white shadow-[0_10px_24px_rgba(12,140,137,.22)] hover:bg-[#08706f] disabled:opacity-60">{isGenerating || isPersisting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}{isGenerating ? "Montando prévia..." : isPersisting ? "Salvando no acervo..." : "Visualizar prévia do PDF"}</Button></div>
           {!canManage && <p className="text-right text-xs text-[#b85c36]">Seu perfil tem acesso de leitura neste ambiente. Um owner ou manager pode emitir certificados.</p>}
         </div>
-        <aside className="relative overflow-hidden rounded-[1.75rem] bg-[#063b43] p-5 text-white shadow-[0_18px_50px_rgba(6,59,67,.2)] lg:sticky lg:top-6 lg:h-fit"><div className="pointer-events-none absolute -right-12 top-10 h-40 w-40 rounded-full bg-[#9ce8cb]/10 blur-3xl" /><div className="relative"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#9ce8cb]">Prévia dinâmica</p><p className="mt-1 text-sm font-bold text-white">Frente do certificado</p></div><div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10"><Award className="h-5 w-5 text-[#d9bd88]" /></div></div><div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1"><button type="button" onClick={() => setPreviewSide("front")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "front" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Frente</button><button type="button" onClick={() => setPreviewSide("back")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "back" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Verso · conteúdo</button></div>{previewSide === "front" ? (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-center text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}><div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border border-[#2b9a90]/40" style={{ borderColor: form.accentColor }} />{logoDataUrl ? <img src={logoDataUrl} alt="Logo na prévia" className="relative mx-auto h-12 w-20 object-contain" /> : <div className="relative mx-auto grid h-12 w-20 place-items-center rounded-xl border border-dashed border-[#bfae89] text-[#a18e67]"><ImagePlus className="h-5 w-5" /></div>}<p className="relative mt-5 text-[9px] font-bold uppercase tracking-[.3em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="relative mt-3 font-serif text-2xl font-bold tracking-wide text-[#1b4a50]">CERTIFICADO</h5><div className="relative mx-auto mt-2 h-px w-28 bg-[#bfae89]" /><p className="relative mt-7 text-[10px] text-[#68807f]">Certificamos que</p><p className="relative mt-2 min-h-7 px-3 font-serif text-lg font-bold uppercase" style={{ color: form.accentColor }}>{form.participantName || "Nome do participante"}</p><p className="relative mt-2 text-[9px] text-[#68807f]">concluiu com aproveitamento satisfatório</p><p className="relative mt-2 min-h-9 px-3 text-sm font-bold" style={{ color: form.accentColor }}>{form.course || "Curso de capacitação"}</p><div className="relative mt-5 grid grid-cols-2 gap-2 text-left text-[9px] text-[#68807f]"><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Conclusão</span>{formatShortDate(form.completionDate)}</div><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Validade</span>{expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "Indeterminada"}</div></div>{signatureDataUrl && form.signatureEnabled && <img src={signatureDataUrl} alt="Assinatura digital do instrutor na prévia" className="relative mx-auto mt-5 h-10 w-44 object-contain" />}<div className="relative mt-10 grid grid-cols-2 gap-6 text-[8px] text-[#68807f]"><div className="border-t border-[#718585] pt-2">Participante</div><div className="border-t border-[#718585] pt-2">{form.instructor || "Responsável técnico"}</div></div></div>) : (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}><div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border" style={{ borderColor: form.accentColor }} /><div className="relative flex items-center justify-between border-b border-[#dcebe8] pb-3"><div><p className="text-[9px] font-bold uppercase tracking-[.24em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="mt-2 text-lg font-bold text-[#1b4a50]">Conteúdo programático</h5></div>{previewQrDataUrl ? <img src={previewQrDataUrl} alt="QR Code de validação na prévia" className="h-10 w-10 rounded-lg bg-white p-1" /> : <div className="grid h-10 w-10 place-items-center rounded-xl border" style={{ borderColor: form.accentColor, color: form.accentColor }}><QrCode className="h-5 w-5" /></div>}</div><div className="relative mt-4 max-h-[260px] overflow-y-auto pr-1 text-left">{programItems.length ? programItems.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 border-b border-[#e6efec] py-2 text-[10px] leading-4 text-[#4f6a68]"><span className="font-bold" style={{ color: form.accentColor }}>{String(index + 1).padStart(2, "0")}</span><span>{item}</span></div>) : <p className="rounded-lg border border-dashed border-[#cfe3dd] p-3 text-xs text-[#78928d]">Adicione ao menos um tópico no campo de conteúdo programático.</p>}</div><div className="relative mt-4 rounded-xl bg-white/70 p-3 text-left text-[10px] leading-4 text-[#58736f]"><p className="font-bold uppercase tracking-wider" style={{ color: form.accentColor }}>Conteúdo prático sugerido</p>{buildPracticalContent(form.nr).map(item => <p key={item} className="mt-1">• {item}</p>)}</div>{form.validationUrl.trim() && <div className="relative mt-4 flex items-center gap-2 rounded-xl border border-dashed p-3 text-[10px] text-[#58736f]" style={{ borderColor: form.accentColor }}><QrCode className="h-5 w-5 shrink-0" style={{ color: form.accentColor }} /><span>QR Code de validação incluído no PDF frente e verso.</span></div>}</div>)}<div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3"><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Conteúdo</p><p className="mt-1 text-xs font-bold">{programItems.length} módulos</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Carga</p><p className="mt-1 text-xs font-bold">{selectedCourse.workload}</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Verso</p><p className="mt-1 text-xs font-bold">Programático</p></div></div><div className="mt-5 flex items-start gap-2 rounded-xl border border-[#9ce8cb]/20 bg-[#9ce8cb]/10 p-3 text-xs leading-5 text-[#d8f5e8]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#9ce8cb]" />O verso recebe o QR Code de autenticidade a partir da URL oficial de validação informada.</div></div></aside>
+        <aside className="relative overflow-hidden rounded-[1.75rem] bg-[#063b43] p-5 text-white shadow-[0_18px_50px_rgba(6,59,67,.2)] lg:sticky lg:top-6 lg:h-fit"><div className="pointer-events-none absolute -right-12 top-10 h-40 w-40 rounded-full bg-[#9ce8cb]/10 blur-3xl" /><div className="relative"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#9ce8cb]">Prévia dinâmica</p><p className="mt-1 text-sm font-bold text-white">Frente do certificado</p></div><div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10"><Award className="h-5 w-5 text-[#d9bd88]" /></div></div><div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1"><button type="button" onClick={() => setPreviewSide("front")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "front" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Frente</button><button type="button" onClick={() => setPreviewSide("back")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "back" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Verso · conteúdo</button></div>{previewSide === "front" ? (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-center text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}>{form.watermarkEnabled && <img src={watermarkSvgDataUrl} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80" />}<div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border border-[#2b9a90]/40" style={{ borderColor: form.accentColor }} />{logoDataUrl ? <img src={logoDataUrl} alt="Logo na prévia" className="relative mx-auto h-12 w-20 object-contain" /> : <div className="relative mx-auto grid h-12 w-20 place-items-center rounded-xl border border-dashed border-[#bfae89] text-[#a18e67]"><ImagePlus className="h-5 w-5" /></div>}<p className="relative mt-5 text-[9px] font-bold uppercase tracking-[.3em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="relative mt-3 font-serif text-2xl font-bold tracking-wide text-[#1b4a50]">CERTIFICADO</h5><div className="relative mx-auto mt-2 h-px w-28 bg-[#bfae89]" /><p className="relative mt-7 text-[10px] text-[#68807f]">Certificamos que</p><p className="relative mt-2 min-h-7 px-3 font-serif text-lg font-bold uppercase" style={{ color: form.accentColor }}>{form.participantName || "Nome do participante"}</p><p className="relative mt-2 text-[9px] text-[#68807f]">concluiu com aproveitamento satisfatório</p><p className="relative mt-2 min-h-9 px-3 text-sm font-bold" style={{ color: form.accentColor }}>{form.course || "Curso de capacitação"}</p><div className="relative mt-5 grid grid-cols-2 gap-2 text-left text-[9px] text-[#68807f]"><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Conclusão</span>{formatShortDate(form.completionDate)}</div><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Validade</span>{expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "Indeterminada"}</div></div>{signatureDataUrl && form.signatureEnabled && <img src={signatureDataUrl} alt="Assinatura digital do instrutor na prévia" className="relative mx-auto mt-5 h-10 w-44 object-contain" />}<div className="relative mt-10 grid grid-cols-2 gap-6 text-[8px] text-[#68807f]"><div className="border-t border-[#718585] pt-2">Participante</div><div className="border-t border-[#718585] pt-2">{form.instructor || "Responsável técnico"}</div></div></div>) : (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}>{form.watermarkEnabled && <img src={watermarkSvgDataUrl} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-80" />}<div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border" style={{ borderColor: form.accentColor }} /><div className="relative flex items-center justify-between border-b border-[#dcebe8] pb-3"><div><p className="text-[9px] font-bold uppercase tracking-[.24em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="mt-2 text-lg font-bold text-[#1b4a50]">Conteúdo programático</h5></div>{previewQrDataUrl ? <img src={previewQrDataUrl} alt="QR Code de validação na prévia" className="h-10 w-10 rounded-lg bg-white p-1" /> : <div className="grid h-10 w-10 place-items-center rounded-xl border" style={{ borderColor: form.accentColor, color: form.accentColor }}><QrCode className="h-5 w-5" /></div>}</div><div className="relative mt-4 max-h-[260px] overflow-y-auto pr-1 text-left">{programItems.length ? programItems.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 border-b border-[#e6efec] py-2 text-[10px] leading-4 text-[#4f6a68]"><span className="font-bold" style={{ color: form.accentColor }}>{String(index + 1).padStart(2, "0")}</span><span>{item}</span></div>) : <p className="rounded-lg border border-dashed border-[#cfe3dd] p-3 text-xs text-[#78928d]">Adicione ao menos um tópico no campo de conteúdo programático.</p>}</div><div className="relative mt-4 rounded-xl bg-white/70 p-3 text-left text-[10px] leading-4 text-[#58736f]"><p className="font-bold uppercase tracking-wider" style={{ color: form.accentColor }}>Conteúdo prático sugerido</p>{buildPracticalContent(form.nr).map(item => <p key={item} className="mt-1">• {item}</p>)}</div>{form.validationUrl.trim() && <div className="relative mt-4 flex items-center gap-2 rounded-xl border border-dashed p-3 text-[10px] text-[#58736f]" style={{ borderColor: form.accentColor }}><QrCode className="h-5 w-5 shrink-0" style={{ color: form.accentColor }} /><span>QR Code de validação incluído no PDF frente e verso.</span></div>}</div>)}<div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3"><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Conteúdo</p><p className="mt-1 text-xs font-bold">{programItems.length} módulos</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Carga</p><p className="mt-1 text-xs font-bold">{selectedCourse.workload}</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Verso</p><p className="mt-1 text-xs font-bold">Programático</p></div></div><div className="mt-5 flex items-start gap-2 rounded-xl border border-[#9ce8cb]/20 bg-[#9ce8cb]/10 p-3 text-xs leading-5 text-[#d8f5e8]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#9ce8cb]" />O verso recebe o QR Code de autenticidade a partir da URL oficial de validação informada.</div></div></aside>
       </div>
+      <Dialog open={Boolean(certificatePreview)} onOpenChange={open => { if (!open) { setCertificatePreview(null); setPreviewScale(1); } }}>
+        <DialogContent className="max-w-6xl overflow-hidden border-[#cfe7df] bg-[#f7fcfa] p-0 text-[#173f46]">
+          <DialogHeader className="border-b border-[#dcebe8] bg-white px-6 py-5 pr-14">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogTitle className="font-display text-xl font-bold text-[#102b32]">Confira o certificado antes de baixar</DialogTitle>
+                <DialogDescription className="mt-2 max-w-2xl leading-5 text-[#66827c]">Visualize as duas páginas do PDF A4, confira a marca d’água temática e baixe somente depois de validar os dados da emissão.</DialogDescription>
+              </div>
+              {certificatePreview && <span className="shrink-0 rounded-full bg-[#e6f6f0] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#0c7474]">{getCertificateWatermarkTheme(certificatePreview.form.nr).label}</span>}
+            </div>
+          </DialogHeader>
+          <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_260px] lg:p-6">
+            <div className="min-h-[420px] overflow-auto rounded-2xl border border-[#cfe3dd] bg-[#dbe9e5] p-3 shadow-inner sm:p-5">
+              {certificatePreview && <div className="mx-auto min-h-[390px] origin-top-left overflow-hidden rounded-lg bg-white shadow-[0_20px_45px_rgba(20,73,67,.2)]" style={{ width: `${100 / previewScale}%`, height: `${100 / previewScale}%`, minHeight: `${390 / previewScale}px` }}><iframe title="Pré-visualização do certificado em PDF" src={certificatePreview.url} className="h-full w-full border-0" style={{ transform: `scale(${previewScale})`, transformOrigin: "top left", width: `${100 / previewScale}%`, height: `${100 / previewScale}%` }} /></div>}
+            </div>
+            <aside className="flex flex-col justify-between rounded-2xl border border-[#dcebe8] bg-white p-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">Identidade da emissão</p>
+                {certificatePreview && <><h4 className="mt-2 text-base font-bold text-[#173f46]">{certificatePreview.form.nr} · {certificatePreview.result.courseTitle}</h4><p className="mt-2 text-xs leading-5 text-[#66827c]">{getCertificateWatermarkTheme(certificatePreview.form.nr).description}</p><div className="mt-4 overflow-hidden rounded-xl border border-[#e1efeb] bg-[#f7fcfa]"><img src={getCertificateWatermarkSvgDataUrl(certificatePreview.form.nr, getCertificateWatermarkTheme(certificatePreview.form.nr).color, certificatePreview.form.watermarkOpacity)} alt="Marca d’água temática do certificado" className="h-32 w-full object-cover" /></div><dl className="mt-4 space-y-2 text-xs text-[#58736f]"><div className="flex justify-between gap-3"><dt>Participante</dt><dd className="max-w-[145px] truncate font-bold text-[#315158]">{certificatePreview.form.participantName}</dd></div><div className="flex justify-between gap-3"><dt>Registro</dt><dd className="font-bold text-[#315158]">{certificatePreview.result.registration}</dd></div><div className="flex justify-between gap-3"><dt>Páginas</dt><dd className="font-bold text-[#315158]">Frente e verso</dd></div></dl></>}
+              </div>
+              <div className="mt-6 space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#78928d]">Controles de leitura</p>
+                <div className="grid grid-cols-3 gap-2"><Button type="button" variant="outline" onClick={() => setPreviewScale(scale => Math.max(0.8, Number((scale - 0.1).toFixed(1))))} className="h-10 rounded-xl border-[#cfe3dd] text-[#0c7474]" aria-label="Reduzir zoom"><ZoomOut className="h-4 w-4" /></Button><Button type="button" variant="outline" onClick={() => setPreviewScale(1)} className="h-10 rounded-xl border-[#cfe3dd] text-xs font-bold text-[#0c7474]">100%</Button><Button type="button" variant="outline" onClick={() => setPreviewScale(scale => Math.min(1.4, Number((scale + 0.1).toFixed(1))))} className="h-10 rounded-xl border-[#cfe3dd] text-[#0c7474]" aria-label="Aumentar zoom"><ZoomIn className="h-4 w-4" /></Button></div>
+                <Button type="button" onClick={handleDownloadPreview} disabled={!certificatePreview} className="h-11 w-full rounded-xl bg-[#0c8c89] font-bold text-white hover:bg-[#08706f]"><Download className="mr-2 h-4 w-4" />{certificatePreview?.form.saveToArchive ? "Baixar PDF e salvar no acervo" : "Baixar PDF"}</Button>
+              </div>
+            </aside>
+          </div>
+          <DialogFooter className="border-t border-[#dcebe8] bg-white px-6 py-4"><p className="mr-auto text-xs text-[#66827c]">{certificatePreview?.form.saveToArchive ? "O documento só é registrado no acervo quando o download for confirmado." : "O download não altera o acervo desta emissão."}</p></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -342,3 +342,8 @@
 - [x] Implementar animações de entrada suaves e refinadas para textos, imagem de fundo e painel do hero.
 - [x] Aprimorar o contraste e adicionar micro-interações de hover e foco nos botões de ação do hero.
 - [x] Otimizar o comportamento da imagem de fundo e do vidro fosco em dispositivos móveis (mobile).
+
+- [x] Criar modal de visualização prévia do PDF do certificado com navegação e download.
+- [x] Implementar marcas d'água visuais dinâmicas por NR no certificado, mantendo legibilidade e alta resolução.
+- [x] Adicionar testes automatizados para o modal de prévia e catálogo de marcas d'água.
+- [x] Verificar build e salvar checkpoint da nova versão do gerador de certificados.
