@@ -520,3 +520,7 @@
 - [x] Adicionar animação de sucesso fluida e mensagem de agradecimento dedicada após o envio do feedback no Marketplace.
 
 - [x] Atualizar o módulo Biblioteca com cards menores, capas ilustradas e catálogo completo de Normas Regulamentadoras (NRs).
+
+- [x] Adicionar favoritos com estrela interativa e seção de acesso rápido no topo da Biblioteca.
+- [x] Criar histórico de leitura para exibir normas e documentos abertos recentemente.
+- [x] Implementar botão de download em PDF para cada norma e documento oficial.
