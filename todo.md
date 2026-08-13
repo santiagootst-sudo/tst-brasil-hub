@@ -303,3 +303,8 @@
 - [x] Corrigir a pré-visualização para exibir frente e verso do certificado, incluindo o conteúdo programático editável.
 - [x] Aplicar o conteúdo programático editável no verso do PDF e manter a persistência no acervo.
 - [x] Adicionar testes e validar visualmente NR-05, edição do conteúdo e pré-visualização frente/verso.
+
+- [x] Adicionar upload de assinatura digital do instrutor com aplicação automática na frente do certificado e na prévia.
+- [x] Criar funcionalidade para salvar o conteúdo programático atual como modelo padrão (armazenado em localStorage por norma).
+- [x] Garantir renderização do QR Code de validação no verso do PDF e na prévia interativa do verso.
+- [x] Cobrir os novos recursos com testes automatizados e validar o build e a interface no navegador.

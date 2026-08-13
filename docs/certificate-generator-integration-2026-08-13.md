@@ -24,3 +24,12 @@ A emissão exige nome, CPF e instrutor/responsável técnico. O e-mail e a ident
 ## Validação realizada
 
 A checagem TypeScript, a suíte de testes e o build de produção foram executados após a integração. Foram adicionados contratos para o catálogo, PDF frente/verso, marca d’água, QR Code, logo e vínculo com o workspace. A prévia visual foi capturada em desktop com o gerador aberto, mostrando o formulário responsivo, a prévia dinâmica do certificado e o acervo legal abaixo da ferramenta.
+
+
+## Atualização de 13/08/2026 — assinatura, modelos e QR Code
+
+A validação visual no workspace Autônomo `240001` confirmou que o gerador apresenta a opção de **NR-05** com quatro cursos por grau de risco e respectivas cargas horárias de 8h, 12h, 16h e 20h. O campo de conteúdo programático permanece pré-preenchido com os tópicos da norma, permite edição e exibe os controles **Modelos de conteúdo**, **Salvar modelo** e aplicação de modelo salvo.
+
+A mesma tela apresenta o bloco **Assinatura digital do instrutor**, com upload de imagem, prévia, remoção e a opção **Aplicar na frente**. A prévia interativa permite alternar entre **Frente** e **Verso · conteúdo**. Ao selecionar o verso, os tópicos programáticos da NR-05 são exibidos e o QR Code de validação aparece quando a URL configurada está presente. A emissão agora valida a URL antes de gerar o PDF, garantindo que o verso tenha QR Code de autenticidade.
+
+A suíte automatizada permaneceu com **128 testes aprovados** e o build de produção foi concluído com sucesso. A captura visual foi realizada pela pré-visualização do projeto em `/app/certificados?generator=1&workspace=240001`.

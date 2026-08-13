@@ -41,6 +41,12 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain("Conteúdo programático mínimo sugerido");
     expect(generatorSource).toContain('setPreviewSide("back")');
     expect(generatorSource).toContain("Conteúdo prático sugerido");
+    expect(generatorSource).toContain("signatureDataUrl");
+    expect(generatorSource).toContain("Assinatura digital do instrutor");
+    expect(generatorSource).toContain("TEMPLATE_STORAGE_KEY");
+    expect(generatorSource).toContain("Salvar modelo");
+    expect(generatorSource).toContain("previewQrDataUrl");
+    expect(generatorSource).toContain("QR Code de validação na prévia");
   });
 
   it("integra a emissão ao workspace ativo e permite salvar no acervo real", () => {

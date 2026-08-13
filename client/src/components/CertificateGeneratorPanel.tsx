@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { GState, jsPDF } from "jspdf";
 import {
@@ -45,6 +45,14 @@ type CertificateGeneratorPanelProps = {
   onPersist?: (payload: GeneratedCertificatePayload) => void;
 };
 
+type ProgramTemplate = {
+  id: string;
+  name: string;
+  nr: CertificateNr;
+  content: string;
+  updatedAt: string;
+};
+
 type FormState = {
   companyId: number | null;
   participantName: string;
@@ -66,8 +74,25 @@ type FormState = {
   accentColor: string;
   watermarkEnabled: boolean;
   programContent: string;
+  signatureEnabled: boolean;
   saveToArchive: boolean;
 };
+
+const TEMPLATE_STORAGE_KEY = "tst-brasil-hub:certificate-program-templates:v1";
+
+function getStoredTemplates(): ProgramTemplate[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(TEMPLATE_STORAGE_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter(item => item && typeof item.id === "string" && typeof item.content === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function getDefaultProgramContent(nr: CertificateNr, templates = getStoredTemplates()) {
+  return templates.find(template => template.nr === nr)?.content ?? certificateCatalog[nr].content.join("\n");
+}
 
 const initialForm = (companies: Array<{ id: number; name: string }> = []): FormState => ({
   companyId: companies.length === 1 ? companies[0].id : null,
@@ -89,7 +114,8 @@ const initialForm = (companies: Array<{ id: number; name: string }> = []): FormS
   backgroundColor: "#f7f2e8",
   accentColor: "#2b9a90",
   watermarkEnabled: true,
-  programContent: certificateCatalog["NR-35"].content.join("\n"),
+  programContent: getDefaultProgramContent("NR-35"),
+  signatureEnabled: true,
   saveToArchive: true,
 });
 
@@ -148,7 +174,7 @@ function buildPracticalContent(nr: CertificateNr) {
   return ["Medições práticas com decibelímetro", "Avaliação de cenários de exposição"];
 }
 
-async function generateCertificatePdf(form: FormState, logoDataUrl: string | null) {
+async function generateCertificatePdf(form: FormState, logoDataUrl: string | null, signatureDataUrl: string | null) {
   const definition = certificateCatalog[form.nr];
   const selectedCourse = definition.courses.find(course => course.name === form.course) ?? definition.courses[0];
   const primaryColor = form.accentColor || definition.colors[0];
@@ -232,6 +258,13 @@ async function generateCertificatePdf(form: FormState, logoDataUrl: string | nul
   doc.text(`Local: ${form.location.trim() || "Não informado"}   Conclusão: ${formatLongDate(form.completionDate)}`, 148.5, y, { align: "center" });
 
   const signatureY = 174;
+  if (signatureDataUrl && form.signatureEnabled) {
+    try {
+      doc.addImage(signatureDataUrl, imageFormat(signatureDataUrl), 181, 145, 76, 25, undefined, "FAST");
+    } catch {
+      // A assinatura é opcional; o certificado continua válido sem a imagem.
+    }
+  }
   doc.setDrawColor(112, 125, 122);
   doc.setLineWidth(0.3);
   doc.line(40, signatureY, 118, signatureY);
@@ -314,8 +347,14 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
   const [form, setForm] = useState<FormState>(() => initialForm(companies));
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [previewQrDataUrl, setPreviewQrDataUrl] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<ProgramTemplate[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [previewSide, setPreviewSide] = useState<"front" | "back">("front");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
   const definition = certificateCatalog[form.nr];
   const selectedCourse = definition.courses.find(course => course.name === form.course) ?? definition.courses[0];
   const programItems = form.programContent.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
@@ -326,7 +365,48 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
     return date;
   }, [form.completionDate, form.validity]);
 
+  useEffect(() => {
+    setTemplates(getStoredTemplates());
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const target = form.validationUrl.trim();
+    if (!target) {
+      setPreviewQrDataUrl(null);
+      return () => { active = false; };
+    }
+    QRCode.toDataURL(target, { margin: 1, width: 180, color: { dark: form.accentColor, light: "#ffffff" } })
+      .then(url => { if (active) setPreviewQrDataUrl(url); })
+      .catch(() => { if (active) setPreviewQrDataUrl(null); });
+    return () => { active = false; };
+  }, [form.validationUrl, form.accentColor]);
+
   const setField = <K extends keyof FormState>(field: K, value: FormState[K]) => setForm(current => ({ ...current, [field]: value }));
+
+  const saveProgramTemplate = () => {
+    const name = templateName.trim() || `Modelo ${form.nr} · ${new Date().toLocaleDateString("pt-BR")}`;
+    const template: ProgramTemplate = { id: `${form.nr}-${Date.now()}`, name, nr: form.nr, content: form.programContent, updatedAt: new Date().toISOString() };
+    const nextTemplates = [template, ...templates.filter(item => item.id !== selectedTemplateId && !(item.nr === form.nr && item.name === name))];
+    setTemplates(nextTemplates);
+    setSelectedTemplateId(template.id);
+    setTemplateName(template.name);
+    try {
+      window.localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(nextTemplates));
+      toast.success("Modelo de conteúdo salvo para futuras emissões.");
+    } catch {
+      toast.error("Não foi possível salvar o modelo neste navegador.");
+    }
+  };
+
+  const applyProgramTemplate = (id: string) => {
+    const template = templates.find(item => item.id === id);
+    if (!template) return;
+    setSelectedTemplateId(template.id);
+    setTemplateName(template.name);
+    setField("programContent", template.content);
+    toast.success(`Modelo aplicado: ${template.name}`);
+  };
 
   const handleNrChange = (nr: CertificateNr) => {
     const nextDefinition = certificateCatalog[nr];
@@ -335,7 +415,7 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
       nr,
       course: nextDefinition.courses[0].name,
       validity: nextDefinition.defaultValidityMonths,
-      programContent: nextDefinition.content.join("\n"),
+      programContent: getDefaultProgramContent(nr, templates),
       nr33Role: nr === "NR-33" ? current.nr33Role : "",
     }));
   };
@@ -351,20 +431,34 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
     reader.readAsDataURL(file);
   };
 
+  const handleSignature = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem válida para a assinatura digital.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = event => setSignatureDataUrl(typeof event.target?.result === "string" ? event.target.result : null);
+    reader.readAsDataURL(file);
+  };
+
   const reset = () => {
     setForm(initialForm(companies));
     setLogoDataUrl(null);
+    setSignatureDataUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (signatureInputRef.current) signatureInputRef.current.value = "";
   };
 
   const handleGenerate = async () => {
     if (!form.participantName.trim()) return toast.error("Informe o nome do participante.");
     if (!form.cpf.trim()) return toast.error("Informe o CPF do participante.");
     if (!form.instructor.trim()) return toast.error("Informe o instrutor ou responsável técnico.");
+    if (!form.validationUrl.trim()) return toast.error("Informe a URL de validação para inserir o QR Code no verso.");
     if (!form.programContent.split(/\r?\n/).some(item => item.trim())) return toast.error("Mantenha ao menos um tópico no conteúdo programático.");
     setIsGenerating(true);
     try {
-      const result = await generateCertificatePdf(form, logoDataUrl);
+      const result = await generateCertificatePdf(form, logoDataUrl, signatureDataUrl);
       if (form.saveToArchive && onPersist) {
           onPersist({
           companyId: form.companyId,
@@ -418,24 +512,25 @@ export default function CertificateGeneratorPanel({ workspaceName, companies = [
             <label className="text-xs font-bold text-[#315158]">Norma Regulamentadora<select value={form.nr} onChange={event => handleNrChange(event.target.value as CertificateNr)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{certificateNrs.map(nr => <option key={nr} value={nr}>{nr} · {certificateCatalog[nr].title}</option>)}</select></label>
             <label className="text-xs font-bold text-[#315158]">Curso / capacitação<select value={form.course} onChange={event => setField("course", event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{definition.courses.map(course => <option key={course.name} value={course.name}>{course.name} · {course.workload}</option>)}</select></label>
             <label className="text-xs font-bold text-[#315158] sm:col-span-2">Conteúdo programático mínimo sugerido <span className="text-[#c85e55]">*</span><span className="mt-1 block text-xs font-normal leading-5 text-[#78928d]">A lista é preenchida com a base recomendada da norma. Edite os tópicos e acrescente linhas conforme a carga horária e o conteúdo efetivamente ministrado.</span><textarea aria-label="Conteúdo programático editável" value={form.programContent} onChange={event => setField("programContent", event.target.value)} rows={8} className="mt-2 w-full resize-y rounded-xl border border-[#d5e8e2] bg-white px-3 py-3 text-sm font-medium leading-6 text-[#315158] outline-none transition placeholder:text-[#9ab4ae] focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10" /></label>
+            <div className="sm:col-span-2 rounded-2xl border border-[#dcebe8] bg-[#f7fcfa] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold text-[#315158]">Modelos de conteúdo</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Salve a versão editada como modelo padrão desta norma para reaproveitar em futuras emissões neste navegador.</p></div><Button type="button" variant="outline" onClick={saveProgramTemplate} className="h-10 rounded-xl border-[#b9dcd2] text-[#0c7474]">Salvar modelo</Button></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input value={templateName} onChange={event => setTemplateName(event.target.value)} className="h-10 rounded-xl border-[#d5e8e2] bg-white" placeholder={`Nome do modelo ${form.nr}`} /><select aria-label="Aplicar modelo de conteúdo" value={selectedTemplateId} onChange={event => applyProgramTemplate(event.target.value)} className="h-10 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]"><option value="">Aplicar modelo salvo…</option>{templates.filter(item => item.nr === form.nr).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></div>
             {form.nr === "NR-33" && <label className="text-xs font-bold text-[#315158] sm:col-span-2">Função no espaço confinado<select value={form.nr33Role} onChange={event => setField("nr33Role", event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]">{["Supervisor de entrada", "Vigia", "Trabalhador autorizado", "Equipe de emergência e salvamento"].map(role => <option key={role}>{role}</option>)}</select></label>}
             <label className="text-xs font-bold text-[#315158]">Validade<select value={form.validity} onChange={event => setField("validity", event.target.value as FormState["validity"])} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]"><option value="12">12 meses</option><option value="24">24 meses</option><option value="36">36 meses</option><option value="Indeterminada">Indeterminada</option></select></label>
             <label className="text-xs font-bold text-[#315158]">Data de conclusão<Input type="date" value={form.completionDate} onChange={event => setField("completionDate", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" /></label>
             <label className="text-xs font-bold text-[#315158]">Local do curso<div className="relative mt-2"><MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#81a49e]" /><Input value={form.location} onChange={event => setField("location", event.target.value)} className="h-11 rounded-xl border-[#d5e8e2] pl-10" placeholder="Cidade / unidade" /></div></label>
             <label className="text-xs font-bold text-[#315158]">Instrutor / responsável <span className="text-[#c85e55">*</span><Input value={form.instructor} onChange={event => setField("instructor", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="Nome do responsável" /></label>
             <label className="text-xs font-bold text-[#315158] sm:col-span-2">Registro profissional do instrutor<Input value={form.instructorRegistration} onChange={event => setField("instructorRegistration", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="CREA, CRT ou outro registro" /></label>
-            <label className="text-xs font-bold text-[#315158] sm:col-span-2">URL de validação para QR Code<div className="relative mt-2"><QrCode className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#81a49e]" /><Input value={form.validationUrl} onChange={event => setField("validationUrl", event.target.value)} className="h-11 rounded-xl border-[#d5e8e2] pl-10" placeholder="https://.../validar/identificador" /></div></label>
+            <label className="text-xs font-bold text-[#315158] sm:col-span-2">URL de validação para QR Code <span className="text-[#c85e55]">*</span><div className="relative mt-2"><QrCode className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#81a49e]" /><Input value={form.validationUrl} onChange={event => setField("validationUrl", event.target.value)} className="h-11 rounded-xl border-[#d5e8e2] pl-10" placeholder="https://.../validar/identificador" /></div></label>
             <label className="text-xs font-bold text-[#315158]">Telefone de contato<Input value={form.phone} onChange={event => setField("phone", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="(00) 00000-0000" /></label>
             <div className="flex items-end"><div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[#b9dcd2] bg-[#f4fbf8] px-3 py-2.5 text-xs text-[#58736f]"><CalendarDays className="h-4 w-4 shrink-0 text-[#0c8c89]" /><span>Validade calculada: <strong className="text-[#315158]">{expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "indeterminada"}</strong></span></div></div>
           </div>
           <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-xs font-bold text-[#315158]">Logo da instituição</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Opcional. O logo é incorporado somente no PDF e não é salvo como dado do participante.</p></div><div className="flex items-center gap-3"><div className="grid h-14 w-14 place-items-center overflow-hidden rounded-xl border border-[#d5e8e2] bg-[#f7fcfa]">{logoDataUrl ? <img src={logoDataUrl} alt="Prévia do logo" className="h-full w-full object-contain" /> : <ImagePlus className="h-5 w-5 text-[#8eada7]" />}</div><input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handleLogo(event.target.files?.[0])} className="max-w-[190px] text-xs text-[#58736f] file:mr-2 file:rounded-lg file:border-0 file:bg-[#e6f6f0] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#0c7474]" />{logoDataUrl && <button type="button" onClick={() => { setLogoDataUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} className="text-xs font-bold text-[#b85c36] hover:underline">Remover</button>}</div></div>
-          <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 sm:grid-cols-2"><div className="sm:col-span-2"><p className="text-xs font-bold text-[#315158]">Identidade visual da empresa</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Escolha a cor de fundo e o tom de destaque usados no PDF e na prévia. O logo carregado acima é específico desta emissão.</p></div><label className="flex items-center justify-between gap-3 rounded-xl border border-[#e1efeb] bg-[#f7fcfa] px-3 py-2.5 text-xs font-bold text-[#315158]">Fundo do certificado<input aria-label="Cor de fundo do certificado" type="color" value={form.backgroundColor} onChange={event => setField("backgroundColor", event.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent p-0" /></label><label className="flex items-center justify-between gap-3 rounded-xl border border-[#e1efeb] bg-[#f7fcfa] px-3 py-2.5 text-xs font-bold text-[#315158]">Cor de destaque<input aria-label="Cor de destaque do certificado" type="color" value={form.accentColor} onChange={event => setField("accentColor", event.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent p-0" /></label></div>
+          <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 sm:grid-cols-2"><div className="sm:col-span-2"><p className="text-xs font-bold text-[#315158]">Assinatura digital do instrutor</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Envie uma imagem PNG/JPG com fundo transparente ou branco. Ela aparecerá automaticamente acima da assinatura do responsável na frente do certificado e na prévia.</p><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center"><div className="grid h-16 w-44 place-items-center overflow-hidden rounded-xl border border-dashed border-[#b9dcd2] bg-white">{signatureDataUrl ? <img src={signatureDataUrl} alt="Prévia da assinatura digital" className="h-full w-full object-contain" /> : <span className="px-3 text-center text-[10px] text-[#78928d]">Sem assinatura carregada</span>}</div><div className="flex flex-wrap items-center gap-3"><input ref={signatureInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={event => handleSignature(event.target.files?.[0])} className="max-w-[210px] text-xs text-[#58736f] file:mr-2 file:rounded-lg file:border-0 file:bg-[#e6f6f0] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#0c7474]" />{signatureDataUrl && <button type="button" onClick={() => { setSignatureDataUrl(null); if (signatureInputRef.current) signatureInputRef.current.value = ""; }} className="text-xs font-bold text-[#b85c36] hover:underline">Remover</button>}<label className="flex items-center gap-2 text-xs font-bold text-[#315158]"><input type="checkbox" checked={form.signatureEnabled} onChange={event => setField("signatureEnabled", event.target.checked)} className="h-4 w-4 accent-[#0c8c89]" />Aplicar na frente</label></div></div></div><div className="sm:col-span-2"><p className="text-xs font-bold text-[#315158]">Identidade visual da empresa</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Escolha a cor de fundo e o tom de destaque usados no PDF e na prévia. O logo carregado acima é específico desta emissão.</p></div><label className="flex items-center justify-between gap-3 rounded-xl border border-[#e1efeb] bg-[#f7fcfa] px-3 py-2.5 text-xs font-bold text-[#315158]">Fundo do certificado<input aria-label="Cor de fundo do certificado" type="color" value={form.backgroundColor} onChange={event => setField("backgroundColor", event.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent p-0" /></label><label className="flex items-center justify-between gap-3 rounded-xl border border-[#e1efeb] bg-[#f7fcfa] px-3 py-2.5 text-xs font-bold text-[#315158]">Cor de destaque<input aria-label="Cor de destaque do certificado" type="color" value={form.accentColor} onChange={event => setField("accentColor", event.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent p-0" /></label></div>
           <div className="grid gap-4 rounded-2xl border border-[#dcebe8] bg-white p-5 sm:grid-cols-2"><div className="sm:col-span-2 flex items-center justify-between gap-4"><div><p className="text-xs font-bold text-[#315158]">Marca d’água</p><p className="mt-1 text-xs text-[#78928d]">Use uma identificação discreta nas duas páginas.</p></div><button type="button" role="switch" aria-checked={form.watermarkEnabled} onClick={() => setField("watermarkEnabled", !form.watermarkEnabled)} className={`relative h-6 w-11 rounded-full transition ${form.watermarkEnabled ? "bg-[#0c8c89]" : "bg-[#c9d9d5]"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${form.watermarkEnabled ? "left-6" : "left-1"}`} /></button></div><label className="text-xs font-bold text-[#315158]">Texto da marca d’água<Input disabled={!form.watermarkEnabled} value={form.watermarkText} onChange={event => setField("watermarkText", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="Ex.: TST Brasil Hub" /></label><label className="text-xs font-bold text-[#315158]">Opacidade · {form.watermarkOpacity.toFixed(2)}<input disabled={!form.watermarkEnabled} type="range" min="0.05" max="0.4" step="0.05" value={form.watermarkOpacity} onChange={event => setField("watermarkOpacity", Number(event.target.value))} className="mt-4 w-full accent-[#0c8c89]" /></label></div>
           <div className="flex flex-col gap-3 rounded-2xl border border-[#d9ebe4] bg-[#eff9f4] p-4 text-sm text-[#315158] sm:flex-row sm:items-center sm:justify-between"><label className="flex items-center gap-3"><input type="checkbox" checked={form.saveToArchive} onChange={event => setField("saveToArchive", event.target.checked)} className="h-4 w-4 accent-[#0c8c89]" /><span><strong>Salvar também no acervo</strong><span className="mt-0.5 block text-xs text-[#66827c]">Registra o certificado no ambiente ativo após gerar o PDF.</span></span></label><span className="inline-flex items-center gap-1 text-xs font-bold text-[#0c7474]"><BadgeCheck className="h-4 w-4" />Sem dados fictícios</span></div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={reset} className="h-11 rounded-xl border-[#cfe3dd] text-[#496b67]"><RotateCcw className="mr-2 h-4 w-4" />Limpar formulário</Button><Button type="button" onClick={handleGenerate} disabled={isGenerating || isPersisting || !canManage} className="h-11 rounded-xl bg-[#0c8c89] px-5 text-white shadow-[0_10px_24px_rgba(12,140,137,.22)] hover:bg-[#08706f] disabled:opacity-60">{isGenerating || isPersisting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}{isGenerating ? "Montando PDF..." : isPersisting ? "Salvando no acervo..." : "Gerar certificado frente e verso"}</Button></div>
           {!canManage && <p className="text-right text-xs text-[#b85c36]">Seu perfil tem acesso de leitura neste ambiente. Um owner ou manager pode emitir certificados.</p>}
         </div>
-        <aside className="relative overflow-hidden rounded-[1.75rem] bg-[#063b43] p-5 text-white shadow-[0_18px_50px_rgba(6,59,67,.2)] lg:sticky lg:top-6 lg:h-fit"><div className="pointer-events-none absolute -right-12 top-10 h-40 w-40 rounded-full bg-[#9ce8cb]/10 blur-3xl" /><div className="relative"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#9ce8cb]">Prévia dinâmica</p><p className="mt-1 text-sm font-bold text-white">Frente do certificado</p></div><div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10"><Award className="h-5 w-5 text-[#d9bd88]" /></div></div><div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1"><button type="button" onClick={() => setPreviewSide("front")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "front" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Frente</button><button type="button" onClick={() => setPreviewSide("back")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "back" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Verso · conteúdo</button></div>{previewSide === "front" ? (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-center text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}><div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border border-[#2b9a90]/40" style={{ borderColor: form.accentColor }} />{logoDataUrl ? <img src={logoDataUrl} alt="Logo na prévia" className="relative mx-auto h-12 w-20 object-contain" /> : <div className="relative mx-auto grid h-12 w-20 place-items-center rounded-xl border border-dashed border-[#bfae89] text-[#a18e67]"><ImagePlus className="h-5 w-5" /></div>}<p className="relative mt-5 text-[9px] font-bold uppercase tracking-[.3em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="relative mt-3 font-serif text-2xl font-bold tracking-wide text-[#1b4a50]">CERTIFICADO</h5><div className="relative mx-auto mt-2 h-px w-28 bg-[#bfae89]" /><p className="relative mt-7 text-[10px] text-[#68807f]">Certificamos que</p><p className="relative mt-2 min-h-7 px-3 font-serif text-lg font-bold uppercase" style={{ color: form.accentColor }}>{form.participantName || "Nome do participante"}</p><p className="relative mt-2 text-[9px] text-[#68807f]">concluiu com aproveitamento satisfatório</p><p className="relative mt-2 min-h-9 px-3 text-sm font-bold" style={{ color: form.accentColor }}>{form.course || "Curso de capacitação"}</p><div className="relative mt-5 grid grid-cols-2 gap-2 text-left text-[9px] text-[#68807f]"><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Conclusão</span>{formatShortDate(form.completionDate)}</div><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Validade</span>{expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "Indeterminada"}</div></div><div className="relative mt-10 grid grid-cols-2 gap-6 text-[8px] text-[#68807f]"><div className="border-t border-[#718585] pt-2">Participante</div><div className="border-t border-[#718585] pt-2">{form.instructor || "Responsável técnico"}</div></div></div>) : (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}><div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border" style={{ borderColor: form.accentColor }} /><div className="relative flex items-center justify-between border-b border-[#dcebe8] pb-3"><div><p className="text-[9px] font-bold uppercase tracking-[.24em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="mt-2 text-lg font-bold text-[#1b4a50]">Conteúdo programático</h5></div><div className="grid h-10 w-10 place-items-center rounded-xl border" style={{ borderColor: form.accentColor, color: form.accentColor }}><QrCode className="h-5 w-5" /></div></div><div className="relative mt-4 max-h-[260px] overflow-y-auto pr-1 text-left">{programItems.length ? programItems.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 border-b border-[#e6efec] py-2 text-[10px] leading-4 text-[#4f6a68]"><span className="font-bold" style={{ color: form.accentColor }}>{String(index + 1).padStart(2, "0")}</span><span>{item}</span></div>) : <p className="rounded-lg border border-dashed border-[#cfe3dd] p-3 text-xs text-[#78928d]">Adicione ao menos um tópico no campo de conteúdo programático.</p>}</div><div className="relative mt-4 rounded-xl bg-white/70 p-3 text-left text-[10px] leading-4 text-[#58736f]"><p className="font-bold uppercase tracking-wider" style={{ color: form.accentColor }}>Conteúdo prático sugerido</p>{buildPracticalContent(form.nr).map(item => <p key={item} className="mt-1">• {item}</p>)}</div>{form.validationUrl.trim() && <div className="relative mt-4 flex items-center gap-2 rounded-xl border border-dashed p-3 text-[10px] text-[#58736f]" style={{ borderColor: form.accentColor }}><QrCode className="h-5 w-5 shrink-0" style={{ color: form.accentColor }} /><span>QR Code de validação incluído no PDF frente e verso.</span></div>}</div>)}<div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3"><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Conteúdo</p><p className="mt-1 text-xs font-bold">{definition.content.length} módulos</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Carga</p><p className="mt-1 text-xs font-bold">{selectedCourse.workload}</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Verso</p><p className="mt-1 text-xs font-bold">Programático</p></div></div><div className="mt-5 flex items-start gap-2 rounded-xl border border-[#9ce8cb]/20 bg-[#9ce8cb]/10 p-3 text-xs leading-5 text-[#d8f5e8]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#9ce8cb]" />O PDF mantém o conteúdo programático completo e adiciona QR Code quando uma URL de validação for informada.</div></div></aside>
+        <aside className="relative overflow-hidden rounded-[1.75rem] bg-[#063b43] p-5 text-white shadow-[0_18px_50px_rgba(6,59,67,.2)] lg:sticky lg:top-6 lg:h-fit"><div className="pointer-events-none absolute -right-12 top-10 h-40 w-40 rounded-full bg-[#9ce8cb]/10 blur-3xl" /><div className="relative"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#9ce8cb]">Prévia dinâmica</p><p className="mt-1 text-sm font-bold text-white">Frente do certificado</p></div><div className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10"><Award className="h-5 w-5 text-[#d9bd88]" /></div></div><div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/5 p-1"><button type="button" onClick={() => setPreviewSide("front")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "front" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Frente</button><button type="button" onClick={() => setPreviewSide("back")} className={`rounded-lg px-3 py-2 text-xs font-bold transition ${previewSide === "back" ? "bg-white text-[#063b43]" : "text-[#d8f5e8] hover:bg-white/10"}`}>Verso · conteúdo</button></div>{previewSide === "front" ? (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-center text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}><div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border border-[#2b9a90]/40" style={{ borderColor: form.accentColor }} />{logoDataUrl ? <img src={logoDataUrl} alt="Logo na prévia" className="relative mx-auto h-12 w-20 object-contain" /> : <div className="relative mx-auto grid h-12 w-20 place-items-center rounded-xl border border-dashed border-[#bfae89] text-[#a18e67]"><ImagePlus className="h-5 w-5" /></div>}<p className="relative mt-5 text-[9px] font-bold uppercase tracking-[.3em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="relative mt-3 font-serif text-2xl font-bold tracking-wide text-[#1b4a50]">CERTIFICADO</h5><div className="relative mx-auto mt-2 h-px w-28 bg-[#bfae89]" /><p className="relative mt-7 text-[10px] text-[#68807f]">Certificamos que</p><p className="relative mt-2 min-h-7 px-3 font-serif text-lg font-bold uppercase" style={{ color: form.accentColor }}>{form.participantName || "Nome do participante"}</p><p className="relative mt-2 text-[9px] text-[#68807f]">concluiu com aproveitamento satisfatório</p><p className="relative mt-2 min-h-9 px-3 text-sm font-bold" style={{ color: form.accentColor }}>{form.course || "Curso de capacitação"}</p><div className="relative mt-5 grid grid-cols-2 gap-2 text-left text-[9px] text-[#68807f]"><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Conclusão</span>{formatShortDate(form.completionDate)}</div><div className="rounded-lg bg-white/60 p-2"><span className="block font-bold uppercase tracking-wider text-[#9a8660]">Validade</span>{expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "Indeterminada"}</div></div>{signatureDataUrl && form.signatureEnabled && <img src={signatureDataUrl} alt="Assinatura digital do instrutor na prévia" className="relative mx-auto mt-5 h-10 w-44 object-contain" />}<div className="relative mt-10 grid grid-cols-2 gap-6 text-[8px] text-[#68807f]"><div className="border-t border-[#718585] pt-2">Participante</div><div className="border-t border-[#718585] pt-2">{form.instructor || "Responsável técnico"}</div></div></div>) : (<div className="relative mt-6 min-h-[430px] overflow-hidden rounded-[1.25rem] border bg-white p-5 text-[#173f46] shadow-[0_18px_35px_rgba(0,0,0,.18)]" style={{ backgroundColor: form.backgroundColor, borderColor: form.accentColor }}><div className="pointer-events-none absolute inset-3 rounded-[.9rem] border border-[#d9bd88]/70" /><div className="pointer-events-none absolute inset-5 rounded-[.7rem] border" style={{ borderColor: form.accentColor }} /><div className="relative flex items-center justify-between border-b border-[#dcebe8] pb-3"><div><p className="text-[9px] font-bold uppercase tracking-[.24em]" style={{ color: form.accentColor }}>{form.nr} · TST Brasil Hub</p><h5 className="mt-2 text-lg font-bold text-[#1b4a50]">Conteúdo programático</h5></div>{previewQrDataUrl ? <img src={previewQrDataUrl} alt="QR Code de validação na prévia" className="h-10 w-10 rounded-lg bg-white p-1" /> : <div className="grid h-10 w-10 place-items-center rounded-xl border" style={{ borderColor: form.accentColor, color: form.accentColor }}><QrCode className="h-5 w-5" /></div>}</div><div className="relative mt-4 max-h-[260px] overflow-y-auto pr-1 text-left">{programItems.length ? programItems.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 border-b border-[#e6efec] py-2 text-[10px] leading-4 text-[#4f6a68]"><span className="font-bold" style={{ color: form.accentColor }}>{String(index + 1).padStart(2, "0")}</span><span>{item}</span></div>) : <p className="rounded-lg border border-dashed border-[#cfe3dd] p-3 text-xs text-[#78928d]">Adicione ao menos um tópico no campo de conteúdo programático.</p>}</div><div className="relative mt-4 rounded-xl bg-white/70 p-3 text-left text-[10px] leading-4 text-[#58736f]"><p className="font-bold uppercase tracking-wider" style={{ color: form.accentColor }}>Conteúdo prático sugerido</p>{buildPracticalContent(form.nr).map(item => <p key={item} className="mt-1">• {item}</p>)}</div>{form.validationUrl.trim() && <div className="relative mt-4 flex items-center gap-2 rounded-xl border border-dashed p-3 text-[10px] text-[#58736f]" style={{ borderColor: form.accentColor }}><QrCode className="h-5 w-5 shrink-0" style={{ color: form.accentColor }} /><span>QR Code de validação incluído no PDF frente e verso.</span></div>}</div>)}<div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3"><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Conteúdo</p><p className="mt-1 text-xs font-bold">{programItems.length} módulos</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Carga</p><p className="mt-1 text-xs font-bold">{selectedCourse.workload}</p></div><div className="rounded-xl border border-white/10 bg-white/5 p-3"><p className="text-[9px] font-bold uppercase tracking-wider text-[#9ce8cb]">Verso</p><p className="mt-1 text-xs font-bold">Programático</p></div></div><div className="mt-5 flex items-start gap-2 rounded-xl border border-[#9ce8cb]/20 bg-[#9ce8cb]/10 p-3 text-xs leading-5 text-[#d8f5e8]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#9ce8cb]" />O verso recebe o QR Code de autenticidade a partir da URL oficial de validação informada.</div></div></aside>
       </div>
     </section>
   );
