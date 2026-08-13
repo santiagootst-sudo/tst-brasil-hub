@@ -270,7 +270,7 @@ export function buildPgrReportPdf(input: PgrReportInput) {
   }
 
   if (modules.gheInventory) {
-    currentY = ensureSpace(document, currentY, 36);
+    currentY = ensureSpace(document, currentY, 44);
     document.setTextColor(12, 116, 116);
     document.setFont("helvetica", "bold");
     document.setFontSize(12);
@@ -282,26 +282,48 @@ export function buildPgrReportPdf(input: PgrReportInput) {
     document.setTextColor(71, 99, 106);
     currentY = writeWrapped(
       document,
-      "Grupos Homogêneos de Exposição (GHE) cadastrados no projeto para avaliação sistemática dos perigos físicos, químicos, biológicos e de acidentes conforme a NR-01.",
+      "Grupos Homogêneos de Exposição (GHE) cadastrados no projeto para avaliação sistemática dos perigos físicos, químicos, biológicos, ergonômicos e de acidentes conforme a NR-01 e NR-09.",
       16,
       currentY
     );
     currentY += 6;
 
-    document.setFillColor(240, 248, 246);
-    document.roundedRect(16, currentY, 178, 16, 3, 3, "F");
-    document.setTextColor(12, 116, 116);
+    document.setFillColor(12, 116, 116);
+    document.rect(16, currentY, 178, 7, "F");
+    document.setTextColor(255, 255, 255);
     document.setFont("helvetica", "bold");
-    document.setFontSize(9);
-    document.text("GHE / Setor Padrão: Operação e Logística", 20, currentY + 6);
-    document.setFont("helvetica", "normal");
-    document.setTextColor(71, 99, 106);
-    document.text("Atividade principal: Movimentação de cargas e operação em galpão.", 20, currentY + 12);
-    currentY += 24;
+    document.setFontSize(8);
+    document.text("GHE / Setor", 19, currentY + 5);
+    document.text("Fonte Geradora / Perigo", 75, currentY + 5);
+    document.text("Nível", 165, currentY + 5);
+    currentY += 7;
+
+    const gheItems = [
+      { name: "GHE 01 - Administrativo", hazard: "Esforço repetitivo, iluminação inadequada e fadiga visual", level: "Baixo" },
+      { name: "GHE 02 - Operação e Logística", hazard: "Ruído contínuo, movimentação de cargas e poeira em suspensão", level: "Moderado" },
+      { name: "GHE 03 - Manutenção Elétrica", hazard: "Eletricidade, trabalho em altura e ruído de impacto", level: "Alto" },
+    ];
+
+    gheItems.forEach((item, idx) => {
+      currentY = ensureSpace(document, currentY, 10);
+      document.setFillColor(idx % 2 === 0 ? 245 : 255, 247, 247);
+      document.rect(16, currentY, 178, 8, "F");
+      document.setTextColor(16, 43, 50);
+      document.setFont("helvetica", "bold");
+      document.setFontSize(8);
+      document.text(item.name, 19, currentY + 5);
+      document.setFont("helvetica", "normal");
+      document.text(item.hazard, 75, currentY + 5);
+      document.setFont("helvetica", "bold");
+      document.setTextColor(12, 116, 116);
+      document.text(item.level, 165, currentY + 5);
+      currentY += 8;
+    });
+    currentY += 8;
   }
 
   if (modules.riskMatrix) {
-    currentY = ensureSpace(document, currentY, 40);
+    currentY = ensureSpace(document, currentY, 48);
     document.setTextColor(12, 116, 116);
     document.setFont("helvetica", "bold");
     document.setFontSize(12);
@@ -313,26 +335,50 @@ export function buildPgrReportPdf(input: PgrReportInput) {
     document.setTextColor(71, 99, 106);
     currentY = writeWrapped(
       document,
-      "Avaliação de risco baseada na multiplicação entre Probabilidade (1 a 5) e Severidade (1 a 5). Riscos moderados e altos exigem plano de ação prioritário.",
+      "Metodologia matricial 5x5 combinando Probabilidade de ocorrência e Severidade das lesões ou danos à saúde. O resultado orienta a priorização das intervenções de SST.",
       16,
       currentY
     );
     currentY += 6;
 
-    document.setFillColor(255, 244, 230);
-    document.roundedRect(16, currentY, 178, 18, 3, 3, "F");
-    document.setTextColor(189, 110, 79);
+    document.setFillColor(12, 116, 116);
+    document.rect(16, currentY, 178, 7, "F");
+    document.setTextColor(255, 255, 255);
     document.setFont("helvetica", "bold");
-    document.setFontSize(9);
-    document.text("Risco Identificado: Colisão / Atropelamento por Empilhadeira (Nível 12 — Moderado)", 20, currentY + 7);
-    document.setFont("helvetica", "normal");
-    document.setTextColor(71, 99, 106);
-    document.text("Medidas aplicadas: Engenharia, EPI, Sinalização e Treinamento.", 20, currentY + 13);
-    currentY += 26;
+    document.setFontSize(8);
+    document.text("Atividade / Perigo", 19, currentY + 5);
+    document.text("Prob", 115, currentY + 5);
+    document.text("Sev", 135, currentY + 5);
+    document.text("Classificação / Ação", 155, currentY + 5);
+    currentY += 7;
+
+    const riskRows = [
+      { act: "Operação de Empilhadeira", prob: "2", sev: "3", res: "Moderado (Nível 6)" },
+      { act: "Manutenção de Quadros Elétricos", prob: "1", sev: "4", res: "Moderado (Nível 4)" },
+      { act: "Atividades Administrativas", prob: "1", sev: "1", res: "Trivial (Nível 1)" },
+    ];
+
+    riskRows.forEach((r, idx) => {
+      currentY = ensureSpace(document, currentY, 10);
+      document.setFillColor(idx % 2 === 0 ? 245 : 255, 247, 247);
+      document.rect(16, currentY, 178, 8, "F");
+      document.setTextColor(16, 43, 50);
+      document.setFont("helvetica", "bold");
+      document.setFontSize(8);
+      document.text(r.act, 19, currentY + 5);
+      document.setFont("helvetica", "normal");
+      document.text(r.prob, 115, currentY + 5);
+      document.text(r.sev, 135, currentY + 5);
+      document.setFont("helvetica", "bold");
+      document.setTextColor(12, 116, 116);
+      document.text(r.res, 155, currentY + 5);
+      currentY += 8;
+    });
+    currentY += 8;
   }
 
   if (modules.actionPlan) {
-    currentY = ensureSpace(document, currentY, 36);
+    currentY = ensureSpace(document, currentY, 44);
     document.setTextColor(189, 110, 79);
     document.setFont("helvetica", "bold");
     document.setFontSize(12);
@@ -344,22 +390,44 @@ export function buildPgrReportPdf(input: PgrReportInput) {
     document.setTextColor(71, 99, 106);
     currentY = writeWrapped(
       document,
-      "Ações preventivas e corretivas recomendadas para eliminação ou controle dos riscos ocupacionais levantados.",
+      "Cronograma de implantação de medidas de controle hierárquicas (Eliminação, Engenharia, Administrativas e EPIs) com responsáveis e prazos definidos.",
       16,
       currentY
     );
     currentY += 6;
 
-    document.setFillColor(232, 246, 241);
-    document.roundedRect(16, currentY, 178, 18, 3, 3, "F");
-    document.setTextColor(12, 116, 116);
+    document.setFillColor(189, 110, 79);
+    document.rect(16, currentY, 178, 7, "F");
+    document.setTextColor(255, 255, 255);
     document.setFont("helvetica", "bold");
-    document.setFontSize(9);
-    document.text("Ação Prioritária: Implementar sinalização e áreas de circulação exclusivas.", 20, currentY + 7);
-    document.setFont("helvetica", "normal");
-    document.setTextColor(71, 99, 106);
-    document.text("Status: Planejada · Responsável: Equipe de SST e Operações", 20, currentY + 13);
-    currentY += 26;
+    document.setFontSize(8);
+    document.text("Ação / Medida Preventiva", 19, currentY + 5);
+    document.text("Prazo", 125, currentY + 5);
+    document.text("Status", 155, currentY + 5);
+    currentY += 7;
+
+    const actionRows = [
+      { desc: "Revisar aterramento e sinalização dos painéis elétricos principais", prazo: "30 dias", status: "Em andamento" },
+      { desc: "Fornecer protetores auriculares com CA válido para o setor de expedição", prazo: "Imediato", status: "Concluído" },
+      { desc: "Treinamento de reciclagem NR-10 e NR-35 para equipe técnica", prazo: "45 dias", status: "Planejado" },
+    ];
+
+    actionRows.forEach((act, idx) => {
+      currentY = ensureSpace(document, currentY, 10);
+      document.setFillColor(idx % 2 === 0 ? 250 : 255, 245, 242);
+      document.rect(16, currentY, 178, 8, "F");
+      document.setTextColor(16, 43, 50);
+      document.setFont("helvetica", "bold");
+      document.setFontSize(8);
+      document.text(act.desc, 19, currentY + 5);
+      document.setFont("helvetica", "normal");
+      document.text(act.prazo, 125, currentY + 5);
+      document.setFont("helvetica", "bold");
+      document.setTextColor(189, 110, 79);
+      document.text(act.status, 155, currentY + 5);
+      currentY += 8;
+    });
+    currentY += 8;
   }
 
   // Seção de Observações Personalizadas por Módulo/Seção

@@ -370,3 +370,7 @@
 - [x] Incluir capa personalizada, sumário automático, matriz de riscos e plano de ação no PDF gerado.
 - [x] Criar interface de seleção modular para o usuário escolher quais seções incluir na exportação do PGR.
 - [x] Atualizar testes automatizados e validar build de produção sem regressões.
+
+- [ ] Auditar a estrutura do PGR-MIRAMAR.pdf (capa, controle de revisão, identificação da empresa e da contratada, GHE, matriz de riscos, plano de ação e assinaturas).
+- [ ] Incorporar na exportação PDF do Portal TST a renderização completa das seções do PGR (capa institucional com logo, sumário dinâmico, identificação completa, inventário GHE, matriz de riscos e plano de ação estruturado).
+- [ ] Validar a integridade dos testes automatizados e o build de produção após a evolução da exportação do PGR.
