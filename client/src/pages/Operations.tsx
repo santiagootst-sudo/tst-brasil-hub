@@ -57,8 +57,9 @@ export default function Operations() {
   const [stockFilter, setStockFilter] = useState("all");
   const [profileEmployeeSearch, setProfileEmployeeSearch] = useState("");
   const [expandedArchiveEmployeeId, setExpandedArchiveEmployeeId] = useState(0);
+  const [profileDepartmentFilter, setProfileDepartmentFilter] = useState<number>(0);
+  const [profileRoleFilter, setProfileRoleFilter] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<OperationsTab>(initialTab);
-  const [selectedProfileEmployeeId, setSelectedProfileEmployeeId] = useState<number>(0);
   const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
   const [profileStartDate, setProfileStartDate] = useState<string>("");
   const [profileEndDate, setProfileEndDate] = useState<string>("");
@@ -109,8 +110,11 @@ export default function Operations() {
     return matchesSearch && matchesFilter;
   });
 
+  const departmentName = new Map(departments.map(item => [item.id, item.name]));
   const normalizedProfileSearch = profileEmployeeSearch.trim().toLocaleLowerCase("pt-BR");
   const profileEmployees = employees.filter(employee => {
+    if (profileDepartmentFilter && employee.departmentId !== profileDepartmentFilter) return false;
+    if (profileRoleFilter && employee.jobRoleId !== profileRoleFilter) return false;
     if (!normalizedProfileSearch) return true;
     const searchable = [
       employee.fullName,
@@ -486,11 +490,19 @@ export default function Operations() {
                   </div>
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
-                    value={selectedProfileEmployeeId}
-                    onChange={e => setSelectedProfileEmployeeId(Number(e.target.value))}
+                    value={profileDepartmentFilter}
+                    onChange={e => setProfileDepartmentFilter(Number(e.target.value))}
                   >
-                    <option value={0}>Todos os colaboradores ({employees.length})</option>
-                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
+                    <option value={0}>Todos os setores ({departments.length})</option>
+                    {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
+                  </select>
+                  <select 
+                    className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
+                    value={profileRoleFilter}
+                    onChange={e => setProfileRoleFilter(Number(e.target.value))}
+                  >
+                    <option value={0}>Todas as funções ({jobRoles.length})</option>
+                    {jobRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                   </select>
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
@@ -538,14 +550,26 @@ export default function Operations() {
                       <button
                         key={`drawer-${employee.id}`}
                         type="button"
-                        onClick={() => { setExpandedArchiveEmployeeId(isExpanded ? 0 : employee.id); setSelectedProfileEmployeeId(employee.id); }}
-                        className={`group relative overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${isExpanded ? "border-[#8a5a37] bg-[#fffaf2] shadow-md" : "border-[#d6c4ad] bg-[#f8f1e6] hover:border-[#b58b65]"}`}
+                        onClick={() => {
+                          const nextExpanded = isExpanded ? 0 : employee.id;
+                          setExpandedArchiveEmployeeId(nextExpanded);
+                          if (nextExpanded > 0) {
+                            setTimeout(() => {
+                              const el = document.getElementById(`employee-file-${employee.id}`);
+                              if (el) {
+                                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                              }
+                            }, 120);
+                          }
+                        }}
+                        className={`epi-archive-drawer group relative overflow-hidden rounded-xl border p-4 text-left ${isExpanded ? "border-[#8a5a37] bg-[#fff8ed] shadow-lg ring-2 ring-[#b88758]/30" : "border-[#d6c4ad] bg-[#f8f1e6] hover:border-[#b58b65] hover:-translate-y-0.5 hover:shadow-md"}`}
+                        data-open={isExpanded}
                         aria-expanded={isExpanded}
                         aria-controls={`employee-file-${employee.id}`}
                       >
                         <span className="absolute inset-x-0 top-0 h-1 bg-[#b88758] opacity-70" />
                         <div className="flex items-start justify-between gap-3">
-                          <span className="flex min-w-0 items-center gap-2.5"><FolderOpen className={`h-5 w-5 shrink-0 ${isExpanded ? "text-[#8a5a37]" : "text-[#b88758]"}`} /><span className="min-w-0"><strong className="block truncate text-sm font-bold text-[#5b3a25]">{employee.fullName}</strong><small className="mt-0.5 block text-xs text-[#795d48]">Gaveta {String(employee.id).padStart(2, "0")} · {employeeDeliveries.length} ficha(s)</small></span></span>
+                          <span className="flex min-w-0 items-center gap-2.5"><FolderOpen className={`h-5 w-5 shrink-0 ${isExpanded ? "text-[#8a5a37]" : "text-[#b88758]"}`} /><span className="min-w-0"><strong className="block truncate text-sm font-bold text-[#5b3a25]">{employee.fullName}</strong><small className="mt-0.5 block text-xs text-[#795d48]">Gaveta {String(employee.id).padStart(2, "0")} · {employeeDeliveries.length} ficha(s)</small><small className="mt-1 block truncate text-[11px] font-medium text-[#8c6d52]">{departmentName.get(employee.departmentId ?? 0) ?? "Setor não informado"} · {roleName.get(employee.jobRoleId ?? 0) ?? "Função não informada"}</small></span></span>
                           <ChevronDown className={`h-4 w-4 shrink-0 text-[#8a5a37] transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                         </div>
                         <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]"><span className="text-[#8c6d52]">{isExpanded ? "Gaveta aberta" : "Abrir gaveta"}</span>{pendingCount > 0 ? <span className="rounded-full bg-[#fff0e9] px-2 py-1 text-[#bd6e4f]">{pendingCount} pendente(s)</span> : <span className="rounded-full bg-[#e8f6f1] px-2 py-1 text-[#0c7474]">Regular</span>}</div>
@@ -557,7 +581,7 @@ export default function Operations() {
               </section>
 
               <div className="space-y-4">
-                {profileEmployees.filter(emp => !selectedProfileEmployeeId || emp.id === selectedProfileEmployeeId).map(employee => {
+                {profileEmployees.filter(emp => expandedArchiveEmployeeId === 0 || emp.id === expandedArchiveEmployeeId).map(employee => {
                   const empDeliveries = epiDeliveries.filter(d => {
                     if (d.employeeId !== employee.id) return false;
                     const isPending = !d.signedByName || d.signedByName.includes("Pendente");
@@ -571,7 +595,7 @@ export default function Operations() {
                   const hasPending = empDeliveries.some(d => !d.signedByName || d.signedByName.includes("Pendente"));
 
                   return (
-                    <div id={`employee-file-${employee.id}`} key={employee.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-5 space-y-4 shadow-sm scroll-mt-6">
+                    <div id={`employee-file-${employee.id}`} key={employee.id} className="epi-archive-file rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-5 space-y-4 shadow-sm scroll-mt-24">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#eef4f2] pb-3">
                         <div>
                           <div className="flex items-center gap-2">

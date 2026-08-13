@@ -28,4 +28,14 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage).toContain("retry: false");
     expect(operationsPage).toContain("Não foi possível abrir este ambiente.");
   });
+
+  it("aplica filtros de setor e função e mantém a ficha completa fechada até abrir a gaveta", () => {
+    expect(operationsPage).toContain("profileDepartmentFilter");
+    expect(operationsPage).toContain("profileRoleFilter");
+    expect(operationsPage).toContain("employee.departmentId !== profileDepartmentFilter");
+    expect(operationsPage).toContain("employee.jobRoleId !== profileRoleFilter");
+    expect(operationsPage).toContain("expandedArchiveEmployeeId === 0 || emp.id === expandedArchiveEmployeeId");
+    expect(operationsPage).toContain('scrollIntoView({ behavior: "smooth", block: "center" })');
+    expect(operationsPage).toContain("epi-archive-file");
+  });
 });

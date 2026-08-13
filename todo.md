@@ -471,3 +471,9 @@
 - [x] Exibir estado de acesso negado no Centro Operacional de EPIs quando o workspace informado na URL não pertence ao usuário autenticado.
 - [x] Atualizar a documentação de homologação do dashboard, CIPA e armário de fichas de EPI.
 - [x] Publicar checkpoint final da melhoria do centro de EPIs.
+
+- [x] Adicionar filtro por setor no arquivo de fichas de EPI.
+- [x] Adicionar filtro por função no arquivo de fichas de EPI.
+- [x] Manter a ficha completa do funcionário recolhida até a abertura explícita da gaveta.
+- [x] Implementar rolagem automática e expansão animada até a gaveta aberta.
+- [x] Atualizar testes, validar a interface em desktop/mobile e publicar a nova versão.
