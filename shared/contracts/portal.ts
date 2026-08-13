@@ -844,3 +844,51 @@ export const psychosocialSnapshotSchema = z.object({
 export const exportPsychosocialToPgrInput = workspaceIdInput.extend({
   applicationId: z.number().int().positive(),
 });
+
+export const createPgrRevisionInput = workspaceIdInput.extend({
+  pgrProjectId: z.number().int().positive(),
+  companyId: z.number().int().positive().optional(),
+  versionNumber: z.string().trim().min(1).max(32),
+  revisionSummary: z.string().trim().min(2).max(1500),
+  changesDescription: z.string().trim().min(2).max(3000),
+  sectionObservations: z.record(z.string(), z.string()).optional(),
+  documentSnapshot: z.string().optional(),
+});
+
+export const upsertPgrTechnicalSignatureInput = workspaceIdInput.extend({
+  pgrProjectId: z.number().int().positive(),
+  professionalName: z.string().trim().min(2).max(255),
+  professionalRole: z.string().trim().min(2).max(128).default("Técnico em Segurança do Trabalho"),
+  professionalRegistry: z.string().trim().min(2).max(64),
+  signatureDate: z.coerce.date(),
+  digitalStampCode: z.string().trim().min(2).max(128),
+  signatureImageUrl: z.string().trim().url().max(2048).nullable().optional(),
+});
+
+export const pgrRevisionSchema = z.object({
+  id: z.number().int().positive(),
+  pgrProjectId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive().nullable(),
+  versionNumber: z.string(),
+  revisionSummary: z.string(),
+  changesDescription: z.string(),
+  sectionObservations: z.string().nullable(),
+  documentSnapshot: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+});
+
+export const pgrTechnicalSignatureSchema = z.object({
+  id: z.number().int().positive(),
+  pgrProjectId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  professionalName: z.string(),
+  professionalRole: z.string(),
+  professionalRegistry: z.string(),
+  signatureDate: z.date(),
+  digitalStampCode: z.string(),
+  signatureImageUrl: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});

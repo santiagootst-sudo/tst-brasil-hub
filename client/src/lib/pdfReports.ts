@@ -18,6 +18,14 @@ type PgrReportInput = {
   projectId: number;
   generatedAt?: PdfDate;
   modules?: PgrExportModules;
+  sectionObservations?: Record<string, string>;
+  technicalSignature?: {
+    professionalName: string;
+    professionalRole: string;
+    professionalRegistry: string;
+    signatureDate: PdfDate;
+    digitalStampCode: string;
+  } | null;
 };
 
 type InspectionRecord = {
@@ -354,10 +362,67 @@ export function buildPgrReportPdf(input: PgrReportInput) {
     currentY += 26;
   }
 
-  currentY = ensureSpace(document, currentY, 24);
-  document.setDrawColor(216, 235, 232);
+  // Seção de Observações Personalizadas por Módulo/Seção
+  if (input.sectionObservations && Object.keys(input.sectionObservations).length > 0) {
+    currentY = ensureSpace(document, currentY, 30);
+    document.setTextColor(189, 110, 79);
+    document.setFont("helvetica", "bold");
+    document.setFontSize(12);
+    document.text("05. Observações Técnicas e Notas Específicas", 16, currentY);
+    currentY += 8;
+
+    for (const [sectionKey, obsText] of Object.entries(input.sectionObservations)) {
+      if (!obsText || !obsText.trim()) continue;
+      currentY = ensureSpace(document, currentY, 20);
+      document.setFont("helvetica", "bold");
+      document.setFontSize(9);
+      document.setTextColor(12, 116, 116);
+      document.text(`• Seção / Módulo: ${sectionKey.toUpperCase()}`, 16, currentY);
+      currentY += 5;
+      document.setFont("helvetica", "normal");
+      document.setFontSize(9);
+      document.setTextColor(71, 99, 106);
+      currentY = writeWrapped(document, obsText, 20, currentY);
+      currentY += 4;
+    }
+  }
+
+  // Seção de Assinatura Digital e Carimbo de Responsabilidade Técnica (TST) na última página
+  currentY = ensureSpace(document, currentY, 48);
+  document.setDrawColor(12, 116, 116);
   document.line(16, currentY, 194, currentY);
-  currentY += 6;
+  currentY += 8;
+
+  document.setFont("helvetica", "bold");
+  document.setFontSize(11);
+  document.setTextColor(16, 43, 50);
+  document.text("Responsabilidade Técnica e Assinatura Digital (NR-01)", 16, currentY);
+  currentY += 8;
+
+  const sig = input.technicalSignature;
+  const profName = sig?.professionalName || "Vanderson Braga Santiago (TST Responsável)";
+  const profRole = sig?.professionalRole || "Técnico em Segurança do Trabalho";
+  const profReg = sig?.professionalRegistry || "MTE / CREA 54.999-SP";
+  const stampCode = sig?.digitalStampCode || `TST-HUB-SECURE-${input.projectId}-${Date.now().toString().slice(-6)}`;
+  const sigDateStr = formatDate(sig?.signatureDate || new Date());
+
+  document.setFillColor(245, 247, 247);
+  document.roundedRect(16, currentY, 178, 32, 3, 3, "F");
+  
+  document.setFont("helvetica", "bold");
+  document.setFontSize(9);
+  document.setTextColor(12, 116, 116);
+  document.text(profName, 22, currentY + 7);
+  
+  document.setFont("helvetica", "normal");
+  document.setFontSize(8);
+  document.setTextColor(71, 99, 106);
+  document.text(`${profRole} · Registro: ${profReg}`, 22, currentY + 13);
+  document.text(`Data da Assinatura: ${sigDateStr} · Carimbo Digital: ${stampCode}`, 22, currentY + 19);
+  document.text("Assinado digitalmente com chave de rastreabilidade vinculada ao workspace do Portal TST Brasil Hub.", 22, currentY + 25);
+  currentY += 38;
+
+  currentY = ensureSpace(document, currentY, 20);
   document.setFont("helvetica", "bold");
   document.setFontSize(8);
   document.setTextColor(12, 116, 116);

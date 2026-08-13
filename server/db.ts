@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -767,4 +767,75 @@ export async function exportPsychosocialToPgrForWorkspace(applicationId: number,
   }
 
   return { success: true, exportedCount: criticalResults.length };
+}
+
+export async function listPgrRevisionsForProject(pgrProjectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pgrRevisions).where(eq(pgrRevisions.pgrProjectId, pgrProjectId)).orderBy(desc(pgrRevisions.createdAt));
+}
+
+export async function createPgrRevision(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  companyId?: number | null;
+  versionNumber: string;
+  revisionSummary: string;
+  changesDescription: string;
+  sectionObservations?: string | null;
+  documentSnapshot?: string | null;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const values = {
+    ...input,
+    companyId: input.companyId ?? null,
+    sectionObservations: input.sectionObservations ?? null,
+    documentSnapshot: input.documentSnapshot ?? null,
+  };
+  const inserted = await db.insert(pgrRevisions).values(values);
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function getPgrTechnicalSignature(pgrProjectId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(pgrTechnicalSignatures).where(eq(pgrTechnicalSignatures.pgrProjectId, pgrProjectId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function upsertPgrTechnicalSignature(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  professionalName: string;
+  professionalRole: string;
+  professionalRegistry: string;
+  signatureDate: Date;
+  digitalStampCode: string;
+  signatureImageUrl?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const existing = await getPgrTechnicalSignature(input.pgrProjectId);
+  if (existing) {
+    await db.update(pgrTechnicalSignatures)
+      .set({
+        professionalName: input.professionalName,
+        professionalRole: input.professionalRole,
+        professionalRegistry: input.professionalRegistry,
+        signatureDate: input.signatureDate,
+        digitalStampCode: input.digitalStampCode,
+        signatureImageUrl: input.signatureImageUrl ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(pgrTechnicalSignatures.pgrProjectId, input.pgrProjectId));
+    return { id: existing.id, ...input };
+  } else {
+    const inserted = await db.insert(pgrTechnicalSignatures).values({
+      ...input,
+      signatureImageUrl: input.signatureImageUrl ?? null,
+    });
+    return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+  }
 }

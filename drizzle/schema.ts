@@ -1,4 +1,4 @@
-import { boolean, index, int, mysqlEnum, mysqlTable, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -345,6 +345,39 @@ export const pgrProjects = mysqlTable("pgr_projects", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("pgr_projects_workspace_idx").on(table.workspaceId)]);
+
+export const pgrRevisions = mysqlTable("pgr_revisions", {
+  id: int("id").autoincrement().primaryKey(),
+  pgrProjectId: int("pgrProjectId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId"),
+  versionNumber: varchar("versionNumber", { length: 32 }).notNull(),
+  revisionSummary: text("revisionSummary").notNull(),
+  changesDescription: text("changesDescription").notNull(),
+  sectionObservations: text("sectionObservations"),
+  documentSnapshot: text("documentSnapshot"),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("pgr_revisions_project_idx").on(table.pgrProjectId),
+  index("pgr_revisions_workspace_idx").on(table.workspaceId),
+]);
+
+export const pgrTechnicalSignatures = mysqlTable("pgr_technical_signatures", {
+  id: int("id").autoincrement().primaryKey(),
+  pgrProjectId: int("pgrProjectId").notNull().unique(),
+  workspaceId: int("workspaceId").notNull(),
+  professionalName: varchar("professionalName", { length: 255 }).notNull(),
+  professionalRole: varchar("professionalRole", { length: 128 }).notNull().default("Técnico em Segurança do Trabalho"),
+  professionalRegistry: varchar("professionalRegistry", { length: 64 }).notNull(),
+  signatureDate: timestamp("signatureDate").notNull(),
+  digitalStampCode: varchar("digitalStampCode", { length: 128 }).notNull(),
+  signatureImageUrl: varchar("signatureImageUrl", { length: 2048 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("pgr_signatures_project_idx").on(table.pgrProjectId),
+]);
 
 export const certificates = mysqlTable("certificates", {
   id: int("id").autoincrement().primaryKey(),
