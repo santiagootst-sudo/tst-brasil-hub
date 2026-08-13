@@ -490,3 +490,7 @@
 - [x] Padronizar o rótulo de navegação e títulos de “Visão Geral” para “Dashboard” no Prestador de Serviço e na Empresa.
 - [x] Revisar e esclarecer a apresentação do módulo Estrutura e Equipe nos dois ambientes, mantendo seu propósito operacional compartilhado.
 - [x] Atualizar testes e documentação, validar os dois contextos, executar build e publicar a padronização.
+
+- [x] Remover o balão expansivo do WhatsApp que cobre conteúdo da interface.
+- [x] Manter um acesso discreto ao suporte sem obstruir elementos em desktop ou mobile.
+- [x] Atualizar testes, validar responsividade, executar build e publicar a correção.

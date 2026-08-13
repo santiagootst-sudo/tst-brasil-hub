@@ -8,11 +8,11 @@ export function WhatsAppFloatingButton() {
       href={whatsappUrl}
       target="_blank"
       rel="noreferrer"
-      aria-label="Suporte rápido via WhatsApp"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-[#25d366] px-4 py-3.5 text-white shadow-[0_10px_25px_rgba(37,211,102,.35)] transition-all duration-300 hover:scale-105 hover:bg-[#20ba5a] hover:shadow-[0_14px_30px_rgba(37,211,102,.45)] focus:outline-none focus:ring-4 focus:ring-[#25d366]/30"
+      aria-label="Abrir suporte via WhatsApp"
+      title="Abrir suporte via WhatsApp"
+      className="fixed bottom-4 right-4 z-20 grid h-11 w-11 place-items-center rounded-full bg-[#25d366] text-white shadow-[0_8px_18px_rgba(37,211,102,.28)] transition-transform duration-200 hover:scale-105 hover:bg-[#20ba5a] hover:shadow-[0_10px_22px_rgba(37,211,102,.34)] focus:outline-none focus:ring-4 focus:ring-[#25d366]/30 active:scale-95 sm:bottom-5 sm:right-5"
     >
-      <MessageCircle className="h-6 w-6 fill-white text-[#25d366]" />
-      <span className="hidden text-xs font-bold tracking-wide sm:inline-block">Suporte WhatsApp</span>
+      <MessageCircle className="h-5 w-5 fill-white text-[#25d366]" />
     </a>
   );
 }
