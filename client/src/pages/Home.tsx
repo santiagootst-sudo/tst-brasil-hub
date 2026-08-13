@@ -73,6 +73,7 @@ export default function Home() {
           <a href="#produto" className="hover:text-[#0c7474]">Ecossistema</a>
           <Link href="/planos" className="hover:text-[#0c7474]">Planos</Link>
           <a href="#como-funciona" className="hover:text-[#0c7474]">Como Funciona</a>
+          <a href="#faq" className="hover:text-[#0c7474]">FAQ</a>
           <a href="#contato" className="hover:text-[#0c7474]">Contato e Suporte</a>
         </div>
         <Button onClick={enter} className="rounded-full bg-[#0c7474] px-7 py-2.5 text-sm text-white hover:bg-[#063b43] font-bold shadow-md shadow-[#0c7474]/15">
@@ -334,6 +335,51 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Seção de Perguntas Frequentes (FAQ) */}
+      <section id="faq" className="py-20 bg-[#f8fcfb] border-t border-[#e1ede8]">
+        <div className="mx-auto max-w-5xl px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Tire suas dúvidas</span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-[-.03em] text-[#0d2227]">
+              Perguntas Frequentes sobre o TST Brasil Hub
+            </h2>
+            <p className="mt-4 text-base text-[#526b73]">
+              Tudo o que você precisa saber sobre os ambientes especializados, emissão de PGR, certificados com QR Code e suporte operacional.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-2">
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-7 shadow-sm">
+              <h3 className="text-lg font-bold text-[#0d2227]">Qual a diferença entre os perfis Prestador e Empresa?</h3>
+              <p className="mt-3 text-sm leading-6 text-[#526b73]">
+                O perfil <b>Prestador de Serviço</b> é voltado ao TST autônomo ou consultorias que gerenciam múltiplos clientes, carteiras de empresas, PGRs e agendas. O perfil <b>Empresa</b> é focado na rotina interna corporativa, controlando EPIs com CA, CIPA, exames ocupacionais e inspeções de uma única organização.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-7 shadow-sm">
+              <h3 className="text-lg font-bold text-[#0d2227]">Como funciona o gerador de certificados com QR Code?</h3>
+              <p className="mt-3 text-sm leading-6 text-[#526b73]">
+                O gerador permite emitir certificados frente e verso para as principais NRs (como NR-05, NR-10, NR-20, NR-33 e NR-35). Ele inclui conteúdo programático editável, modelos salvos, upload de assinatura digital e gera um QR Code real no verso para validação de autenticidade.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-7 shadow-sm">
+              <h3 className="text-lg font-bold text-[#0d2227]">Posso testar a plataforma antes de assinar?</h3>
+              <p className="mt-3 text-sm leading-6 text-[#526b73]">
+                Sim! Você pode explorar todos os ambientes, cadastrar empresas de teste, emitir documentos e testar os fluxos do sistema. Os checkouts de plano em sandbox simulam transações reais de forma gratuita.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-7 shadow-sm">
+              <h3 className="text-lg font-bold text-[#0d2227]">Como aciono o suporte em caso de dúvidas na rotina?</h3>
+              <p className="mt-3 text-sm leading-6 text-[#526b73]">
+                Disponibilizamos um botão flutuante de WhatsApp em todas as telas da plataforma para atendimento rápido, além do e-mail de suporte dedicado, telefone e o formulário de contato abaixo.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Seção de Contato, Dúvidas e Suporte */}
       <section id="contato" className="py-20 bg-white border-t border-[#e1ede8]">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -456,6 +502,7 @@ export default function Home() {
             <a href="#beneficios" className="hover:text-white">Benefícios</a>
             <a href="#produto" className="hover:text-white">Ecossistema</a>
             <Link href="/planos" className="hover:text-white">Planos</Link>
+            <a href="#faq" className="hover:text-white">FAQ</a>
             <a href="#contato" className="hover:text-white">Contato</a>
           </div>
         </div>

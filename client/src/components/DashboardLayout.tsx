@@ -13,6 +13,7 @@ import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldChe
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -251,6 +252,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
           <div className="relative">{children}</div>
         </main>
       </div>
+      <WhatsAppFloatingButton />
 
       {profileOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062f35]/40 p-4 backdrop-blur-sm">

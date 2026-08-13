@@ -318,3 +318,7 @@
 - [x] Adicionar seção interativa de explicação detalhada de como funciona para Prestador de Serviço e Empresa (CLT).
 - [x] Criar a seção de Contato e Suporte com formulário de envio de dúvidas e orientações de atendimento.
 - [x] Executar testes automatizados, verificar responsividade e publicar a nova landing page.
+
+- [x] Criar componente de botão flutuante do WhatsApp com link direto para o suporte oficial em todas as páginas do portal.
+- [x] Adicionar seção de Perguntas Frequentes (FAQ) na landing page cobrindo PGR, certificados, EPIs e perfis.
+- [x] Executar suíte de testes automatizados e validar o build de produção.
