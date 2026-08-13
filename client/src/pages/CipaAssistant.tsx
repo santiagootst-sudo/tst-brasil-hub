@@ -5,18 +5,21 @@ import {
   ArrowRight,
   Award,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Check,
   CheckCircle2,
-  ChevronRight,
   ClipboardCheck,
   Download,
   FileCheck2,
+  FileSpreadsheet,
   FileText,
   History,
   HelpCircle,
   ImageUp,
   Info,
   Loader2,
+  Plus,
   RotateCcw,
   Trash2,
   Upload,
@@ -42,14 +45,57 @@ import {
   type CipaDocument,
   type CipaFormData,
 } from "@/lib/cipaAssistant";
+import { buildEmployeeElectionDocuments, createMonthlyMeetings, employeesToCsvTemplate, parseCipaEmployeeFile, type CipaEmployee } from "@/lib/cipaImport";
 
 const steps = [
   { label: "Empresa", icon: ShieldCheck },
   { label: "Dimensionamento", icon: UsersRound },
   { label: "Eleição", icon: ClipboardCheck },
   { label: "Capacitação", icon: Award },
+  { label: "Reuniões", icon: CalendarDays },
   { label: "Documentos", icon: FileCheck2 },
 ];
+
+type CipaMeeting = {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  status: "agendada" | "realizada" | "cancelada";
+  notes: string;
+};
+
+function meetingsStorageKey(workspaceId: number) {
+  return `tst-brasil-hub-cipa-meetings-${workspaceId}`;
+}
+
+function employeesStorageKey(workspaceId: number) {
+  return `tst-brasil-hub-cipa-employees-${workspaceId}`;
+}
+
+function parseMonth(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  return new Date(year, (month || 1) - 1, 1);
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(value: string) {
+  return parseMonth(value).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
+function calendarDays(value: string) {
+  const month = parseMonth(value);
+  const firstWeekday = month.getDay();
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  return Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => {
+    const day = index - firstWeekday + 1;
+    return day > 0 && day <= daysInMonth ? new Date(month.getFullYear(), month.getMonth(), day) : null;
+  });
+}
+
 
 type CipaHistoryEntry = CipaDocument & {
   companyName: string;
@@ -196,6 +242,13 @@ export default function CipaAssistant() {
   const [activeStep, setActiveStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [meetings, setMeetings] = useState<CipaMeeting[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(() => monthKey(new Date()));
+  const [selectedMeetingDate, setSelectedMeetingDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [meetingTime, setMeetingTime] = useState("09:00");
+  const [meetingNotes, setMeetingNotes] = useState("");
+  const [employees, setEmployees] = useState<CipaEmployee[]>([]);
+  const [isImportingEmployees, setIsImportingEmployees] = useState(false);
 
   const composition = useMemo(() => suggestCipaComposition(form.grauRisco, form.empregados), [form.grauRisco, form.empregados]);
   const totalMembers = form.titularesEmpregador + form.suplentesEmpregador + form.titularesEmpregados + form.suplentesEmpregados;
@@ -209,8 +262,12 @@ export default function CipaAssistant() {
     try {
       const storedHistory = window.localStorage.getItem(historyStorageKey(activeWorkspace.id));
       const storedLogo = window.localStorage.getItem(logoStorageKey(activeWorkspace.id));
+      const storedMeetings = window.localStorage.getItem(meetingsStorageKey(activeWorkspace.id));
+      const storedEmployees = window.localStorage.getItem(employeesStorageKey(activeWorkspace.id));
       setHistoryDocuments(storedHistory ? JSON.parse(storedHistory) as CipaHistoryEntry[] : []);
       setLogoDataUrl(storedLogo || null);
+      setMeetings(storedMeetings ? JSON.parse(storedMeetings) as CipaMeeting[] : []);
+      setEmployees(storedEmployees ? JSON.parse(storedEmployees) as CipaEmployee[] : []);
     } catch {
       setHistoryDocuments([]);
       setLogoDataUrl(null);
@@ -221,10 +278,12 @@ export default function CipaAssistant() {
     if (!activeWorkspace) return;
     try {
       window.localStorage.setItem(historyStorageKey(activeWorkspace.id), JSON.stringify(historyDocuments.slice(0, 80)));
+      window.localStorage.setItem(meetingsStorageKey(activeWorkspace.id), JSON.stringify(meetings));
+      window.localStorage.setItem(employeesStorageKey(activeWorkspace.id), JSON.stringify(employees));
     } catch {
-      toast.error("Não foi possível atualizar o histórico local deste navegador.");
+      toast.error("Não foi possível atualizar os dados locais deste navegador.");
     }
-  }, [activeWorkspace?.id, historyDocuments]);
+  }, [activeWorkspace?.id, employees, historyDocuments, meetings]);
 
   const update = <K extends keyof CipaFormData>(key: K, value: CipaFormData[K]) => setForm(current => ({ ...current, [key]: value }));
 
@@ -254,6 +313,55 @@ export default function CipaAssistant() {
     toast.success("Logo removida da identidade dos PDFs.");
   };
 
+  const addMonthlyMeetings = () => {
+    if (!selectedMeetingDate) {
+      toast.error("Informe a data da primeira reunião.");
+      return;
+    }
+    const newMeetings = createMonthlyMeetings(selectedMeetingDate).map(meeting => ({ ...meeting, time: meetingTime, notes: meetingNotes || meeting.notes }));
+    setMeetings(current => [...newMeetings, ...current.filter(existing => !newMeetings.some(next => next.id === existing.id))].sort((a, b) => a.date.localeCompare(b.date)));
+    setSelectedMonth(selectedMeetingDate.slice(0, 7));
+    toast.success("Calendário mensal da CIPA atualizado com 12 reuniões.");
+  };
+
+  const updateMeetingStatus = (meetingId: string, status: CipaMeeting["status"]) => {
+    setMeetings(current => current.map(meeting => meeting.id === meetingId ? { ...meeting, status } : meeting));
+  };
+
+  const handleEmployeeImport = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv") && !file.name.toLowerCase().endsWith(".txt")) {
+      toast.error("Use uma planilha CSV ou TXT exportada do Excel/Google Sheets.");
+      return;
+    }
+    setIsImportingEmployees(true);
+    try {
+      const content = await file.text();
+      const imported = parseCipaEmployeeFile(content);
+      setEmployees(imported);
+      toast.success(`${imported.length} funcionário(s) importado(s) para votação e candidatos.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível ler a planilha.");
+    } finally {
+      setIsImportingEmployees(false);
+    }
+  };
+
+  const downloadEmployeesTemplate = () => {
+    const blob = new Blob([employeesToCsvTemplate()], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "modelo-funcionarios-cipa.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Modelo de planilha baixado.");
+  };
+
+  const toggleEmployeeFlag = (employeeId: string, key: "eligibleToVote" | "candidate") => {
+    setEmployees(current => current.map(employee => employee.id === employeeId ? { ...employee, [key]: !employee[key] } : employee));
+  };
+
   const applyComposition = () => {
     update("titularesEmpregador", composition.titularesEmpregador);
     update("suplentesEmpregador", composition.suplentesEmpregador);
@@ -271,7 +379,7 @@ export default function CipaAssistant() {
     }
     setIsGenerating(true);
     await new Promise(resolve => window.setTimeout(resolve, 420));
-    const documents = buildCipaDocuments(form);
+    const documents = [...buildCipaDocuments(form), ...(employees.length ? buildEmployeeElectionDocuments(employees) : [])];
     const generatedAt = new Date().toISOString();
     const historyEntries = documents.map(document => ({
       ...document,
@@ -282,7 +390,7 @@ export default function CipaAssistant() {
     setGeneratedDocuments(documents);
     setHistoryDocuments(current => [...historyEntries, ...current].slice(0, 80));
     setIsGenerating(false);
-    setActiveStep(4);
+    setActiveStep(5);
     toast.success("Pacote de documentos preparado e adicionado ao histórico.");
   };
 
@@ -311,6 +419,13 @@ export default function CipaAssistant() {
 
   const selectedCompanyName = selectedDocument && "companyName" in selectedDocument ? selectedDocument.companyName : form.empresa;
   const selectedLogo = selectedDocument && "logoDataUrl" in selectedDocument ? selectedDocument.logoDataUrl : logoDataUrl;
+  const visibleMeetings = useMemo(() => meetings.filter(meeting => meeting.date.startsWith(selectedMonth)), [meetings, selectedMonth]);
+  const visibleCalendarDays = useMemo(() => calendarDays(selectedMonth), [selectedMonth]);
+  const moveMonth = (offset: number) => {
+    const next = parseMonth(selectedMonth);
+    next.setMonth(next.getMonth() + offset);
+    setSelectedMonth(monthKey(next));
+  };
 
   if (loading || workspaces.isLoading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-6 w-6 animate-spin text-[#0c7474]" /></div>;
   if (!activeWorkspace) return <DashboardLayout title="Assistant CIPA"><div className="mx-auto max-w-xl rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-[#0c7474]" /><h2 className="mt-4 text-2xl font-bold text-[#102b32]">Crie um ambiente antes de usar o Assistant CIPA.</h2><p className="mt-2 text-sm leading-6 text-[#668087]">O processo eleitoral e os documentos da CIPA precisam ficar vinculados ao ambiente e à empresa corretos.</p><Button onClick={() => setLocation("/app")} className="mt-6 rounded-xl bg-[#0c7474] text-white">Voltar ao dashboard</Button></div></DashboardLayout>;
@@ -329,7 +444,7 @@ export default function CipaAssistant() {
         <div className="grid gap-5 lg:grid-cols-[210px_1fr] lg:items-start">
           <aside className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-3 shadow-sm lg:sticky lg:top-28">
             <p className="px-3 pb-2 pt-1 text-[10px] font-bold uppercase tracking-[.16em] text-[#83a09a]">Fluxo guiado</p>
-            <nav className="space-y-1" aria-label="Etapas do Assistant CIPA">{steps.map((step, index) => { const Icon = step.icon; const active = activeStep === index; const done = index < activeStep || (index === 4 && generatedDocuments.length > 0); return <button key={step.label} type="button" onClick={() => setActiveStep(index)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${active ? "bg-[#e8f6f1] text-[#0c7474] shadow-sm" : "text-[#668087] hover:bg-[#f5faf8] hover:text-[#315158]"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs ${done ? "bg-[#0c7474] text-white" : active ? "bg-white text-[#0c7474]" : "bg-[#f0f6f4] text-[#83a09a]"}`}>{done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span><span>{step.label}</span></button>; })}</nav>
+            <nav className="space-y-1" aria-label="Etapas do Assistant CIPA">{steps.map((step, index) => { const Icon = step.icon; const active = activeStep === index; const done = index < activeStep || (index === 5 && generatedDocuments.length > 0); return <button key={step.label} type="button" onClick={() => setActiveStep(index)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${active ? "bg-[#e8f6f1] text-[#0c7474] shadow-sm" : "text-[#668087] hover:bg-[#f5faf8] hover:text-[#315158]"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs ${done ? "bg-[#0c7474] text-white" : active ? "bg-white text-[#0c7474]" : "bg-[#f0f6f4] text-[#83a09a]"}`}>{done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span><span>{step.label}</span></button>; })}</nav>
             <div className="mt-4 border-t border-[#edf4f1] pt-4"><button type="button" onClick={loadExample} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0c7474] transition hover:bg-[#f2faf6]"><Info className="h-4 w-4" /> Carregar estrutura de exemplo</button><button type="button" onClick={clearForm} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold text-[#b85c36] transition hover:bg-[#fff7f2]"><RotateCcw className="h-4 w-4" /> Limpar sessão</button></div>
           </aside>
 
@@ -342,7 +457,29 @@ export default function CipaAssistant() {
 
             {activeStep === 3 && <div className="space-y-5"><SectionCard icon={Award} eyebrow="Etapa 04 · capacitação" title="Datas do curso e responsabilidade técnica"><div className="rounded-2xl border border-[#dcebe8] bg-[#f7fcfa] p-4"><div className="flex gap-3"><CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-[#0c7474]" /><p className="text-xs leading-5 text-[#668087]">Defina as datas planejadas para a capacitação dos membros. O conteúdo programático deve ser revisado pelo responsável técnico e ajustado ao ambiente de trabalho.</p></div></div><div className="mt-5 grid gap-4 md:grid-cols-3"><Field label="1º dia do curso"><Input type="date" value={form.dataCurso1} onChange={event => update("dataCurso1", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="2º dia do curso"><Input type="date" value={form.dataCurso2} onChange={event => update("dataCurso2", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="3º dia do curso"><Input type="date" value={form.dataCurso3} onChange={event => update("dataCurso3", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field></div><div className="mt-5 grid gap-3 md:grid-cols-3">{[["Estudo do ambiente", "Condições de trabalho e riscos do processo"], ["Prevenção", "Acidentes, doenças e medidas preventivas"], ["Organização", "Atribuições da CIPA e prevenção do assédio"]].map(([title, description]) => <div key={title} className="rounded-2xl border border-[#e6f0ee] bg-white p-4"><CheckCircle2 className="h-4 w-4 text-[#0c7474]" /><p className="mt-2 text-sm font-bold text-[#315158]">{title}</p><p className="mt-1 text-xs leading-5 text-[#668087]">{description}</p></div>)}</div></SectionCard><div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setActiveStep(2)}>Voltar</Button><Button type="button" onClick={generateDocuments} disabled={isGenerating} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">{isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparando documentos</> : <>Gerar pacote de documentos <FileText className="ml-2 h-4 w-4" /></>}</Button></div></div>}
 
-            {activeStep === 4 && <div className="space-y-5"><section className="rounded-[1.75rem] border border-[#b9e3d7] bg-[linear-gradient(120deg,#f3fbf8_0%,#ffffff_55%,#fff8ed_100%)] p-5 shadow-sm lg:p-6"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-start"><div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]"><CheckCircle2 className="h-4 w-4" /> Pacote pronto para revisão</div><h2 className="mt-2 text-2xl font-bold text-[#102b32]">Documentos do processo CIPA</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Os arquivos abaixo foram montados a partir dos dados preenchidos nesta sessão. Abra a prévia, revise o conteúdo e exporte os documentos individualmente em PDF.</p></div><span className="rounded-full bg-[#e8f6f1] px-3 py-1.5 text-xs font-bold text-[#0c7474]">{generatedDocuments.length} documentos</span></div></section><div className="grid gap-4 md:grid-cols-2">{generatedDocuments.map(document => <article key={document.id} className="group rounded-[1.5rem] border border-[#dcebe8] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#a8d8ca] hover:shadow-[0_16px_35px_rgba(12,116,116,.1)]"><div className="flex items-start justify-between gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[#f0f7f5] text-[#0c7474]"><FileText className="h-5 w-5" /></div><span className="rounded-full bg-[#f5f8f7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#668087]">{document.category === "processo-eleitoral" ? "Eleição" : document.category === "capacitacao" ? "Capacitação" : "Gestão"}</span></div><h3 className="mt-4 text-base font-bold text-[#102b32]">{document.title}</h3><p className="mt-2 min-h-10 text-xs leading-5 text-[#668087]">{document.description}</p><div className="mt-5 flex gap-2"><Button type="button" variant="outline" onClick={() => setSelectedDocument(document)} className="flex-1 rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">Visualizar <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button><Button type="button" onClick={() => downloadDocument(document)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"><Download className="h-3.5 w-3.5" /></Button></div></article>)}</div><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm lg:p-6"><div className="flex flex-col justify-between gap-3 border-b border-[#edf4f1] pb-4 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#eaf4fd] text-[#3173a8]"><History className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#3173a8]">Acervo deste navegador</p><h3 className="mt-1 text-lg font-bold text-[#102b32]">Histórico de documentos CIPA</h3></div></div><div className="flex items-center gap-3"><span className="rounded-full bg-[#eaf4fd] px-3 py-1.5 text-xs font-bold text-[#3173a8]">{historyDocuments.length} registro(s)</span>{historyDocuments.length > 0 && <Button type="button" variant="ghost" onClick={clearHistory} className="rounded-xl text-xs font-bold text-[#b85c36] hover:bg-[#fff0e9]"><Trash2 className="mr-1.5 h-3.5 w-3.5" /> Limpar histórico</Button>}</div></div>{historyDocuments.length ? <div className="mt-4 space-y-2">{historyDocuments.map(entry => <div key={`${entry.createdAt}-${entry.id}`} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-[#fbfefd] p-4 transition hover:border-[#b9dcd2] sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[#0c7474] shadow-sm"><FileText className="h-4 w-4" /></div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#315158]">{entry.title}</p><p className="mt-1 truncate text-xs text-[#668087]">{entry.companyName || "Empresa não informada"} · {new Date(entry.createdAt).toLocaleString("pt-BR")}</p></div></div><div className="flex shrink-0 gap-2"><Button type="button" variant="outline" onClick={() => setSelectedDocument(entry)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">Visualizar</Button><Button type="button" onClick={() => downloadDocument(entry)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"><Download className="mr-1.5 h-3.5 w-3.5" /> Baixar</Button></div></div>)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-6 text-center"><History className="mx-auto h-7 w-7 text-[#9ab0aa]" /><p className="mt-2 text-sm font-bold text-[#315158]">Nenhum documento no histórico</p><p className="mt-1 text-xs text-[#668087]">Depois de gerar um pacote, os documentos aparecerão aqui para consulta e download novamente.</p></div>}</section><div className="flex flex-wrap justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setActiveStep(3)}>Voltar e revisar</Button><Button type="button" onClick={clearForm} variant="outline" className="rounded-xl border-[#f0c9bc] text-[#b85c36] hover:bg-[#fff6f1]">Iniciar novo processo <RotateCcw className="ml-2 h-4 w-4" /></Button></div></div>}
+            {activeStep === 4 && <div className="space-y-5">
+              <SectionCard icon={CalendarDays} eyebrow="Etapa 05 · acompanhamento" title="Reuniões ordinárias da CIPA">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div><p className="text-sm leading-6 text-[#668087]">Planeje a rotina mensal da comissão, acompanhe o status de cada encontro e mantenha o calendário vinculado ao ambiente ativo.</p></div>
+                  <div className="flex items-center gap-2"><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(-1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button><span className="min-w-36 text-center text-sm font-bold capitalize text-[#315158]">{monthLabel(selectedMonth)}</span><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button></div>
+                </div>
+                <div className="mt-5 overflow-hidden rounded-2xl border border-[#e4efec]">
+                  <div className="grid grid-cols-7 border-b border-[#e4efec] bg-[#f7fcfa]">{["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => <span key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-wide text-[#83a09a]">{day}</span>)}</div>
+                  <div className="grid grid-cols-7">{visibleCalendarDays.map((day, index) => { const dayKey = day ? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}` : ""; const dayMeetings = dayKey ? meetings.filter(meeting => meeting.date === dayKey) : []; return <button key={`${dayKey || "empty"}-${index}`} type="button" disabled={!day} onClick={() => dayKey && setSelectedMeetingDate(dayKey)} className={`min-h-20 border-b border-r border-[#eef4f2] p-2 text-left transition ${!day ? "cursor-default bg-[#fbfdfc]" : selectedMeetingDate === dayKey ? "bg-[#e8f6f1]" : "bg-white hover:bg-[#f7fcfa]"}`} aria-label={day ? `Selecionar ${day.toLocaleDateString("pt-BR")}` : undefined}>{day && <><span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${selectedMeetingDate === dayKey ? "bg-[#0c7474] text-white" : "text-[#315158]"}`}>{day.getDate()}</span>{dayMeetings.map(meeting => <span key={meeting.id} className={`mt-2 block truncate rounded-md px-1.5 py-1 text-[9px] font-bold ${meeting.status === "realizada" ? "bg-[#e8f6f1] text-[#0c7474]" : meeting.status === "cancelada" ? "bg-[#fff0e9] text-[#b85c36]" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{meeting.time} · Reunião</span>)}</>}</button>; })}</div>
+                </div>
+                <div className="mt-5 grid gap-4 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4 md:grid-cols-[1fr_140px_1fr_auto] md:items-end"><Field label="Primeira reunião do ciclo"><Input type="date" value={selectedMeetingDate} onChange={event => setSelectedMeetingDate(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Horário"><Input type="time" value={meetingTime} onChange={event => setMeetingTime(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Pauta ou observação"><Input value={meetingNotes} onChange={event => setMeetingNotes(event.target.value)} placeholder="Ex.: inspeção mensal e SIPAT" className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Button type="button" onClick={addMonthlyMeetings} className="h-11 rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Plus className="mr-2 h-4 w-4" /> Gerar 12 meses</Button></div>
+                <div className="mt-5 space-y-2">{visibleMeetings.length ? visibleMeetings.map(meeting => <div key={meeting.id} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]"><CalendarDays className="h-4 w-4" /></div><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{formatDate(meeting.date)} · {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><select value={meeting.status} onChange={event => updateMeetingStatus(meeting.id, event.target.value as CipaMeeting["status"])} className="h-9 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-bold text-[#315158] outline-none"><option value="agendada">Agendada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div>) : <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada neste mês. Escolha a primeira data e gere o ciclo mensal.</p>}</div>
+              </SectionCard>
+
+              <SectionCard icon={FileSpreadsheet} eyebrow="Etapa 05 · base de funcionários" title="Importar planilha para votação e candidatos">
+                <div className="flex flex-col justify-between gap-4 rounded-2xl border border-[#cfe3de] bg-[#f7fcfa] p-4 sm:flex-row sm:items-center"><div><p className="text-sm font-bold text-[#315158]">Use CSV ou TXT exportado do Excel ou Google Sheets</p><p className="mt-1 text-xs leading-5 text-[#668087]">A coluna Nome é obrigatória. As colunas Apto votar e Candidato são opcionais e podem ser revisadas manualmente abaixo.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={downloadEmployeesTemplate} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474]"><Download className="mr-2 h-3.5 w-3.5" /> Baixar modelo</Button><label className="inline-flex cursor-pointer items-center rounded-xl bg-[#0c7474] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#063b43]"><Upload className="mr-2 h-3.5 w-3.5" /> {isImportingEmployees ? "Lendo..." : "Importar planilha"}<input type="file" accept=".csv,.txt,text/csv,text/plain" className="sr-only" disabled={isImportingEmployees} onChange={event => handleEmployeeImport(event.target.files?.[0])} /></label></div></div>
+                <div className="mt-5 flex flex-wrap gap-3"><span className="rounded-full bg-[#e8f6f1] px-3 py-1.5 text-xs font-bold text-[#0c7474]">{employees.length} funcionário(s)</span><span className="rounded-full bg-[#eaf4fd] px-3 py-1.5 text-xs font-bold text-[#3173a8]">{employees.filter(employee => employee.eligibleToVote).length} apto(s) a votar</span><span className="rounded-full bg-[#fff7dd] px-3 py-1.5 text-xs font-bold text-[#9a6d0b]">{employees.filter(employee => employee.candidate).length} candidato(s)</span></div>
+                {employees.length ? <div className="mt-4 overflow-x-auto rounded-2xl border border-[#e4efec]"><table className="w-full min-w-[760px] text-left text-xs"><thead className="bg-[#f7fcfa] text-[10px] uppercase tracking-wide text-[#83a09a]"><tr><th className="px-4 py-3 font-bold">Funcionário</th><th className="px-4 py-3 font-bold">Cargo / setor</th><th className="px-4 py-3 font-bold">Apto a votar</th><th className="px-4 py-3 font-bold">Candidato</th></tr></thead><tbody className="divide-y divide-[#edf4f1]">{employees.map(employee => <tr key={employee.id} className="bg-white"><td className="px-4 py-3"><p className="font-bold text-[#315158]">{employee.name}</p><p className="mt-1 text-[#83a09a]">{employee.registration || employee.email || "Sem matrícula/e-mail"}</p></td><td className="px-4 py-3 text-[#668087]">{employee.role || "Não informado"}{employee.department ? ` · ${employee.department}` : ""}</td><td className="px-4 py-3"><button type="button" aria-pressed={employee.eligibleToVote} onClick={() => toggleEmployeeFlag(employee.id, "eligibleToVote")} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${employee.eligibleToVote ? "bg-[#e8f6f1] text-[#0c7474]" : "bg-[#f2f5f4] text-[#83a09a]"}`}>{employee.eligibleToVote ? "Sim" : "Não"}</button></td><td className="px-4 py-3"><button type="button" aria-pressed={employee.candidate} onClick={() => toggleEmployeeFlag(employee.id, "candidate")} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${employee.candidate ? "bg-[#fff7dd] text-[#9a6d0b]" : "bg-[#f2f5f4] text-[#83a09a]"}`}>{employee.candidate ? "Sim" : "Não"}</button></td></tr>)}</tbody></table></div> : <div className="mt-4 rounded-2xl border border-dashed border-[#cfe3de] p-6 text-center"><UsersRound className="mx-auto h-7 w-7 text-[#9ab0aa]" /><p className="mt-2 text-sm font-bold text-[#315158]">Nenhuma planilha importada</p><p className="mt-1 text-xs text-[#668087]">Baixe o modelo, preencha com dados reais e importe para revisar a lista da eleição.</p></div>}
+              </SectionCard>
+              <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setActiveStep(3)}>Voltar</Button><Button type="button" onClick={() => setActiveStep(5)} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Revisar documentos <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
+            </div>}
+
+            {activeStep === 5 && <div className="space-y-5"><section className="rounded-[1.75rem] border border-[#b9e3d7] bg-[linear-gradient(120deg,#f3fbf8_0%,#ffffff_55%,#fff8ed_100%)] p-5 shadow-sm lg:p-6"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-start"><div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]"><CheckCircle2 className="h-4 w-4" /> Pacote pronto para revisão</div><h2 className="mt-2 text-2xl font-bold text-[#102b32]">Documentos do processo CIPA</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Os arquivos abaixo foram montados a partir dos dados preenchidos nesta sessão. Abra a prévia, revise o conteúdo e exporte os documentos individualmente em PDF.</p></div><span className="rounded-full bg-[#e8f6f1] px-3 py-1.5 text-xs font-bold text-[#0c7474]">{generatedDocuments.length} documentos</span></div></section><div className="grid gap-4 md:grid-cols-2">{generatedDocuments.map(document => <article key={document.id} className="group rounded-[1.5rem] border border-[#dcebe8] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#a8d8ca] hover:shadow-[0_16px_35px_rgba(12,116,116,.1)]"><div className="flex items-start justify-between gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[#f0f7f5] text-[#0c7474]"><FileText className="h-5 w-5" /></div><span className="rounded-full bg-[#f5f8f7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#668087]">{document.category === "processo-eleitoral" ? "Eleição" : document.category === "capacitacao" ? "Capacitação" : "Gestão"}</span></div><h3 className="mt-4 text-base font-bold text-[#102b32]">{document.title}</h3><p className="mt-2 min-h-10 text-xs leading-5 text-[#668087]">{document.description}</p><div className="mt-5 flex gap-2"><Button type="button" variant="outline" onClick={() => setSelectedDocument(document)} className="flex-1 rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">Visualizar <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button><Button type="button" onClick={() => downloadDocument(document)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"><Download className="h-3.5 w-3.5" /></Button></div></article>)}</div><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm lg:p-6"><div className="flex flex-col justify-between gap-3 border-b border-[#edf4f1] pb-4 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#eaf4fd] text-[#3173a8]"><History className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#3173a8]">Acervo deste navegador</p><h3 className="mt-1 text-lg font-bold text-[#102b32]">Histórico de documentos CIPA</h3></div></div><div className="flex items-center gap-3"><span className="rounded-full bg-[#eaf4fd] px-3 py-1.5 text-xs font-bold text-[#3173a8]">{historyDocuments.length} registro(s)</span>{historyDocuments.length > 0 && <Button type="button" variant="ghost" onClick={clearHistory} className="rounded-xl text-xs font-bold text-[#b85c36] hover:bg-[#fff0e9]"><Trash2 className="mr-1.5 h-3.5 w-3.5" /> Limpar histórico</Button>}</div></div>{historyDocuments.length ? <div className="mt-4 space-y-2">{historyDocuments.map(entry => <div key={`${entry.createdAt}-${entry.id}`} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-[#fbfefd] p-4 transition hover:border-[#b9dcd2] sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[#0c7474] shadow-sm"><FileText className="h-4 w-4" /></div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#315158]">{entry.title}</p><p className="mt-1 truncate text-xs text-[#668087]">{entry.companyName || "Empresa não informada"} · {new Date(entry.createdAt).toLocaleString("pt-BR")}</p></div></div><div className="flex shrink-0 gap-2"><Button type="button" variant="outline" onClick={() => setSelectedDocument(entry)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">Visualizar</Button><Button type="button" onClick={() => downloadDocument(entry)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"><Download className="mr-1.5 h-3.5 w-3.5" /> Baixar</Button></div></div>)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-6 text-center"><History className="mx-auto h-7 w-7 text-[#9ab0aa]" /><p className="mt-2 text-sm font-bold text-[#315158]">Nenhum documento no histórico</p><p className="mt-1 text-xs text-[#668087]">Depois de gerar um pacote, os documentos aparecerão aqui para consulta e download novamente.</p></div>}</section><div className="flex flex-wrap justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setActiveStep(3)}>Voltar e revisar</Button><Button type="button" onClick={clearForm} variant="outline" className="rounded-xl border-[#f0c9bc] text-[#b85c36] hover:bg-[#fff6f1]">Iniciar novo processo <RotateCcw className="ml-2 h-4 w-4" /></Button></div></div>}
           </main>
         </div>
       </div>

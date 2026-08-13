@@ -419,3 +419,8 @@
 - [x] Personalizar a exportação em PDF para incluir identidade visual do TST Brasil Hub, cabeçalho profissional e espaço dedicado à logo da empresa.
 - [x] Adicionar tooltips interativos nos campos de grau de risco e número de empregados com orientações detalhadas da NR-04 e NR-05.
 - [x] Atualizar testes automatizados, verificar build de produção e publicar checkpoint da nova evolução.
+
+- [x] Implementar calendário interativo de reuniões ordinárias mensais da CIPA com agendamento, status e lembretes visuais.
+- [x] Implementar importação de planilhas de funcionários (CSV/TXT) para preencher a lista de votação e o cadastro de candidatos.
+- [x] Atualizar suíte de testes automatizados com validação para o calendário e a importação de planilhas.
+- [ ] Publicar checkpoint da evolução e registrar instruções de homologação.
