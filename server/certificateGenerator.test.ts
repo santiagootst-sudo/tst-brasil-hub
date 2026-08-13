@@ -57,6 +57,9 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(certificatesPageSource).toContain("companyId: payload.companyId ?? undefined");
     expect(certificatesPageSource).toContain('category: "certificate"');
     expect(certificatesPageSource).toContain("utils.portal.certificates.invalidate");
+    expect(certificatesPageSource).toContain("Histórico operacional");
+    expect(certificatesPageSource).toContain("Baixar documento novamente");
+    expect(certificatesPageSource).toContain("Reenviar");
     expect(generatorSource).toContain("companyId: number | null");
     expect(generatorSource).toContain("Vincular ao cliente");
   });

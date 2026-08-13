@@ -308,3 +308,8 @@
 - [x] Criar funcionalidade para salvar o conteúdo programático atual como modelo padrão (armazenado em localStorage por norma).
 - [x] Garantir renderização do QR Code de validação no verso do PDF e na prévia interativa do verso.
 - [x] Cobrir os novos recursos com testes automatizados e validar o build e a interface no navegador.
+
+- [x] Criar painel de histórico operacional de certificados emitidos com busca por participante/CPF/norma e filtros de status.
+- [x] Adicionar modal de detalhes e ação para gerar/baixar novamente o PDF do certificado registrado no acervo.
+- [x] Implementar fluxo de reenvio por e-mail ou cópia de comprovante digital com confirmação visual.
+- [x] Cobrir o histórico com testes automatizados e validar o build de produção.
