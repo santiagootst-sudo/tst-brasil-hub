@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowRight, Award, BookOpen, BriefcaseBusiness, Building2, CalendarClock, CalendarDays, CheckCircle2, CheckSquare2, CircleAlert, ClipboardCheck, FileCheck2, FolderKanban, GraduationCap, Headphones, LayoutDashboard, Loader2, ShieldCheck, UsersRound, WandSparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import InspectionActionSummary from "@/components/InspectionActionSummary";
@@ -18,10 +18,30 @@ type Priority = {
 };
 
 type DashboardView = "resumo" | "cipa" | "epis" | "inspecoes" | "documentos";
+type GlobalPeriod = "all" | "30" | "90" | "365";
+
+type PeriodRecord = {
+  createdAt?: Date | string | null;
+  issuedAt?: Date | string | null;
+  scheduledAt?: Date | string | null;
+  dueAt?: Date | string | null;
+  occurredAt?: Date | string | null;
+  expiresAt?: Date | string | null;
+  nextFollowUpAt?: Date | string | null;
+};
 
 function daysUntil(date: Date | string | null) {
   if (!date) return null;
   return Math.ceil((new Date(date).getTime() - Date.now()) / 86_400_000);
+}
+
+function isWithinGlobalPeriod(date: Date | string | null | undefined, period: GlobalPeriod) {
+  if (period === "all" || !date) return true;
+  const timestamp = new Date(date).getTime();
+  if (Number.isNaN(timestamp)) return true;
+  const windowMs = Number(period) * 86_400_000;
+  const now = Date.now();
+  return timestamp >= now - windowMs && timestamp <= now + windowMs;
 }
 
 function WorkspaceOverviewSkeleton() {
@@ -40,8 +60,32 @@ function WorkspaceOverviewSkeleton() {
 
 export default function WorkspaceOverview() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardView>("resumo");
+  const [globalPeriod, setGlobalPeriod] = useState<GlobalPeriod>("all");
+  const [readAlertKeys, setReadAlertKeys] = useState<string[]>([]);
   const search = useSearch();
   const workspaceId = workspaceIdFromSearch(search) ?? 0;
+  const readAlertsStorageKey = `tst-brasil-hub-dashboard-read-alerts-${workspaceId}`;
+  useEffect(() => {
+    if (workspaceId <= 0 || typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(readAlertsStorageKey);
+      setReadAlertKeys(raw ? JSON.parse(raw) : []);
+    } catch {
+      setReadAlertKeys([]);
+    }
+  }, [readAlertsStorageKey, workspaceId]);
+  const markAlertAsRead = (key: string) => {
+    setReadAlertKeys(previous => {
+      const next = previous.includes(key) ? previous : [...previous, key];
+      try {
+        window.localStorage.setItem(readAlertsStorageKey, JSON.stringify(next));
+      } catch {
+        // A leitura local é opcional; o estado visual continua funcionando na sessão.
+      }
+      return next;
+    });
+  };
+  const isAlertUnread = (key: string) => !readAlertKeys.includes(key);
   const queryOptions = { enabled: Number.isInteger(workspaceId) && workspaceId > 0, retry: false };
   const workspace = trpc.portal.workspace.useQuery({ workspaceId }, queryOptions);
   const certificates = trpc.portal.certificates.useQuery({ workspaceId }, queryOptions);
@@ -69,10 +113,17 @@ export default function WorkspaceOverview() {
 
   const current = workspace.data;
   const isAutonomo = current.kind === "autonomo";
-  const expiredCertificates = certificates.data?.filter(item => (daysUntil(item.expiresAt) ?? 0) < 0).length ?? 0;
-  const expiringCertificates = certificates.data?.filter(item => { const days = daysUntil(item.expiresAt); return days !== null && days >= 0 && days <= 30; }).length ?? 0;
+  const certificatesInPeriod = certificates.data?.filter(item => isWithinGlobalPeriod(item.issuedAt ?? item.expiresAt ?? item.createdAt, globalPeriod)) ?? [];
+  const trainingsInPeriod = trainings.data?.filter(item => isWithinGlobalPeriod(item.scheduledAt ?? item.createdAt, globalPeriod)) ?? [];
+  const filteredOccurrences = operations.data?.occurrences.filter(item => isWithinGlobalPeriod(item.occurredAt ?? item.createdAt, globalPeriod)) ?? [];
+  const allInspections = planning.data?.inspections.filter(item => isWithinGlobalPeriod(item.dueAt ?? item.createdAt, globalPeriod)) ?? [];
+  const filteredActionItems = planning.data?.actionItems.filter(item => isWithinGlobalPeriod(item.dueAt ?? item.createdAt, globalPeriod)) ?? [];
+  const clientEngagements = commercial.data?.engagements.filter(item => isWithinGlobalPeriod(item.nextFollowUpAt ?? item.createdAt, globalPeriod)) ?? [];
+  const clientVisits = commercial.data?.visits.filter(item => isWithinGlobalPeriod(item.scheduledAt ?? item.createdAt, globalPeriod)) ?? [];
+  const expiredCertificates = certificatesInPeriod.filter(item => (daysUntil(item.expiresAt) ?? 0) < 0).length;
+  const expiringCertificates = certificatesInPeriod.filter(item => { const days = daysUntil(item.expiresAt); return days !== null && days >= 0 && days <= 30; }).length;
   const certificatesToAct = expiredCertificates + expiringCertificates;
-  const plannedTrainings = trainings.data?.filter(item => item.status === "planned").length ?? 0;
+  const plannedTrainings = trainingsInPeriod.filter(item => item.status === "planned").length;
   const activeEmployees = organization.data?.employees.filter(item => item.status === "active") ?? [];
   const activeDepartments = organization.data?.departments.filter(item => item.active) ?? [];
   const activeJobRoles = organization.data?.jobRoles.filter(item => item.active) ?? [];
@@ -82,18 +133,15 @@ export default function WorkspaceOverview() {
   const epiStockCritical = epiItems.filter(item => item.stockQuantity <= item.minimumStock).length;
   const epiExpiring = epiItems.filter(item => item.expiresAt && daysUntil(item.expiresAt) !== null && (daysUntil(item.expiresAt) ?? 0) <= 30).length;
   const epiAlerts = epiStockCritical + epiExpiring;
-  const openOccurrences = operations.data?.occurrences.filter(item => item.status !== "closed").length ?? 0;
-  const allInspections = planning.data?.inspections ?? [];
+  const openOccurrences = filteredOccurrences.filter(item => item.status !== "closed").length;
   const plannedInspections = allInspections.filter(item => item.status === "planned").length;
   const completedInspections = allInspections.filter(item => item.status === "completed").length;
   const overdueInspections = allInspections.filter(item => item.status === "planned" && item.dueAt && (daysUntil(item.dueAt) ?? 0) < 0).length;
   const inspectionCompletionRate = allInspections.length ? Math.round((completedInspections / allInspections.length) * 100) : null;
-  const openActionItems = planning.data?.actionItems.filter(item => item.status !== "completed") ?? [];
+  const openActionItems = filteredActionItems.filter(item => item.status !== "completed");
   const overdueActionItems = openActionItems.filter(item => item.dueAt && daysUntil(item.dueAt) !== null && (daysUntil(item.dueAt) ?? 0) < 0).length;
-  const completedActionItems = planning.data?.actionItems.filter(item => item.status === "completed").length ?? 0;
-  const actionCompletionRate = (planning.data?.actionItems.length ?? 0) ? Math.round((completedActionItems / (planning.data?.actionItems.length ?? 1)) * 100) : null;
-  const clientEngagements = commercial.data?.engagements ?? [];
-  const clientVisits = commercial.data?.visits ?? [];
+  const completedActionItems = filteredActionItems.filter(item => item.status === "completed").length;
+  const actionCompletionRate = filteredActionItems.length ? Math.round((completedActionItems / filteredActionItems.length) * 100) : null;
   const activeClients = clientEngagements.filter(item => item.status === "active").length;
   const followUpsIn30Days = clientEngagements.filter(item => item.nextFollowUpAt && (daysUntil(item.nextFollowUpAt) ?? Infinity) <= 30 && item.status !== "inactive").length;
   const plannedVisits = clientVisits.filter(item => item.status === "planned").length;
@@ -132,7 +180,7 @@ export default function WorkspaceOverview() {
     cipaMeetingsList = [];
   }
   const todayStr = new Date().toISOString().slice(0, 10);
-  const upcomingCipaMeetings = cipaMeetingsList.filter((meeting: { status: string; date: string }) => meeting.status === "agendada" && meeting.date >= todayStr).slice(0, 3);
+  const upcomingCipaMeetings = cipaMeetingsList.filter((meeting: { status: string; date: string }) => meeting.status === "agendada" && meeting.date >= todayStr && isWithinGlobalPeriod(meeting.date, globalPeriod)).slice(0, 3);
   const urgentCipaMeetings = upcomingCipaMeetings.filter(meeting => isCipaMeetingUrgent(meeting.date));
   const cipaHasUrgentMeeting = urgentCipaMeetings.length > 0;
   const pendingCipaTasks = [
@@ -140,6 +188,16 @@ export default function WorkspaceOverview() {
     { title: "Homologação do Calendário Anual de Reuniões", completed: cipaMeetingsList.length >= 12 },
     { title: "Eleição e Posse da Gestão da CIPA", completed: false },
   ];
+  const pendingCipaTaskCount = pendingCipaTasks.filter(task => !task.completed).length;
+  const cipaBadgeCount = pendingCipaTaskCount + urgentCipaMeetings.length;
+  const inspectionsBadgeCount = overdueInspections + overdueActionItems;
+  const documentsBadgeCount = certificatesToAct;
+  const periodLabel = globalPeriod === "all" ? "Todos os períodos" : globalPeriod === "30" ? "Últimos 30 dias" : globalPeriod === "90" ? "Últimos 90 dias" : "Últimos 12 meses";
+  const badgeCountFor = (id: DashboardView) => {
+    const count = id === "cipa" ? cipaBadgeCount : id === "epis" ? epiAlerts : id === "inspecoes" ? inspectionsBadgeCount : id === "documentos" ? documentsBadgeCount : epiAlerts + cipaBadgeCount + inspectionsBadgeCount + documentsBadgeCount;
+    const key = id === "cipa" ? "cipa" : id === "epis" ? "epi" : id === "inspecoes" ? "inspecoes" : id === "documentos" ? "documentos" : "resumo";
+    return { count: isAlertUnread(key) ? count : 0, key };
+  };
 
   const context = isAutonomo
     ? {
@@ -302,8 +360,16 @@ export default function WorkspaceOverview() {
 
   return <DashboardLayout title="Visão geral"><div className="mx-auto max-w-7xl space-y-5">
     <section className="sticky top-3 z-20 rounded-2xl border border-[#dcebe8] bg-white/95 p-2 shadow-[0_12px_32px_rgba(16,43,50,.08)] backdrop-blur-xl" aria-label="Painéis do ambiente">
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {dashboardTabs.map(({ id, label, description, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveDashboard(id)} aria-pressed={activeDashboard === id} className={`group flex min-w-[130px] shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition ${activeDashboard === id ? "bg-[#0c7474] text-white shadow-[0_7px_18px_rgba(12,116,116,.18)]" : "text-[#47636a] hover:bg-[#f2f8f6]"}`}><span className={`grid h-8 w-8 place-items-center rounded-lg ${activeDashboard === id ? "bg-white/15" : "bg-[#e8f6f1] text-[#0c7474]"}`}><Icon className="h-4 w-4" /></span><span><strong className="block text-xs font-bold">{label}</strong><small className={`mt-0.5 block whitespace-nowrap text-[10px] ${activeDashboard === id ? "text-white/75" : "text-[#83a09a] group-hover:text-[#668087]"}`}>{description}</small></span></button>)}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {dashboardTabs.map(({ id, label, description, icon: Icon }) => { const badge = badgeCountFor(id); return <button key={id} type="button" onClick={() => setActiveDashboard(id)} aria-pressed={activeDashboard === id} className={`group relative flex min-w-[130px] shrink-0 items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-left transition ${activeDashboard === id ? "bg-[#0c7474] text-white shadow-[0_7px_18px_rgba(12,116,116,.18)]" : "text-[#47636a] hover:bg-[#f2f8f6]"}`}><span className={`grid h-8 w-8 place-items-center rounded-lg ${activeDashboard === id ? "bg-white/15" : "bg-[#e8f6f1] text-[#0c7474]"}`}><Icon className="h-4 w-4" /></span><span><strong className="block text-xs font-bold">{label}</strong><small className={`mt-0.5 block whitespace-nowrap text-[10px] ${activeDashboard === id ? "text-white/75" : "text-[#83a09a] group-hover:text-[#668087]"}`}>{description}</small></span>{badge.count > 0 && <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full border-2 border-white bg-[#d83c3c] px-1 text-[9px] font-extrabold leading-none text-white shadow-sm" aria-label={`${badge.count} alerta(s) pendente(s) em ${label}`}>{badge.count > 99 ? "99+" : badge.count}</span>}</button>; })}
+        </div>
+        <div className="flex flex-col gap-2 rounded-xl border border-[#e6f0ee] bg-[#f7fcfa] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#668087]"><CalendarClock className="h-3.5 w-3.5 text-[#0c7474]" />Período global <span className="normal-case font-semibold tracking-normal text-[#0c7474]">{periodLabel}</span></div>
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar período global">
+            {(["all", "30", "90", "365"] as const).map(value => <button key={value} type="button" onClick={() => setGlobalPeriod(value)} aria-pressed={globalPeriod === value} className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${globalPeriod === value ? "bg-white text-[#0c7474] shadow-sm ring-1 ring-[#b9e3d7]" : "text-[#668087] hover:bg-white hover:text-[#315158]"}`}>{value === "all" ? "Tudo" : value === "365" ? "12 meses" : `${value} dias`}</button>)}
+          </div>
+        </div>
       </div>
     </section>
 
@@ -323,9 +389,12 @@ export default function WorkspaceOverview() {
               </p>
             </div>
           </div>
-          <Link href={appHref("/app/operacao")} className="inline-flex items-center justify-center rounded-xl bg-[#d67845] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#bd643d]">
-            Gerenciar Estoque e CAs <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <Link href={appHref("/app/operacao")} className="inline-flex items-center justify-center rounded-xl bg-[#d67845] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#bd643d]">
+              Resolver agora <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+            {isAlertUnread("epi") ? <button type="button" onClick={() => markAlertAsRead("epi")} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#e6af96] bg-white/75 px-3 py-2 text-xs font-bold text-[#a85a39] transition hover:bg-white"><CheckCircle2 className="h-3.5 w-3.5" />Marcar como lida</button> : <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#b9e3d7] bg-white/75 px-3 py-2 text-xs font-bold text-[#0c7474]"><CheckCircle2 className="h-3.5 w-3.5" />Lida</span>}
+          </div>
         </div>
       </section>
     )}
@@ -388,8 +457,8 @@ export default function WorkspaceOverview() {
         <div className="rounded-[2rem] border border-[#dcebe8] bg-white p-6 shadow-[0_16px_42px_rgba(16,43,50,.06)] lg:p-7"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#0c8c89]">Painel temático</p><h2 className="mt-1 text-2xl font-bold text-[#102b32]">{dashboardTabs.find(tab => tab.id === activeDashboard)?.label}</h2><p className="mt-2 text-sm text-[#668087]">{dashboardTabs.find(tab => tab.id === activeDashboard)?.description}. Consulte apenas o recorte operacional necessário, sem misturar indicadores.</p></div><span className="rounded-full bg-[#e8f6f1] px-3 py-1.5 text-xs font-bold text-[#0c7474]">Ambiente: {current.name}</span></div></div>
         {activeDashboard === "cipa" && <section className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]"><article className={`rounded-3xl border p-6 shadow-sm ${cipaHasUrgentMeeting ? "border-[#f1c9ba] bg-[#fff8f4]" : "border-[#dcebe8] bg-white"}`}><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#c76845]">Agenda da comissão</p><h3 className="mt-1 text-xl font-bold text-[#102b32]">Próximas reuniões</h3></div><CalendarDays className="h-5 w-5 text-[#0c7474]" /></div><div className="mt-5 space-y-3">{upcomingCipaMeetings.length ? upcomingCipaMeetings.map(meeting => { const days = daysUntilCipaMeeting(meeting.date); const urgent = isCipaMeetingUrgent(meeting.date); return <div key={meeting.id} className={`flex items-center justify-between rounded-2xl border p-4 ${urgent ? "border-[#efb59f] bg-white" : "border-[#e4efec] bg-[#f7fcfa]"}`}><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{meeting.date} às {meeting.time}</p></div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${urgent ? "bg-[#ffe4d8] text-[#b85c36]" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{urgent ? (days === 0 ? "Hoje" : days === 1 ? "Amanhã" : `Em ${days} dias`) : "Agendada"}</span></div>; }) : <p className="rounded-2xl border border-dashed border-[#cfe3de] p-5 text-center text-sm text-[#668087]">Nenhuma reunião agendada neste ambiente.</p>}</div><Link href={appHref("/app/cipa")} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0c7474]">Abrir agenda da CIPA <ArrowRight className="h-4 w-4" /></Link></article><article className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Acompanhamento</p><h3 className="mt-1 text-xl font-bold text-[#102b32]">Tarefas pendentes</h3><div className="mt-5 space-y-3">{pendingCipaTasks.map((task, index) => <div key={task.title} className="flex items-center gap-3 rounded-2xl border border-[#e6f0ee] bg-[#f7fcfa] p-3.5"><span className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${task.completed ? "bg-[#0c7474] text-white" : "bg-[#fff0e9] text-[#b85c36]"}`}>{task.completed ? <CheckCircle2 className="h-4 w-4" /> : index + 1}</span><span className="text-sm font-semibold text-[#315158]">{task.title}</span></div>)}</div></article></section>}
         {activeDashboard === "epis" && <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"><Link href={appHref("/app/operacao")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm transition hover:-translate-y-0.5"><CircleAlert className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl text-[#102b32]">{epiAlerts}</b><span className="mt-1 block text-xs text-[#668087]">Alertas totais de EPI</span></Link><Link href={appHref("/app/operacao")} className="rounded-3xl border border-[#f1d5c9] bg-white p-6 shadow-sm transition hover:-translate-y-0.5"><ShieldCheck className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl text-[#102b32]">{epiStockCritical}</b><span className="mt-1 block text-xs text-[#668087]">Itens abaixo do mínimo</span></Link><Link href={appHref("/app/operacao")} className="rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm transition hover:-translate-y-0.5"><CalendarClock className="h-5 w-5 text-[#3173a8]" /><b className="mt-4 block text-3xl text-[#102b32]">{epiExpiring}</b><span className="mt-1 block text-xs text-[#668087]">CAs próximos do vencimento</span></Link><Link href={appHref("/app/operacao")} className="rounded-3xl border border-[#b9e3d7] bg-[#f7fcfa] p-6 shadow-sm transition hover:-translate-y-0.5"><ShieldCheck className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl text-[#102b32]">{epiItems.length}</b><span className="mt-1 block text-xs text-[#668087]">EPIs ativos no ambiente</span></Link></section>}
-        {activeDashboard === "inspecoes" && <section className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm"><ClipboardCheck className="h-5 w-5 text-[#3173a8]" /><b className="mt-4 block text-3xl">{allInspections.length}</b><span className="mt-1 block text-xs text-[#668087]">Inspeções registradas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#b9e3d7] bg-[#f7fcfa] p-6 shadow-sm"><CheckCircle2 className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl">{inspectionCompletionRate === null ? "—" : `${inspectionCompletionRate}%`}</b><span className="mt-1 block text-xs text-[#668087]">Conclusão</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm"><CalendarClock className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl">{overdueInspections}</b><span className="mt-1 block text-xs text-[#668087]">Inspeções atrasadas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm"><CircleAlert className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl">{overdueActionItems}</b><span className="mt-1 block text-xs text-[#668087]">Ações atrasadas</span></Link></div><InspectionActionSummary inspections={allInspections} actionItems={planning.data?.actionItems ?? []} /><DashboardCharts isAutonomo={isAutonomo} workspaceId={current.id} input={dashboardAnalytics} /></section>}
-        {activeDashboard === "documentos" && <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"><Link href={appHref("/app/certificados")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm"><CircleAlert className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl">{certificatesToAct}</b><span className="mt-1 block text-xs text-[#668087]">Documentos que exigem ação</span></Link><Link href={appHref("/app/certificados")} className="rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm"><Award className="h-5 w-5 text-[#3173a8]" /><b className="mt-4 block text-3xl">{certificates.data?.length ?? 0}</b><span className="mt-1 block text-xs text-[#668087]">Certificados no acervo</span></Link><Link href={appHref("/app/treinamentos")} className="rounded-3xl border border-[#b9e3d7] bg-[#f7fcfa] p-6 shadow-sm"><CalendarClock className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl">{plannedTrainings}</b><span className="mt-1 block text-xs text-[#668087]">Treinamentos planejados</span></Link><Link href={appHref("/app/biblioteca")} className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><BookOpen className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl">{current.pgrProjects.length}</b><span className="mt-1 block text-xs text-[#668087]">Entregas PGR vinculadas</span></Link></section>}
+        {activeDashboard === "inspecoes" && <section className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm"><ClipboardCheck className="h-5 w-5 text-[#3173a8]" /><b className="mt-4 block text-3xl">{allInspections.length}</b><span className="mt-1 block text-xs text-[#668087]">Inspeções registradas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#b9e3d7] bg-[#f7fcfa] p-6 shadow-sm"><CheckCircle2 className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl">{inspectionCompletionRate === null ? "—" : `${inspectionCompletionRate}%`}</b><span className="mt-1 block text-xs text-[#668087]">Conclusão</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm"><CalendarClock className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl">{overdueInspections}</b><span className="mt-1 block text-xs text-[#668087]">Inspeções atrasadas</span></Link><Link href={appHref("/app/inspecoes")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm"><CircleAlert className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl">{overdueActionItems}</b><span className="mt-1 block text-xs text-[#668087]">Ações atrasadas</span></Link></div><InspectionActionSummary inspections={allInspections} actionItems={filteredActionItems} /><DashboardCharts isAutonomo={isAutonomo} workspaceId={current.id} input={dashboardAnalytics} periodLabel={periodLabel} /></section>}
+        {activeDashboard === "documentos" && <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"><Link href={appHref("/app/certificados")} className="rounded-3xl border border-[#f1d5c9] bg-[#fff9f5] p-6 shadow-sm"><CircleAlert className="h-5 w-5 text-[#d67845]" /><b className="mt-4 block text-3xl">{certificatesToAct}</b><span className="mt-1 block text-xs text-[#668087]">Documentos que exigem ação</span></Link><Link href={appHref("/app/certificados")} className="rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm"><Award className="h-5 w-5 text-[#3173a8]" /><b className="mt-4 block text-3xl">{certificatesInPeriod.length}</b><span className="mt-1 block text-xs text-[#668087]">Certificados no período</span></Link><Link href={appHref("/app/treinamentos")} className="rounded-3xl border border-[#b9e3d7] bg-[#f7fcfa] p-6 shadow-sm"><CalendarClock className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl">{plannedTrainings}</b><span className="mt-1 block text-xs text-[#668087]">Treinamentos planejados</span></Link><Link href={appHref("/app/biblioteca")} className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><BookOpen className="h-5 w-5 text-[#0c7474]" /><b className="mt-4 block text-3xl">{current.pgrProjects.length}</b><span className="mt-1 block text-xs text-[#668087]">Entregas PGR vinculadas</span></Link></section>}
       </section>}
   </div></DashboardLayout>;
 }

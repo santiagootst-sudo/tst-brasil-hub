@@ -40,6 +40,7 @@ type DashboardChartsProps = {
   isAutonomo: boolean;
   input: DashboardAnalyticsInput;
   workspaceId: number;
+  periodLabel?: string;
 };
 
 const chartConfig = {
@@ -271,7 +272,7 @@ function DashboardPulse({
   );
 }
 
-export default function DashboardCharts({ isAutonomo, input, workspaceId }: DashboardChartsProps) {
+export default function DashboardCharts({ isAutonomo, input, workspaceId, periodLabel = "Todos os períodos" }: DashboardChartsProps) {
   const executionData = useMemo(() => buildExecutionChartData(input), [input]);
   const portfolioData = useMemo(() => buildAutonomoPortfolioData(input), [input]);
   const structureData = useMemo(() => buildEmpresaStructureData(input), [input]);
@@ -286,7 +287,7 @@ export default function DashboardCharts({ isAutonomo, input, workspaceId }: Dash
           <h3 className="mt-1 text-xl font-bold text-[#102b32]">{isAutonomo ? "Carteira em movimento" : "Pulso da operação"}</h3>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[#668087]">Os gráficos são atualizados a partir dos registros reais do ambiente ativo. Eles mostram o panorama atual, sem inventar tendência histórica.</p>
         </div>
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.12em] text-[#0c7474] shadow-sm backdrop-blur-md"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0c8c89] motion-reduce:animate-none" />Atualização automática</span>
+        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.12em] text-[#0c7474] shadow-sm backdrop-blur-md"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0c8c89] motion-reduce:animate-none" />{periodLabel}</span>
       </div>
 
       <DashboardPulse isAutonomo={isAutonomo} input={input} executionData={executionData} alertData={alertData} />

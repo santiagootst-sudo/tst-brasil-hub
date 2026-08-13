@@ -442,4 +442,10 @@
 - [x] Implementar top bar de painéis temáticos (Resumo, CIPA, EPIs, Inspeções e Documentos) na Visão Geral.
 - [x] Compactar o dashboard principal para priorizar alertas críticos e reduzir a rolagem excessiva.
 - [x] Atualizar testes unitários e verificar build de produção.
+- [x] Publicar checkpoint final e registrar instruções de homologação.
+
+- [x] Implementar badges vermelhos de notificação nas abas da top bar para EPIs, CIPA e Documentos.
+- [x] Adicionar botões de ação rápida (*Resolver* ou *Marcar como lida*) nos alertas críticos do Resumo.
+- [x] Implementar filtro global de período na top bar com sincronização em todos os painéis e gráficos.
+- [x] Atualizar testes unitários e verificar build de produção.
 - [ ] Publicar checkpoint final e registrar instruções de homologação.
