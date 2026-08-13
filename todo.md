@@ -399,3 +399,6 @@
 - [x] Implementar alertas visuais e acionáveis no Dashboard Principal para notificar automaticamente sobre EPIs com estoque baixo ou Certificados de Aprovação (CA) próximos do vencimento.
 - [x] Adicionar fluxo de assinatura digital na plataforma para a Ficha de Entrega de EPI, salvando o comprovante/recibo assinado no perfil e histórico documental do funcionário.
 - [x] Executar suíte completa de testes automatizados e validar o build de produção.
+
+- [x] Criar um painel dedicado no perfil/histórico do funcionário para visualizar, baixar e gerenciar todas as Fichas de Entrega de EPI assinadas digitalmente.
+- [x] Executar suíte completa de testes automatizados e validar o build de produção.

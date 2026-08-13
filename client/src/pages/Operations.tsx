@@ -10,7 +10,7 @@ import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadEpiReceiptPdf } from "@/lib/pdfReports";
 import { 
   AlertTriangle, ClipboardCheck, ClipboardPlus, HardHat, Loader2, PackageCheck, 
-  Plus, ShieldAlert, QrCode, Smartphone, CheckCircle2, Download, Check, X, Sparkles 
+  Plus, ShieldAlert, QrCode, Smartphone, CheckCircle2, Download, Check, X, Sparkles, UsersRound 
 } from "lucide-react";
 
 const occurrenceLabels = { near_miss: "Quase acidente", incident: "Incidente", accident: "Acidente" } as const;
@@ -121,7 +121,8 @@ export default function Operations() {
     toast.success("Comprovante digital em PDF baixado com sucesso!");
   };
 
-  const [activeTab, setActiveTab] = useState<"overview" | "stock" | "deliveries" | "requirements" | "alerts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "stock" | "deliveries" | "requirements" | "alerts" | "employee_profile">("overview");
+  const [selectedProfileEmployeeId, setSelectedProfileEmployeeId] = useState<number>(0);
 
   return <DashboardLayout title="Controle de EPIs"><div className="mx-auto max-w-7xl space-y-6">
     <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Centro Operacional de EPIs</p><h2 className="mt-2 text-3xl font-bold">Controle Avançado de EPIs e CA</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Gerenciamento inteligente de estoque, Certificados de Aprovação (CA), fichas de entrega com assinatura digital via QR Code e histórico por trabalhador.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-3"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{replacementDue.length}</b>reposições próximas</div></div></div></section>
@@ -150,6 +151,10 @@ export default function Operations() {
             </button>
             <button onClick={() => setActiveTab("requirements")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "requirements" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
               <span className="flex items-center gap-2.5"><Smartphone className="h-4 w-4" /> Requisitos por Função</span>
+            </button>
+            <button onClick={() => setActiveTab("employee_profile")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "employee_profile" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
+              <span className="flex items-center gap-2.5"><UsersRound className="h-4 w-4" /> Fichas por Funcionário</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{employees.length}</span>
             </button>
             <button onClick={() => setActiveTab("alerts")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "alerts" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
               <span className="flex items-center gap-2.5"><ShieldAlert className="h-4 w-4" /> Validades e Alertas</span>
@@ -270,7 +275,12 @@ export default function Operations() {
                   <h3 className="text-lg font-bold text-[#102b32]">Fichas de Entrega e Aceite Digital</h3>
                   <p className="text-xs text-[#668087]">Registro de entregas e reposições com baixa automática no estoque.</p>
                 </div>
-                <ClipboardCheck className="h-6 w-6 text-[#3173a8]" />
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => setActiveTab("employee_profile")} className="rounded-xl bg-[#0c7474] text-white text-xs font-bold">
+                    Ver por Funcionário
+                  </Button>
+                  <ClipboardCheck className="h-6 w-6 text-[#3173a8]" />
+                </div>
               </div>
 
               {canManage && (
@@ -399,7 +409,7 @@ export default function Operations() {
                   <span className="text-xs font-bold text-[#a16207] uppercase tracking-wider">CA com Validade Próxima</span>
                   <p className="mt-2 text-xs text-[#854d0e]">Certificados de Aprovação (CA) vencendo em até 30 dias.</p>
                 </div>
-                <div className="rounded-2xl border border-[#dce8f1] bg-[#f8fbfe] p-5">
+                <div className="rounded-2xl border border-[#dcebe8] bg-[#f8fbfe] p-5">
                   <b className="block text-2xl text-[#3173a8]">{replacementDue.length}</b>
                   <span className="text-xs font-bold text-[#3173a8] uppercase tracking-wider">Reposições Próximas</span>
                   <p className="mt-2 text-xs text-[#235882]">Trocas programadas para os trabalhadores nos próximos dias.</p>
@@ -424,6 +434,62 @@ export default function Operations() {
                     <p className="text-xs text-[#668087] mt-1">O estoque e as validades de CA estão regularizados nesta empresa.</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "employee_profile" && (
+            <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-[#102b32]">Perfil do Funcionário e Fichas Assinadas</h3>
+                  <p className="text-xs text-[#668087]">Histórico centralizado de EPIs entregues, status de aceite digital e download dos recibos.</p>
+                </div>
+                <select 
+                  className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
+                  value={selectedProfileEmployeeId}
+                  onChange={e => setSelectedProfileEmployeeId(Number(e.target.value))}
+                >
+                  <option value={0}>Todos os colaboradores ({employees.length})</option>
+                  {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-4">
+                {employees.filter(emp => !selectedProfileEmployeeId || emp.id === selectedProfileEmployeeId).map(employee => {
+                  const empDeliveries = epiDeliveries.filter(d => d.employeeId === employee.id);
+                  return (
+                    <div key={employee.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-5 space-y-4 shadow-sm">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#eef4f2] pb-3">
+                        <div>
+                          <h4 className="text-base font-bold text-[#102b32]">{employee.fullName}</h4>
+                          <p className="text-xs text-[#668087]">Colaborador ativo na empresa · {empDeliveries.length} ficha(s) emitida(s)</p>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f6f1] px-3 py-1 text-xs font-bold text-[#0c7474]">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Fichas ativas
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h5 className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5d7479]">Fichas de EPI e Termos de Aceite</h5>
+                        {empDeliveries.length ? empDeliveries.map(delivery => (
+                          <div key={delivery.id} className="rounded-xl border border-[#dcebe8] bg-white p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <strong className="text-sm font-bold text-[#123f69]">{epiNameById.get(delivery.epiItemId) ?? "EPI"}</strong>
+                                <span className="rounded-md bg-[#eaf4fd] px-2 py-0.5 text-[10px] font-bold text-[#3173a8]">Qtd: {delivery.quantity}</span>
+                              </div>
+                              <p className="mt-1 text-xs text-[#668087]">Entregue em: {delivery.deliveredAt.toLocaleDateString("pt-BR")} · Aceite digital: <b>{delivery.signedByName}</b></p>
+                            </div>
+                            <Button size="sm" onClick={() => handleDownloadReceipt(delivery)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]">
+                              <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar Ficha PDF
+                            </Button>
+                          </div>
+                        )) : <p className="rounded-xl bg-[#f7fcfa] p-4 text-center text-xs text-[#668087]">Nenhuma ficha de EPI registrada para este colaborador.</p>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
