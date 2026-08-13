@@ -53,7 +53,7 @@ function isWithinGlobalPeriod(date: Date | string | null | undefined, period: Gl
 
 function WorkspaceOverviewSkeleton() {
   const shimmer = "rounded-2xl bg-[#dceee8] motion-safe:animate-pulse motion-reduce:animate-none";
-  return <DashboardLayout title="Visão geral">
+  return <DashboardLayout title="Dashboard">
     <div className="mx-auto max-w-7xl space-y-7" aria-busy="true" aria-label="Carregando dados do dashboard">
       <section className="rounded-[2rem] border border-[#d3e7e0] bg-gradient-to-br from-[#effbf7] via-white to-[#eaf7f1] p-7 shadow-[0_22px_60px_rgba(28,74,77,0.08)] lg:p-9">
         <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/80"><Loader2 className="h-4 w-4 animate-spin text-[#0c7474] motion-reduce:animate-none" /></span><div><div className={`${shimmer} h-3 w-28`} /><p className="mt-2 text-xs font-semibold text-[#668087]">Atualizando seu panorama operacional...</p></div></div>
@@ -149,11 +149,11 @@ export default function WorkspaceOverview() {
   }
 
   if (queryError) {
-    return <DashboardLayout title="Visão geral"><div className="mx-auto grid min-h-[420px] max-w-2xl place-items-center"><div className="w-full rounded-[2rem] border border-[#f1d5c9] bg-gradient-to-br from-white to-[#fff9f5] p-8 text-center shadow-[0_18px_45px_rgba(28,74,77,0.08)]"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0e8] text-[#d67845]"><AlertTriangle className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#d67845]">Acesso ao ambiente</p><h2 className="mt-2 text-2xl font-bold text-[#173b43]">Não foi possível carregar este ambiente.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Selecione um ambiente pertencente à sua conta ou entre novamente no portal para atualizar a sessão.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#063b43]">Voltar à seleção <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
+    return <DashboardLayout title="Dashboard"><div className="mx-auto grid min-h-[420px] max-w-2xl place-items-center"><div className="w-full rounded-[2rem] border border-[#f1d5c9] bg-gradient-to-br from-white to-[#fff9f5] p-8 text-center shadow-[0_18px_45px_rgba(28,74,77,0.08)]"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0e8] text-[#d67845]"><AlertTriangle className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#d67845]">Acesso ao ambiente</p><h2 className="mt-2 text-2xl font-bold text-[#173b43]">Não foi possível carregar este ambiente.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Selecione um ambiente pertencente à sua conta ou entre novamente no portal para atualizar a sessão.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#063b43]">Voltar à seleção <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
   }
 
   if (!workspaceId || !workspace.data) {
-    return <DashboardLayout title="Visão geral"><div className="relative overflow-hidden rounded-[2rem] border border-[#d3e7e0] bg-gradient-to-br from-white via-[#f7fcfa] to-[#eaf7f1] p-8 text-center shadow-[0_16px_40px_rgba(28,74,77,0.08)]"><div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#8edec7]/20 blur-2xl" /><div className="relative mx-auto max-w-xl"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0c7474] text-white shadow-[0_10px_24px_rgba(12,116,116,0.22)]"><ShieldCheck className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#0c8c89]">Seu próximo passo</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.02em] text-[#173b43]">Escolha o ambiente para começar.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Os indicadores, alertas e atalhos serão calculados somente a partir dos registros reais do ambiente ativo.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#095f62]">Escolher ambiente <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
+    return <DashboardLayout title="Dashboard"><div className="relative overflow-hidden rounded-[2rem] border border-[#d3e7e0] bg-gradient-to-br from-white via-[#f7fcfa] to-[#eaf7f1] p-8 text-center shadow-[0_16px_40px_rgba(28,74,77,0.08)]"><div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#8edec7]/20 blur-2xl" /><div className="relative mx-auto max-w-xl"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#0c7474] text-white shadow-[0_10px_24px_rgba(12,116,116,0.22)]"><ShieldCheck className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#0c8c89]">Seu próximo passo</p><h2 className="mt-2 text-2xl font-semibold tracking-[-.02em] text-[#173b43]">Escolha o ambiente para começar.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Os indicadores, alertas e atalhos serão calculados somente a partir dos registros reais do ambiente ativo.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#095f62]">Escolher ambiente <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
   }
 
   const current = workspace.data;
@@ -403,7 +403,7 @@ export default function WorkspaceOverview() {
     },
   ].filter(Boolean) as Priority[];
 
-  return <DashboardLayout title="Visão geral"><div className="dashboard-readable mx-auto max-w-7xl space-y-5">
+  return <DashboardLayout title="Dashboard"><div className="dashboard-readable mx-auto max-w-7xl space-y-5">
     <section className="sticky top-3 z-20 rounded-2xl border border-[#dcebe8] bg-white/95 p-2 shadow-[0_12px_32px_rgba(16,43,50,.08)] backdrop-blur-xl" aria-label="Painéis do ambiente">
       <div className="flex flex-col gap-2">
         <div className="flex gap-2 overflow-x-auto px-1 pb-1 pt-1.5">
@@ -411,7 +411,7 @@ export default function WorkspaceOverview() {
         </div>
         <div className="flex flex-col gap-2 rounded-xl border border-[#e6f0ee] bg-[#f7fcfa] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#668087]"><CalendarClock className="h-3.5 w-3.5 text-[#0c7474]" />Período global <span className="normal-case font-semibold tracking-normal text-[#0c7474]">{periodLabel}</span></div>
-          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Controles da Visão Geral">
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Controles do Dashboard">
             <div className="flex flex-wrap gap-1" role="group" aria-label="Filtrar período global">
               {(["all", "30", "90", "365"] as const).map(value => <button key={value} type="button" onClick={() => setGlobalPeriod(value)} aria-pressed={globalPeriod === value} className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${globalPeriod === value ? "bg-white text-[#0c7474] shadow-sm ring-1 ring-[#b9e3d7]" : "text-[#668087] hover:bg-white hover:text-[#315158]"}`}>{value === "all" ? "Tudo" : value === "365" ? "12 meses" : `${value} dias`}</button>)}
             </div>

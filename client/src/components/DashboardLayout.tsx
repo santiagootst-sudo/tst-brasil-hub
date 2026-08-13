@@ -130,7 +130,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
       { label: "Empresas e clientes", icon: BriefcaseBusiness, path: "/app/clientes" },
       { label: "Agenda de visitas", icon: CalendarDays, path: "/app/agenda" },
-      { label: "Estrutura dos clientes", icon: UsersRound, path: "/app/estrutura" },
+      { label: "Estrutura e equipe", hint: "Cadastre setores, funções e pessoas de cada cliente para sustentar PGR, EPIs, treinamentos e inspeções.", icon: UsersRound, path: "/app/estrutura" },
     ] },
     { label: "Documentos", items: [
       { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
@@ -151,8 +151,8 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
     ] },
   ] : isClt ? [
     { label: "Operação", items: [
-      { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
-      { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
+      { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
+      { label: "Estrutura e equipe", hint: "Cadastre setores, funções e pessoas da empresa para organizar a rotina de SST.", icon: UsersRound, path: "/app/estrutura" },
       { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     ] },
@@ -170,10 +170,10 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Suporte", icon: Headphones, path: "/app/suporte" },
     ] },
   ] : [{ label: "Aplicativos", items: [
-    { label: "Visão geral", icon: LayoutDashboard, path: "/app" },
+    { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
     { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
     { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
-    { label: "Estrutura e equipe", icon: UsersRound, path: "/app/estrutura" },
+    { label: "Estrutura e equipe", hint: "Organize setores, funções e pessoas do ambiente para apoiar a operação de SST.", icon: UsersRound, path: "/app/estrutura" },
     { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
     { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
@@ -196,9 +196,9 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
 
         <nav className="flex-1 space-y-4 overflow-y-auto pr-1">
           {user?.role === "admin" && <section><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">Administração</p><Link href="/admin" className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${location === "/admin" ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><UsersRound className="h-4 w-4" /><span>Gestão de acessos</span></Link></section>}
-          {menuSections.map(section => <section key={section.label}><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{section.label}</p>{section.items.map(({ label, icon: Icon, path }) => {
+          {menuSections.map(section => <section key={section.label}><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{section.label}</p>{section.items.map(({ label, hint, icon: Icon, path }) => {
             const active = path === "/app" ? location === "/app" || location === "/app/visao" : location === path;
-            return <Link key={path} href={pathWithWorkspace(path)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><Icon className="h-4 w-4" /><span>{label}</span></Link>;
+            return <Link key={path} href={pathWithWorkspace(path)} title={hint ?? label} aria-label={hint ? `${label}: ${hint}` : label} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white shadow-inner" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><Icon className="h-4 w-4" /><span>{label}</span></Link>;
           })}</section>)}
         </nav>
 

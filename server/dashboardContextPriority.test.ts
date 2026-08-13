@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const overviewSource = readFileSync(resolve(process.cwd(), "client/src/pages/WorkspaceOverview.tsx"), "utf8");
 const layoutSource = readFileSync(resolve(process.cwd(), "client/src/components/DashboardLayout.tsx"), "utf8");
+const organizationSource = readFileSync(resolve(process.cwd(), "client/src/pages/Organization.tsx"), "utf8");
 
 describe("prioridades contextuais dos ambientes", () => {
   it("ordena o dashboard Autônomo para carteira, entregas e atendimento", () => {
@@ -21,6 +22,19 @@ describe("prioridades contextuais dos ambientes", () => {
     expect(overviewSource).toContain("Gerador de certificados NR");
     expect(overviewSource).toContain("Roteiro de conformidade");
     expect(overviewSource).toContain("Estrutura e equipe");
+  });
+
+  it("usa Dashboard como nome comum nos dois ambientes", () => {
+    expect(layoutSource).toContain('{ label: "Dashboard", icon: LayoutDashboard, path: "/app" }');
+    expect(overviewSource).toContain('DashboardLayout title="Dashboard"');
+    expect(overviewSource).not.toContain('DashboardLayout title="Visão geral"');
+  });
+
+  it("explica Estrutura e equipe conforme o contexto de trabalho", () => {
+    expect(layoutSource).toContain("Cadastre setores, funções e pessoas de cada cliente");
+    expect(layoutSource).toContain("Cadastre setores, funções e pessoas da empresa");
+    expect(organizationSource).toContain("Use esta base para estruturar cada cliente atendido");
+    expect(organizationSource).toContain("Use esta base para organizar a operação interna");
   });
 
   it("preserva ferramentas compartilhadas, mas muda o destaque da barra lateral", () => {

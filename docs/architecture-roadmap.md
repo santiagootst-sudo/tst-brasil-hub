@@ -149,3 +149,12 @@ O portal agora possui três superfícies operacionais complementares que devem p
 A busca por funcionário e a abertura direta da aba `employee_profile` são recursos de navegação, não uma nova fronteira de dados. A URL pode solicitar a aba, mas a API continua responsável por verificar o vínculo com o workspace. Quando o vínculo é inválido, a interface deve informar o bloqueio e oferecer retorno à seleção de ambientes em vez de permanecer em carregamento indefinido.
 
 A metáfora do armário de fichas é deliberadamente visual, porém o documento arquivado continua sendo o registro operacional da ficha de entrega. Qualquer futura persistência de PDFs ou anexos deve seguir o padrão de armazenamento externo definido para o projeto, mantendo no banco apenas metadados, referência de arquivo, empresa, funcionário, status e auditoria.
+
+
+## Navegação contextual: Dashboard e Estrutura e equipe
+
+O item **Dashboard** é a entrada comum para os ambientes Prestador de Serviço e Empresa. A nomenclatura permanece igual nos dois contextos para reduzir ambiguidade e facilitar a troca de perfil.
+
+O módulo **Estrutura e equipe** é compartilhado, mas atende prioridades diferentes. No Prestador de Serviço, organiza setores, funções e pessoas de cada cliente atendido, servindo de base para PGR, CIPA, EPIs, treinamentos, inspeções e documentos vinculados. Na Empresa, organiza a estrutura interna da operação, conectando setores, funções e colaboradores à gestão diária de EPIs, treinamentos, inspeções, CIPA, exames e indicadores de SST.
+
+A barra lateral mantém um rótulo curto e consistente, enquanto a descrição contextual fica disponível como orientação acessível no item de navegação e também no cabeçalho da página do módulo.

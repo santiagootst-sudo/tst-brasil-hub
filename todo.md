@@ -486,3 +486,7 @@
 - [x] Persistir busca e filtros do arquivo de fichas por empresa no navegador e restaurá-los ao recarregar.
 - [x] Adicionar animação de carregamento suave durante a abertura da gaveta.
 - [x] Atualizar testes, validar desktop/mobile, executar build e publicar a melhoria.
+
+- [x] Padronizar o rótulo de navegação e títulos de “Visão Geral” para “Dashboard” no Prestador de Serviço e na Empresa.
+- [x] Revisar e esclarecer a apresentação do módulo Estrutura e Equipe nos dois ambientes, mantendo seu propósito operacional compartilhado.
+- [x] Atualizar testes e documentação, validar os dois contextos, executar build e publicar a padronização.
