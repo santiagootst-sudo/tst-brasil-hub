@@ -342,6 +342,10 @@ export const pgrProjects = mysqlTable("pgr_projects", {
   companyId: int("companyId"),
   name: varchar("name", { length: 255 }).notNull(),
   legacyStorageKey: varchar("legacyStorageKey", { length: 255 }).notNull().unique(),
+  consultancyName: varchar("consultancyName", { length: 255 }),
+  consultancyLogoUrl: varchar("consultancyLogoUrl", { length: 2048 }),
+  riskMapImageUrl: varchar("riskMapImageUrl", { length: 2048 }),
+  visualMatrixImageUrl: varchar("visualMatrixImageUrl", { length: 2048 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("pgr_projects_workspace_idx").on(table.workspaceId)]);

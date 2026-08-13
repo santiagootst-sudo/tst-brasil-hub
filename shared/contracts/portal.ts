@@ -48,6 +48,10 @@ export const updateCompanyBrandingInput = workspaceIdInput.extend({
 export const createPgrProjectInput = workspaceIdInput.extend({
   companyId: z.number().int().positive().optional(),
   name: z.string().trim().min(2).max(255),
+  consultancyName: z.string().trim().max(255).nullable().optional(),
+  consultancyLogoUrl: z.string().max(2048).nullable().optional(),
+  riskMapImageUrl: z.string().max(2048).nullable().optional(),
+  visualMatrixImageUrl: z.string().max(2048).nullable().optional(),
 });
 
 export const certificateCategories = ["certificate", "pgr", "ltcat", "os", "pcmat", "laudo", "other"] as const;

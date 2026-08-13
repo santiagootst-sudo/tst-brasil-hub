@@ -141,6 +141,13 @@
       "when": 1786644909471,
       "tag": "0019_milky_lenny_balinger",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1786647398801,
+      "tag": "0020_mighty_zodiak",
+      "breakpoints": true
     }
   ]
 }

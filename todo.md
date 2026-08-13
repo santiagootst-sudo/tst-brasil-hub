@@ -375,9 +375,14 @@
 - [x] Incorporar na exportação PDF do Portal TST a renderização completa das seções do PGR (capa institucional com logo, sumário dinâmico, identificação completa, inventário GHE, matriz de riscos e plano de ação estruturado).
 - [x] Validar a integridade dos testes automatizados e o build de produção após a evolução da exportação do PGR.
 
-- [ ] Executar validação prática do Gerador de PGR preenchendo dados fictícios, exportando o PDF nativo e comparando paginação, capa, tabelas, matrizes e assinaturas com os arquivos de referência fornecidos.
+- [x] Executar validação prática do Gerador de PGR preenchendo dados fictícios, exportando o PDF nativo e comparando paginação, capa, tabelas, matrizes e assinaturas com os arquivos de referência fornecidos.
 
-- [ ] Ajustar a capa do PGR para reproduzir os elementos legais dos exemplos: logotipos, local/data, aviso de guarda documental, declaração de assinatura eletrônica, responsável técnico e quadro de versão/identificação/revisão.
-- [ ] Garantir que a primeira página e o controle de revisão reflitam a identidade visual e os campos configuráveis da empresa/consultoria.
-- [ ] Validar e documentar o mapa de risco: o PDF deve informar claramente quando a planta e os círculos ainda não foram cadastrados, sem apresentar a área vazia como mapa final completo.
-- [ ] Reexportar o PGR de homologação após os ajustes e repetir a comparação visual com os dois PDFs de referência.
+- [x] Ajustar a capa do PGR para reproduzir os elementos legais dos exemplos: logotipos, local/data, aviso de guarda documental, declaração de assinatura eletrônica, responsável técnico e quadro de versão/identificação/revisão.
+- [x] Garantir que a primeira página e o controle de revisão reflitam a identidade visual e os campos configuráveis da empresa/consultoria.
+- [x] Validar e documentar o mapa de risco: o PDF deve informar claramente quando a planta e os círculos ainda não foram cadastrados, sem apresentar a área vazia como mapa final completo.
+- [x] Reexportar o PGR de homologação após os ajustes e repetir a comparação visual com os dois PDFs de referência.
+
+- [x] Implementar na capa do PGR os elementos legais dos documentos de referência: faixa superior com logotipos da empresa e da consultoria, título formal, local, mês/ano, aviso de guarda documental por 20 anos, declaração de assinatura eletrônica e quadro de versão/identificação/revisão.
+- [x] Adicionar suporte a upload e persistência de imagens reais do mapa de risco e gráficos de matriz visual para renderização direta no relatório exportado.
+- [x] Criar modal e fluxo de pré-visualização (preview) rica na interface do portal, permitindo inspecionar o documento formatado antes do download definitivo.
+- [x] Executar suíte completa de testes automatizados e validar o build de produção com as novas melhorias visuais e funcionais.

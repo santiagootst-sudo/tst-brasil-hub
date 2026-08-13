@@ -143,53 +143,79 @@ export function buildPgrReportPdf(input: PgrReportInput) {
   let currentY = 20;
 
   if (modules.cover) {
-    document.setFillColor(6, 59, 67);
+    document.setFillColor(255, 255, 255);
     document.rect(0, 0, 210, 297, "F");
 
+    document.setFillColor(6, 59, 67);
+    document.rect(0, 0, 210, 16, "F");
     document.setFillColor(12, 116, 116);
-    document.rect(16, 24, 178, 4, "F");
+    document.rect(0, 16, 210, 6, "F");
 
-    document.setTextColor(255, 255, 255);
+    document.setTextColor(6, 59, 67);
     document.setFont("helvetica", "bold");
-    document.setFontSize(28);
-    document.text("PGR", 16, 52);
-    document.setFontSize(15);
-    document.text("PROGRAMA DE GERENCIAMENTO DE RISCOS", 16, 62);
-
-    document.setFont("helvetica", "normal");
-    document.setFontSize(10);
-    document.setTextColor(180, 220, 215);
-    document.text("NR-01 — Segurança e Saúde no Trabalho", 16, 70);
-
-    document.setDrawColor(12, 116, 116);
-    document.line(16, 85, 194, 85);
-
-    document.setFont("helvetica", "bold");
+    document.setFontSize(22);
+    document.text("PROGRAMA DE GERENCIAMENTO DE RISCOS", 16, 42);
     document.setFontSize(14);
-    document.setTextColor(255, 255, 255);
-    document.text("Empresa Atendida", 16, 105);
-    document.setFont("helvetica", "normal");
-    document.setFontSize(16);
-    document.text(input.companyName || "Empresa não informada", 16, 115);
+    document.setTextColor(12, 116, 116);
+    document.text("PGR — NORMA REGULAMENTADORA Nº 01 (NR-01)", 16, 50);
+
+    document.setDrawColor(200, 210, 215);
+    document.line(16, 58, 194, 58);
 
     document.setFont("helvetica", "bold");
     document.setFontSize(12);
-    document.text("Projeto Vinculado", 16, 135);
+    document.setTextColor(16, 43, 50);
+    document.text("EMPRESA CONTRATANTE / EMPREGADOR:", 16, 75);
     document.setFont("helvetica", "normal");
-    document.setFontSize(13);
-    document.text(input.projectName, 16, 143);
+    document.setFontSize(16);
+    document.setTextColor(6, 59, 67);
+    document.text(input.companyName || "Empresa não informada", 16, 85);
 
-    document.setFillColor(16, 43, 50);
-    document.roundedRect(16, 210, 178, 45, 4, 4, "F");
-    document.setTextColor(255, 255, 255);
     document.setFont("helvetica", "bold");
     document.setFontSize(11);
-    document.text("Informações de Emissão", 24, 224);
+    document.setTextColor(16, 43, 50);
+    document.text("PROJETO TÉCNICO VINCULADO:", 16, 105);
     document.setFont("helvetica", "normal");
-    document.setFontSize(9);
-    document.text(`Ambiente emissor: ${input.workspaceName}`, 24, 234);
-    document.text(`Data de emissão: ${formatDate(input.generatedAt ?? new Date())}`, 24, 242);
-    document.text("Documento gerado eletronicamente pelo Portal TST Brasil Hub", 24, 250);
+    document.setFontSize(13);
+    document.text(input.projectName, 16, 113);
+
+    document.setFillColor(245, 248, 248);
+    document.setDrawColor(200, 220, 220);
+    document.roundedRect(16, 130, 178, 44, 3, 3, "FD");
+    document.setFont("helvetica", "bold");
+    document.setFontSize(10);
+    document.setTextColor(6, 59, 67);
+    document.text("ATENÇÃO: DOCUMENTO EMITIDO E ASSINADO ELETRONICAMENTE", 22, 142);
+    document.setFont("helvetica", "normal");
+    document.setFontSize(8.5);
+    document.setTextColor(71, 99, 106);
+    const avisoLegal = "Em atendimento às disposições legais e regulamentares de SST, a emissão deste documento se dá de forma eletrônica, sendo validado com a assinatura digital do responsável técnico competente ao final do relatório.";
+    document.text(avisoLegal, 22, 150, { maxWidth: 166 });
+
+    document.setFont("helvetica", "bold");
+    document.setFontSize(9.5);
+    document.setTextColor(16, 43, 50);
+    document.text("ESTE DOCUMENTO DEVERÁ SER ARQUIVADO DURANTE 20 ANOS.", 16, 192);
+
+    document.setFillColor(6, 59, 67);
+    document.rect(16, 210, 178, 36, "F");
+    document.setTextColor(255, 255, 255);
+    document.setFont("helvetica", "bold");
+    document.setFontSize(10);
+    document.text("EMISSÃO TÉCNICA E RASTREABILIDADE", 22, 222);
+    document.setFont("helvetica", "normal");
+    document.setFontSize(8.5);
+    document.text(`Ambiente emissor / Workspace: ${input.workspaceName}`, 22, 230);
+    document.text(`Data de emissão e validação: ${formatDate(input.generatedAt ?? new Date())}`, 22, 238);
+
+    document.setDrawColor(180, 190, 195);
+    document.rect(16, 264, 178, 18);
+    document.setFont("helvetica", "bold");
+    document.setFontSize(8);
+    document.setTextColor(6, 59, 67);
+    document.text("VERSÃO: 2026 / V1", 20, 275);
+    document.text("IDENTIFICAÇÃO: PGR OFICIAL NR-01", 75, 275);
+    document.text("REVISÃO: 01", 162, 275);
 
     document.addPage();
   }
