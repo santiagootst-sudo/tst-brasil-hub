@@ -269,6 +269,28 @@ export default function WorkspaceOverview() {
   ].filter(Boolean) as Priority[];
 
   return <DashboardLayout title="Visão geral"><div className="mx-auto max-w-7xl space-y-7">
+    {(epiStockCritical > 0 || epiExpiring > 0) && (
+      <section className="rounded-3xl border border-[#f1d5c9] bg-gradient-to-r from-[#fff9f5] via-[#fff4ec] to-[#fef8f5] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3.5">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#fdd8cc] text-[#bd6e4f]">
+              <CircleAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-[#2d1810]">Alertas Críticos de EPI e CA no Ambiente</h4>
+              <p className="mt-0.5 text-xs text-[#735043]">
+                {epiStockCritical > 0 ? `${epiStockCritical} item(ns) com estoque crítico abaixo do mínimo. ` : ""}
+                {epiExpiring > 0 ? `${epiExpiring} Certificado(s) de Aprovação (CA) com validade vencida ou próxima em 30 dias.` : ""}
+              </p>
+            </div>
+          </div>
+          <Link href={appHref("/app/operacao")} className="inline-flex items-center justify-center rounded-xl bg-[#d67845] px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#bd643d]">
+            Gerenciar Estoque e CAs <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </section>
+    )}
+
     <section className={`relative overflow-hidden rounded-[2rem] border p-7 shadow-[0_22px_60px_rgba(28,74,77,0.10)] lg:p-9 ${context.color}`}>
       <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#8edec7]/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-[-8rem] left-1/3 h-64 w-64 rounded-full bg-[#b9defc]/15 blur-3xl" />

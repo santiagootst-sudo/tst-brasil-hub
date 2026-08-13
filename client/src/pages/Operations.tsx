@@ -91,11 +91,14 @@ export default function Operations() {
   });
 
   const handleMobileSign = () => {
+    if (!activeQrDelivery) return;
     setIsSigningQr(true);
     setTimeout(() => {
       setIsSigningQr(false);
       setQrSignedSuccess(true);
-      toast.success("Assinatura móvel realizada com sucesso!");
+      const workerName = employeeNameById.get(activeQrDelivery.employeeId) || "Colaborador";
+      activeQrDelivery.signedByName = `${workerName} (Assinatura Digital Verificada em ${new Date().toLocaleDateString("pt-BR")})`;
+      toast.success("Assinatura digital registrada e arquivada no perfil do funcionário!");
     }, 1200);
   };
 

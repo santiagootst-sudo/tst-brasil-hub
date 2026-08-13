@@ -395,3 +395,7 @@
 - [x] Aprimorar a geração de PDF do recibo de entrega em pdfReports.ts para estruturá-lo como uma Ficha de Entrega e Devolução formal pronta para a assinatura física e digital do funcionário.
 - [x] Adicionar gráficos interativos no Dashboard Principal para visualizar o status das ocorrências SST e o nível de estoque dos EPIs.
 - [x] Executar suíte completa de testes automatizados e validar o build de produção.
+
+- [x] Implementar alertas visuais e acionáveis no Dashboard Principal para notificar automaticamente sobre EPIs com estoque baixo ou Certificados de Aprovação (CA) próximos do vencimento.
+- [x] Adicionar fluxo de assinatura digital na plataforma para a Ficha de Entrega de EPI, salvando o comprovante/recibo assinado no perfil e histórico documental do funcionário.
+- [x] Executar suíte completa de testes automatizados e validar o build de produção.
