@@ -69,7 +69,7 @@
 - [x] Reorganizar a página de PGR para criar e abrir projetos a partir do card de cada empresa.
 - [x] Exibir no card da empresa os PGRs vinculados, o status de criação e as ações de abertura do gerador.
 - [x] Validar a jornada completa empresa-logo-projeto-PGR sem criar dados fictícios.
-- [ ] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes.
+- [ ] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes (homologação autorizada).
 - [x] Comprovar o carregamento do app legado do PGR por evidência observável após a atualização da storage key integrada.
 - [x] Adicionar teste automatizado que verifica o modo `portalAuth` e a ocultação do login interno no HTML legado publicado.
 - [x] Corrigir a entrega do PGR integrado para impedir definitivamente a exibição da tela de login interna.
@@ -123,10 +123,10 @@
 - [x] Adicionar mutação e interface para atualizar o status das visitas do TST Autônomo entre planejada, concluída e cancelada.
 - [x] Exibir na visão de Documentos do TST Autônomo os vencimentos reais de certificados por cliente, incluindo status vencido e próximo do vencimento.
 - [x] Cobrir e validar no navegador a gestão de status de visitas e os vencimentos documentais da carteira comercial.
-- [ ] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência.
-- [ ] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente.
+- [ ] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência (homologação autorizada).
+- [ ] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente (homologação autorizada).
 - [x] Validar separadamente os fluxos críticos restantes: dashboard com e sem acesso, jornada empresa → logo → projeto → PGR e alternância Autônomo/CLT.
-- [ ] Confirmar no navegador a persistência do status de uma visita real após recarregar ou retornar à agenda.
+- [ ] Confirmar no navegador a persistência do status de uma visita real após recarregar ou retornar à agenda (homologação autorizada).
 - [x] Adicionar cobertura automatizada da lógica de resumo de vencimentos documentais por cliente na visão comercial do TST Autônomo.
 - [x] Implementar regra de ambiente único por usuário, permitindo a escolha inicial entre TST Autônomo e TST CLT, sem criação de ambientes adicionais.
 - [x] Remover da tela de entrada a listagem e os controles que exibem múltiplos ambientes para o mesmo usuário.
