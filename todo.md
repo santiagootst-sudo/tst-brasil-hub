@@ -494,3 +494,8 @@
 - [x] Remover o balão expansivo do WhatsApp que cobre conteúdo da interface.
 - [x] Manter um acesso discreto ao suporte sem obstruir elementos em desktop ou mobile.
 - [x] Atualizar testes, validar responsividade, executar build e publicar a correção.
+
+- [x] Auditar e reorganizar o módulo COPSOQ-III em abas claras: Preenchimento do Questionário, Acompanhamento de Respostas e Resultados e Relatórios.
+- [x] Melhorar o design e a clareza dos passos, eliminando a poluição visual e orientando o preenchimento por dimensões psicossociais.
+- [x] Validar e testar a exportação de resultados em PDF e CSV.
+- [x] Atualizar testes unitários, executar build de produção e verificar responsividade.

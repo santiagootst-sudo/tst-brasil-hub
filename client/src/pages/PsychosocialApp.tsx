@@ -99,17 +99,35 @@ export default function PsychosocialApp() {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
+            {/* Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 rounded-lg">
-              <TabsTrigger value="overview">Painel Analítico</TabsTrigger>
-              <TabsTrigger value="questionnaire">Questionário Anônimo (Passo a Passo)</TabsTrigger>
-              <TabsTrigger value="pgr-integration">Integração com PGR</TabsTrigger>
-              <TabsTrigger value="recommendations">Planos de Ação & Recomendações</TabsTrigger>
+            <TabsList className="bg-white dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-1">
+              <TabsTrigger value="overview" className="flex items-center gap-2"><BarChart3 className="w-4 h-4 text-teal-600" /> Resultados & Indicadores</TabsTrigger>
+              <TabsTrigger value="questionnaire" className="flex items-center gap-2"><Users className="w-4 h-4 text-teal-600" /> Preenchimento do Colaborador</TabsTrigger>
+              <TabsTrigger value="pgr-integration" className="flex items-center gap-2"><FileText className="w-4 h-4 text-teal-600" /> Acompanhamento & PGR</TabsTrigger>
+              <TabsTrigger value="recommendations" className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-teal-600" /> Planos de Ação & PDF</TabsTrigger>
             </TabsList>
+
+            <div className="bg-teal-50/70 dark:bg-slate-900/60 border border-teal-200/60 dark:border-slate-800 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal-600 text-white font-bold text-xs">i</span>
+                <div>
+                  <strong className="block font-semibold text-slate-900 dark:text-slate-100">Guia Rápido do Módulo COPSOQ-III</strong>
+                  <span>Utilize <strong>Preenchimento</strong> para simular a resposta de um trabalhador, <strong>Acompanhamento</strong> para ver o status dos envios e <strong>Resultados</strong> para analisar as dimensões e exportar relatórios.</span>
+                </div>
+              </div>
+              <Badge variant="outline" className="bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 border-teal-300 shrink-0">
+                Norma NR-1 / OIT
+              </Badge>
+            </div>
 
             {/* TAB 1: OVERVIEW & DASHBOARD */}
             <TabsContent value="overview" className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 mb-4">
+                <h2 className="text-lg font-bold">Painel de Resultados Analíticos</h2>
+                <p className="text-sm text-slate-500 mt-1">Visualize o consolidado das dimensões psicossociais, índice geral de risco e filtros por departamento sem expor identidades.</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -222,7 +240,12 @@ export default function PsychosocialApp() {
             </TabsContent>
 
             {/* TAB 2: QUESTIONNAIRE STEP BY STEP */}
-            <TabsContent value="questionnaire">
+            <TabsContent value="questionnaire" className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                <h2 className="text-lg font-bold">Preenchimento de Resposta do Colaborador</h2>
+                <p className="text-sm text-slate-500 mt-1">Simule o preenchimento anônimo por parte de um trabalhador. As respostas alimentam diretamente o cálculo estatístico das 21 dimensões.</p>
+              </div>
+
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -291,6 +314,11 @@ export default function PsychosocialApp() {
 
             {/* TAB 3: PGR INTEGRATION */}
             <TabsContent value="pgr-integration" className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                <h2 className="text-lg font-bold">Acompanhamento de Respostas e Sincronização com PGR</h2>
+                <p className="text-sm text-slate-500 mt-1">Acompanhe o progresso da coleta e transfira automaticamente os estressores de risco médio ou alto para o inventário do PGR.</p>
+              </div>
+
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -330,6 +358,11 @@ export default function PsychosocialApp() {
 
             {/* TAB 4: RECOMMENDATIONS */}
             <TabsContent value="recommendations" className="space-y-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                <h2 className="text-lg font-bold">Planos de Ação, Recomendações e Exportação em PDF</h2>
+                <p className="text-sm text-slate-500 mt-1">Edite as recomendações geradas para compor o relatório executivo oficial pronto para entrega ou auditoria.</p>
+              </div>
+
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                 <CardHeader>
                   <CardTitle>Editor de Planos de Ação & Recomendações Automáticas</CardTitle>
