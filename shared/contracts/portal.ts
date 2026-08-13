@@ -38,6 +38,13 @@ export const uploadCompanyLogoInput = workspaceIdInput.extend({
   dataUrl: z.string().min(32).max(3_500_000),
 });
 
+export const updateCompanyBrandingInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  brandPrimaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  brandBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  logoDataUrl: z.string().min(32).max(3_500_000).nullable().optional(),
+});
+
 export const createPgrProjectInput = workspaceIdInput.extend({
   companyId: z.number().int().positive().optional(),
   name: z.string().trim().min(2).max(255),
@@ -101,6 +108,8 @@ export const companySchema = z.object({
   document: z.string().nullable(),
   logoKey: z.string().nullable(),
   logoUrl: z.string().nullable(),
+  brandPrimaryColor: z.string().nullable(),
+  brandBackgroundColor: z.string().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -267,6 +276,15 @@ export const companyLogoUpdatedSchema = z.object({
   workspaceId: z.number().int().positive(),
   logoKey: z.string(),
   logoUrl: z.string(),
+});
+
+export const companyBrandingUpdatedSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  logoKey: z.string().nullable(),
+  logoUrl: z.string().nullable(),
+  brandPrimaryColor: z.string().nullable(),
+  brandBackgroundColor: z.string().nullable(),
 });
 
 export const departmentCreatedSchema = z.object({

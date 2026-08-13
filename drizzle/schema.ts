@@ -41,6 +41,8 @@ export const companies = mysqlTable("companies", {
   document: varchar("document", { length: 32 }),
   logoKey: varchar("logoKey", { length: 512 }),
   logoUrl: varchar("logoUrl", { length: 1024 }),
+  brandPrimaryColor: varchar("brandPrimaryColor", { length: 7 }),
+  brandBackgroundColor: varchar("brandBackgroundColor", { length: 7 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("companies_workspace_idx").on(table.workspaceId)]);

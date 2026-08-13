@@ -197,6 +197,28 @@ export async function updateCompanyLogoForWorkspace(input: { companyId: number; 
   return getCompanyForWorkspace(input.companyId, input.workspaceId);
 }
 
+export async function updateCompanyBrandingForWorkspace(input: {
+  companyId: number;
+  workspaceId: number;
+  brandPrimaryColor: string;
+  brandBackgroundColor: string;
+  logoKey?: string | null;
+  logoUrl?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db
+    .update(companies)
+    .set({
+      brandPrimaryColor: input.brandPrimaryColor,
+      brandBackgroundColor: input.brandBackgroundColor,
+      ...(input.logoKey !== undefined ? { logoKey: input.logoKey, logoUrl: input.logoUrl ?? null } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(companies.id, input.companyId), eq(companies.workspaceId, input.workspaceId)));
+  return getCompanyForWorkspace(input.companyId, input.workspaceId);
+}
+
 export async function getSubscriptionForUser(userId: number): Promise<Subscription | undefined> {
   const db = await getDb();
   if (!db) return undefined;

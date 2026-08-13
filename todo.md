@@ -347,3 +347,10 @@
 - [x] Implementar marcas d'água visuais dinâmicas por NR no certificado, mantendo legibilidade e alta resolução.
 - [x] Adicionar testes automatizados para o modal de prévia e catálogo de marcas d'água.
 - [x] Verificar build e salvar checkpoint da nova versão do gerador de certificados.
+
+- [x] Remover QR Code do certificado, da prévia, do PDF e dos textos de validação por enquanto.
+- [x] Substituir as marcas d'água abstratas por imagens temáticas coerentes e discretas por NR.
+- [x] Persistir a identidade visual da empresa e reaplicá-la automaticamente nas próximas emissões.
+- [x] Adicionar impressão direta ao modal de pré-visualização do certificado.
+- [x] Criar testes para identidade visual, remoção do QR Code, impressão e novas marcas d'água.
+- [x] Validar testes, build e salvar checkpoint da nova versão.

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { companyCreatedSchema, companyLogoUpdatedSchema, createCompanyInput, uploadCompanyLogoInput, workspaceCreatedSchema, workspaceDetailSchema, workspaceIdInput, workspaceInput, workspaceSummarySchema } from "@shared/contracts/portal";
+import { companyBrandingUpdatedSchema, companyCreatedSchema, companyLogoUpdatedSchema, createCompanyInput, updateCompanyBrandingInput, uploadCompanyLogoInput, workspaceCreatedSchema, workspaceDetailSchema, workspaceIdInput, workspaceInput, workspaceSummarySchema } from "@shared/contracts/portal";
 import * as portalDb from "../db";
 import { storagePut } from "../storage";
 import { canManageWorkspace } from "../workspaceAccess";
@@ -41,5 +41,48 @@ export const workspaceRouter = router({
     const updated = await portalDb.updateCompanyLogoForWorkspace({ companyId: input.companyId, workspaceId: input.workspaceId, logoKey: stored.key, logoUrl: stored.url });
     if (!updated?.logoKey || !updated.logoUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível salvar o logo da empresa." });
     return { id: updated.id, workspaceId: updated.workspaceId, logoKey: updated.logoKey, logoUrl: updated.logoUrl };
+  }),
+  updateCompanyBranding: protectedProcedure.input(updateCompanyBrandingInput).output(companyBrandingUpdatedSchema).mutation(async ({ ctx, input }) => {
+    const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);
+    if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+    const company = await portalDb.getCompanyForWorkspace(input.companyId, input.workspaceId);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
+
+    let logoKey: string | null | undefined;
+    let logoUrl: string | null | undefined;
+    if (input.logoDataUrl !== undefined) {
+      if (input.logoDataUrl === null) {
+        logoKey = null;
+        logoUrl = null;
+      } else {
+        const parsed = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\\s]+)$/.exec(input.logoDataUrl);
+        if (!parsed) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem PNG, JPEG ou WEBP válida." });
+        const contentType = parsed[1];
+        const buffer = Buffer.from(parsed[2], "base64");
+        if (!buffer.length || buffer.length > 2_500_000) throw new TRPCError({ code: "BAD_REQUEST", message: "O logo deve ter no máximo 2,5 MB." });
+        const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+        const stored = await storagePut(`company-logos/workspace-${input.workspaceId}/company-${input.companyId}/logo-${Date.now()}.${extension}`, buffer, contentType);
+        logoKey = stored.key;
+        logoUrl = stored.url;
+      }
+    }
+
+    const updated = await portalDb.updateCompanyBrandingForWorkspace({
+      companyId: input.companyId,
+      workspaceId: input.workspaceId,
+      brandPrimaryColor: input.brandPrimaryColor,
+      brandBackgroundColor: input.brandBackgroundColor,
+      logoKey,
+      logoUrl,
+    });
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível salvar a identidade visual da empresa." });
+    return {
+      id: updated.id,
+      workspaceId: updated.workspaceId,
+      logoKey: updated.logoKey ?? null,
+      logoUrl: updated.logoUrl ?? null,
+      brandPrimaryColor: updated.brandPrimaryColor ?? null,
+      brandBackgroundColor: updated.brandBackgroundColor ?? null,
+    };
   }),
 });

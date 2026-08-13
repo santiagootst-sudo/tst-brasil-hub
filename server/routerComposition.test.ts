@@ -38,6 +38,7 @@ describe("composição de routers do portal", () => {
       "supportTickets",
       "trainings",
       "updateClientVisitStatus",
+      "updateCompanyBranding",
       "uploadCompanyLogo",
       "workspace",
       "workspaces",
