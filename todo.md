@@ -324,3 +324,7 @@
 - [x] Executar suíte de testes automatizados e validar o build de produção.
 
 - [x] Aprimorar a seção de contato por e-mail na landing page com instruções claras para envio de dúvidas e confirmação visual robusta.
+
+- [x] Adicionar campo de seleção de assunto (Suporte, Vendas, Dúvidas) no formulário de contato da landing page.
+- [x] Atualizar todos os números de WhatsApp e links de suporte para o número oficial 54999097610.
+- [x] Executar suíte de testes e validar o build de produção.

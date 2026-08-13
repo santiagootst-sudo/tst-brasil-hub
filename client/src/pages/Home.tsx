@@ -36,6 +36,7 @@ export default function Home() {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [contactSubject, setContactSubject] = useState("Suporte");
   const [contactMessage, setContactMessage] = useState("");
   const [isSendingContact, setIsSendingContact] = useState(false);
 
@@ -53,10 +54,11 @@ export default function Home() {
     setIsSendingContact(true);
     setTimeout(() => {
       setIsSendingContact(false);
-      toast.success("Mensagem enviada com sucesso! Nossa equipe de especialistas entrará em contato em breve.");
+      toast.success(`Mensagem sobre "${contactSubject}" enviada com sucesso! Responderemos em breve.`);
       setContactName("");
       setContactEmail("");
       setContactPhone("");
+      setContactSubject("Suporte");
       setContactMessage("");
     }, 900);
   };
@@ -410,7 +412,7 @@ export default function Home() {
                   </span>
                   <div>
                     <p className="text-xs font-bold text-[#78928d]">Atendimento telefônico e WhatsApp</p>
-                    <p className="text-sm font-bold text-[#0d2227]">(11) 99888-7766 · Seg a Sex das 8h às 18h</p>
+                    <p className="text-sm font-bold text-[#0d2227]">(54) 99909-7610 · Seg a Sex das 8h às 18h</p>
                   </div>
                 </div>
 
@@ -461,14 +463,27 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[#315158]">Telefone / WhatsApp</label>
-                    <Input
-                      value={contactPhone}
-                      onChange={event => setContactPhone(event.target.value)}
-                      placeholder="(00) 00000-0000"
-                      className="mt-1.5 h-11 rounded-xl border-[#d5e8e2] bg-white text-sm"
-                    />
+                    <label className="text-xs font-bold text-[#315158]">Assunto principal *</label>
+                    <select
+                      value={contactSubject}
+                      onChange={event => setContactSubject(event.target.value)}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm text-[#0d2227] focus:outline-none focus:ring-2 focus:ring-[#0c7474]/30"
+                    >
+                      <option value="Suporte">Suporte Técnico</option>
+                      <option value="Vendas">Vendas e Planos</option>
+                      <option value="Dúvidas">Dúvidas sobre o Sistema</option>
+                    </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#315158]">Telefone / WhatsApp (opcional)</label>
+                  <Input
+                    value={contactPhone}
+                    onChange={event => setContactPhone(event.target.value)}
+                    placeholder="(00) 00000-0000"
+                    className="mt-1.5 h-11 rounded-xl border-[#d5e8e2] bg-white text-sm"
+                  />
                 </div>
 
                 <div>
