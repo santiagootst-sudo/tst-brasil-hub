@@ -482,7 +482,7 @@ export default function Operations() {
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#668087]" />
                     <Input
                       value={profileEmployeeSearch}
-                      onChange={e => setProfileEmployeeSearch(e.target.value)}
+                      onChange={e => { setProfileEmployeeSearch(e.target.value); setExpandedArchiveEmployeeId(0); }}
                       placeholder="Buscar funcionário..."
                       aria-label="Buscar funcionário nas fichas de EPI"
                       className="h-10 rounded-xl border-[#cfe3de] bg-white pl-9 text-xs font-semibold text-[#23454b]"
@@ -491,7 +491,7 @@ export default function Operations() {
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
                     value={profileDepartmentFilter}
-                    onChange={e => setProfileDepartmentFilter(Number(e.target.value))}
+                    onChange={e => { setProfileDepartmentFilter(Number(e.target.value)); setExpandedArchiveEmployeeId(0); }}
                   >
                     <option value={0}>Todos os setores ({departments.length})</option>
                     {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
@@ -499,7 +499,7 @@ export default function Operations() {
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
                     value={profileRoleFilter}
-                    onChange={e => setProfileRoleFilter(Number(e.target.value))}
+                    onChange={e => { setProfileRoleFilter(Number(e.target.value)); setExpandedArchiveEmployeeId(0); }}
                   >
                     <option value={0}>Todas as funções ({jobRoles.length})</option>
                     {jobRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
@@ -581,7 +581,7 @@ export default function Operations() {
               </section>
 
               <div className="space-y-4">
-                {profileEmployees.filter(emp => expandedArchiveEmployeeId === 0 || emp.id === expandedArchiveEmployeeId).map(employee => {
+                {expandedArchiveEmployeeId > 0 && profileEmployees.filter(emp => emp.id === expandedArchiveEmployeeId).map(employee => {
                   const empDeliveries = epiDeliveries.filter(d => {
                     if (d.employeeId !== employee.id) return false;
                     const isPending = !d.signedByName || d.signedByName.includes("Pendente");

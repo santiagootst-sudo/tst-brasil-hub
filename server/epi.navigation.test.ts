@@ -34,8 +34,9 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage).toContain("profileRoleFilter");
     expect(operationsPage).toContain("employee.departmentId !== profileDepartmentFilter");
     expect(operationsPage).toContain("employee.jobRoleId !== profileRoleFilter");
-    expect(operationsPage).toContain("expandedArchiveEmployeeId === 0 || emp.id === expandedArchiveEmployeeId");
+    expect(operationsPage).toContain("expandedArchiveEmployeeId > 0 && profileEmployees.filter(emp => emp.id === expandedArchiveEmployeeId)");
     expect(operationsPage).toContain('scrollIntoView({ behavior: "smooth", block: "center" })');
     expect(operationsPage).toContain("epi-archive-file");
+    expect(operationsPage).toContain("setExpandedArchiveEmployeeId(0)");
   });
 });

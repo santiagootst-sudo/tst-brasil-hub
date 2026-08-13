@@ -477,3 +477,7 @@
 - [x] Manter a ficha completa do funcionário recolhida até a abertura explícita da gaveta.
 - [x] Implementar rolagem automática e expansão animada até a gaveta aberta.
 - [x] Atualizar testes, validar a interface em desktop/mobile e publicar a nova versão.
+
+- [x] Corrigir a renderização do arquivo de fichas para ocultar completamente a ficha do funcionário quando nenhuma gaveta estiver aberta.
+- [x] Validar o ciclo abrir → rolar até a ficha → fechar e confirmar que a ficha desaparece novamente.
+- [x] Atualizar testes, revisar responsividade, executar build e publicar a correção.
