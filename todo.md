@@ -322,3 +322,5 @@
 - [x] Criar componente de botão flutuante do WhatsApp com link direto para o suporte oficial em todas as páginas do portal.
 - [x] Adicionar seção de Perguntas Frequentes (FAQ) na landing page cobrindo PGR, certificados, EPIs e perfis.
 - [x] Executar suíte de testes automatizados e validar o build de produção.
+
+- [x] Aprimorar a seção de contato por e-mail na landing page com instruções claras para envio de dúvidas e confirmação visual robusta.

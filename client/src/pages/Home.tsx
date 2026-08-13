@@ -426,10 +426,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Formulário de Contato */}
+            {/* Formulário de Contato por E-mail */}
             <div className="rounded-[2.5rem] border border-[#dcebe8] bg-[#f8fcfb] p-8 lg:p-10 shadow-lg">
-              <h3 className="text-2xl font-bold text-[#0d2227]">Envie sua mensagem</h3>
-              <p className="mt-2 text-xs text-[#526b73]">Preencha o formulário abaixo e responderemos rapidamente.</p>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0c7474]/10 px-3 py-1 text-[11px] font-bold text-[#0c7474]">
+                <Mail className="h-3.5 w-3.5" /> Atendimento por e-mail
+              </span>
+              <h3 className="mt-3 text-2xl font-bold text-[#0d2227]">Envie suas dúvidas por e-mail</h3>
+              <p className="mt-2 text-xs leading-5 text-[#526b73]">
+                Prefere escrever detalhadamente? Preencha os campos abaixo. Nossa equipe responderá diretamente na sua caixa de entrada em até 2 horas úteis.
+              </p>
 
               <form onSubmit={handleContactSubmit} className="mt-6 space-y-4">
                 <div>
