@@ -313,3 +313,8 @@
 - [x] Adicionar modal de detalhes e ação para gerar/baixar novamente o PDF do certificado registrado no acervo.
 - [x] Implementar fluxo de reenvio por e-mail ou cópia de comprovante digital com confirmação visual.
 - [x] Cobrir o histórico com testes automatizados e validar o build de produção.
+
+- [x] Redesenhar a landing page para destacar o ecossistema completo do TST Brasil Hub (PGR, CIPA, EPIs, exames, biblioteca e certificados).
+- [x] Adicionar seção interativa de explicação detalhada de como funciona para Prestador de Serviço e Empresa (CLT).
+- [x] Criar a seção de Contato e Suporte com formulário de envio de dúvidas e orientações de atendimento.
+- [x] Executar testes automatizados, verificar responsividade e publicar a nova landing page.

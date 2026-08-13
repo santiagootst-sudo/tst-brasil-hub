@@ -1,25 +1,64 @@
-import { ArrowRight, BadgeCheck, BookOpen, CheckCircle2, FileCheck2, ShieldCheck, Sparkles, UsersRound, Layers, Briefcase, Building2 } from "lucide-react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { BrandLockup } from "@/components/BrandLockup";
-import { useState } from "react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BookOpen,
+  Briefcase,
+  Building2,
+  CheckCircle2,
+  FileCheck2,
+  HelpCircle,
+  Mail,
+  PhoneCall,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+} from "lucide-react";
+import { toast } from "sonner";
 
 const steps = [
   { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente para desbloquear o acesso aos ambientes especializados de gestão em segurança do trabalho." },
   { num: "02", title: "Escolha o seu contexto", text: "Selecione entre Prestador de serviço para gerenciar sua carteira e PGR, ou Empresa para a rotina corporativa." },
-  { num: "03", title: "Use as ferramentas", text: "Tenha em mãos PGR integrado, controle de EPIs com CA, certificados, inspeções e suporte contínuo." },
+  { num: "03", title: "Use as ferramentas", text: "Tenha em mãos PGR integrado, controle de EPIs com CA, certificados com QR Code, inspeções e suporte contínuo." },
 ];
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
   const [selectedHub, setSelectedHub] = useState<"prestador" | "empresa">("prestador");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [isSendingContact, setIsSendingContact] = useState(false);
 
   const enter = () => {
     if (isAuthenticated) setLocation("/app");
     else startLogin();
+  };
+
+  const handleContactSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
+      toast.error("Preencha todos os campos obrigatórios para enviar sua mensagem.");
+      return;
+    }
+    setIsSendingContact(true);
+    setTimeout(() => {
+      setIsSendingContact(false);
+      toast.success("Mensagem enviada com sucesso! Nossa equipe de especialistas entrará em contato em breve.");
+      setContactName("");
+      setContactEmail("");
+      setContactPhone("");
+      setContactMessage("");
+    }, 900);
   };
 
   return (
@@ -31,9 +70,10 @@ export default function Home() {
         </Link>
         <div className="hidden items-center gap-8 text-sm font-semibold text-[#405c63] md:flex">
           <a href="#beneficios" className="hover:text-[#0c7474]">Benefícios</a>
-          <a href="#produto" className="hover:text-[#0c7474]">Produto</a>
+          <a href="#produto" className="hover:text-[#0c7474]">Ecossistema</a>
           <Link href="/planos" className="hover:text-[#0c7474]">Planos</Link>
           <a href="#como-funciona" className="hover:text-[#0c7474]">Como Funciona</a>
+          <a href="#contato" className="hover:text-[#0c7474]">Contato e Suporte</a>
         </div>
         <Button onClick={enter} className="rounded-full bg-[#0c7474] px-7 py-2.5 text-sm text-white hover:bg-[#063b43] font-bold shadow-md shadow-[#0c7474]/15">
           {loading ? "Carregando" : isAuthenticated ? "Acessar portal" : "Portal de Acesso"}
@@ -48,13 +88,13 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10 grid gap-12 lg:grid-cols-[1.1fr_.9fr] items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#48c7b8]/40 bg-[#063b43]/60 px-4 py-2 text-xs font-bold text-[#88ddc4] backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5" /> TST Brasil Hub · ecossistema profissional de SST
+              <Sparkles className="h-3.5 w-3.5" /> TST Brasil Hub · Ecossistema completo de SST
             </span>
             <h1 className="mt-6 font-display text-4xl sm:text-6xl font-extrabold leading-[1.08] tracking-[-.03em] text-white">
               A PLATAFORMA PARA PROFISSIONAIS DE <span className="text-[#64e2d1]">SST QUE QUEREM EVOLUIR</span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-[#d0e6e1]">
-              Conteúdo, networking, ferramentas operacionais e oportunidades para prestadores de serviço e empresas escalarem sua atuação com método e conformidade.
+              Unifique a gestão de PGR, LTCAT, CIPA, EPIs, exames ocupacionais, biblioteca técnica e certificados profissionais com QR Code em um único portal moderno e seguro.
             </p>
             <div className="mt-9 flex flex-col gap-4 sm:flex-row">
               <Button onClick={enter} size="lg" className="h-14 rounded-2xl bg-[#0c7474] px-8 text-base text-white hover:bg-[#095a5a] shadow-xl shadow-black/20 border border-[#23b3a6]/40">
@@ -65,9 +105,9 @@ export default function Home() {
               </Link>
             </div>
             <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#bce3dc]">
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Gestão completa de PGR e EPIs</span>
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Biblioteca técnica e certificados</span>
-              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Suporte especializado</span>
+              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> PGR e Documentos Legais</span>
+              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Certificados com QR Code</span>
+              <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> Suporte e Treinamentos</span>
             </div>
           </div>
 
@@ -101,7 +141,7 @@ export default function Home() {
                   <span className="rounded-md bg-[#f3e4d4] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#915a24]">Prestador</span>
                 </div>
                 <h4 className="text-lg font-bold text-[#0d2227]">Preste serviços.</h4>
-                <p className="mt-1 text-xs leading-5 text-[#526b73]">Clientes, empresas, PGR e materiais em um ambiente exclusivo.</p>
+                <p className="mt-1 text-xs leading-5 text-[#526b73]">Gerenciamento de carteira de clientes, PGR, visitas e acervo documental unificado.</p>
                 <Button
                   onClick={enter}
                   className="mt-5 w-full rounded-xl bg-[#a46d32] text-white text-xs font-bold hover:bg-[#855523] shadow-sm"
@@ -126,7 +166,7 @@ export default function Home() {
                   <span className="rounded-md bg-[#d9f1e7] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.1em] text-[#0c7474]">Empresa</span>
                 </div>
                 <h4 className="text-lg font-bold text-[#0d2227]">Cuide da rotina.</h4>
-                <p className="mt-1 text-xs leading-5 text-[#526b73]">Indicadores, treinamentos, documentos e PGR da empresa ativa.</p>
+                <p className="mt-1 text-xs leading-5 text-[#526b73]">Controle operacional de EPIs com CA, CIPA, exames ASO, inspeções e planos de ação.</p>
                 <Button
                   onClick={enter}
                   className="mt-5 w-full rounded-xl bg-[#0c7474] text-white text-xs font-bold hover:bg-[#063b43] shadow-sm"
@@ -220,33 +260,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Seção de Destaques / Excelência Profissional */}
+      {/* Seção de Destaques / Ecossistema Completo */}
       <section id="produto" className="bg-[#f8fcfb] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Excelência profissional</span>
+            <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Ecossistema integrado</span>
             <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-[-.03em] text-[#0d2227]">
-              Tudo o que você precisa para dominar a rotina de SST.
+              Muito mais que PGR: um ecossistema completo de SST.
             </h2>
+            <p className="mt-4 text-base text-[#526b73]">
+              O TST Brasil Hub unifica todas as ferramentas críticas da segurança do trabalho em uma única interface intuitiva, segura e com suporte robusto.
+            </p>
           </div>
           <div className="mt-14 grid gap-8 md:grid-cols-3">
             <article className="rounded-3xl border border-[#e1ede8] bg-white p-8 shadow-sm hover:shadow-md transition-shadow">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474] mb-6">
-                <UsersRound className="h-6 w-6" />
+                <FileCheck2 className="h-6 w-6" />
               </span>
-              <h3 className="text-xl font-bold text-[#0d2227]">Ambientes especializados</h3>
+              <h3 className="text-xl font-bold text-[#0d2227]">Gerador de PGR e Certificados NR</h3>
               <p className="mt-3 text-sm leading-6 text-[#526b73]">
-                Experiência dedicada para prestadores de serviço na gestão de carteira e PGR, e para empresas no acompanhamento da rotina corporativa.
+                Crie documentos técnicos, ordens de serviço e certificados profissionais frente e verso com QR Code de autenticidade e upload de assinatura digital.
               </p>
             </article>
 
             <article className="rounded-3xl border border-[#e1ede8] bg-white p-8 shadow-sm hover:shadow-md transition-shadow">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474] mb-6">
-                <FileCheck2 className="h-6 w-6" />
+                <ShieldCheck className="h-6 w-6" />
               </span>
-              <h3 className="text-xl font-bold text-[#0d2227]">Conformidade em tempo real</h3>
+              <h3 className="text-xl font-bold text-[#0d2227]">CIPA, EPIs e Saúde Ocupacional</h3>
               <p className="mt-3 text-sm leading-6 text-[#526b73]">
-                Gestão de EPIs com CA e validade, documentos legais, inspeções estruturadas e planos de ação integrados sem margem para falhas.
+                Monitore o dimensionamento da CIPA, fichas de EPI com controle de CA e assinatura digital via QR Code, além do controle de exames e ASOs periódicos.
               </p>
             </article>
 
@@ -254,9 +297,9 @@ export default function Home() {
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474] mb-6">
                 <BookOpen className="h-6 w-6" />
               </span>
-              <h3 className="text-xl font-bold text-[#0d2227]">Biblioteca e suporte técnico</h3>
+              <h3 className="text-xl font-bold text-[#0d2227]">Biblioteca e Riscos COPSOQ</h3>
               <p className="mt-3 text-sm leading-6 text-[#526b73]">
-                Normas regulamentadoras, materiais de apoio e suporte contínuo para elevar o padrão da segurança do trabalho na sua operação.
+                Consulte normas regulamentadoras atualizadas, armazene materiais didáticos e aplique questionários psicossociais com transferência automática para o PGR.
               </p>
             </article>
           </div>
@@ -290,6 +333,133 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Seção de Contato, Dúvidas e Suporte */}
+      <section id="contato" className="py-20 bg-white border-t border-[#e1ede8]">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-2 items-center">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Atendimento dedicado</span>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-[-.03em] text-[#0d2227]">
+                Precisa de ajuda, demonstração ou orientação sobre o funcionamento?
+              </h2>
+              <p className="mt-4 text-base leading-7 text-[#526b73]">
+                Nossa equipe de especialistas em segurança do trabalho está pronta para esclarecer suas dúvidas, demonstrar o funcionamento dos módulos e apoiar sua transição para o TST Brasil Hub.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center gap-4 rounded-2xl border border-[#e1ede8] bg-[#f8fcfb] p-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0c7474]/10 text-[#0c7474]">
+                    <Mail className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-[#78928d]">E-mail de suporte</p>
+                    <p className="text-sm font-bold text-[#0d2227]">suporte@tstbrasilhub.com.br</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 rounded-2xl border border-[#e1ede8] bg-[#f8fcfb] p-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0c7474]/10 text-[#0c7474]">
+                    <PhoneCall className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-[#78928d]">Atendimento telefônico e WhatsApp</p>
+                    <p className="text-sm font-bold text-[#0d2227]">(11) 99888-7766 · Seg a Sex das 8h às 18h</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 rounded-2xl border border-[#e1ede8] bg-[#f8fcfb] p-4">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0c7474]/10 text-[#0c7474]">
+                    <HelpCircle className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-[#78928d]">Base de conhecimento</p>
+                    <p className="text-sm font-bold text-[#0d2227]">Manuais, guias das NRs e tutoriais em vídeo no portal</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Formulário de Contato */}
+            <div className="rounded-[2.5rem] border border-[#dcebe8] bg-[#f8fcfb] p-8 lg:p-10 shadow-lg">
+              <h3 className="text-2xl font-bold text-[#0d2227]">Envie sua mensagem</h3>
+              <p className="mt-2 text-xs text-[#526b73]">Preencha o formulário abaixo e responderemos rapidamente.</p>
+
+              <form onSubmit={handleContactSubmit} className="mt-6 space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-[#315158]">Seu nome *</label>
+                  <Input
+                    required
+                    value={contactName}
+                    onChange={event => setContactName(event.target.value)}
+                    placeholder="Nome completo"
+                    className="mt-1.5 h-11 rounded-xl border-[#d5e8e2] bg-white text-sm"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-bold text-[#315158]">E-mail profissional *</label>
+                    <Input
+                      required
+                      type="email"
+                      value={contactEmail}
+                      onChange={event => setContactEmail(event.target.value)}
+                      placeholder="seu.email@empresa.com"
+                      className="mt-1.5 h-11 rounded-xl border-[#d5e8e2] bg-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[#315158]">Telefone / WhatsApp</label>
+                    <Input
+                      value={contactPhone}
+                      onChange={event => setContactPhone(event.target.value)}
+                      placeholder="(00) 00000-0000"
+                      className="mt-1.5 h-11 rounded-xl border-[#d5e8e2] bg-white text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-[#315158]">Como podemos ajudar? *</label>
+                  <Textarea
+                    required
+                    rows={4}
+                    value={contactMessage}
+                    onChange={event => setContactMessage(event.target.value)}
+                    placeholder="Descreva suas dúvidas, solicite demonstração ou suporte técnico..."
+                    className="mt-1.5 rounded-xl border-[#d5e8e2] bg-white p-3 text-sm"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isSendingContact}
+                  className="w-full h-12 rounded-xl bg-[#0c7474] text-white font-bold hover:bg-[#063b43] shadow-md shadow-[#0c7474]/20"
+                >
+                  {isSendingContact ? "Enviando mensagem..." : "Enviar solicitação de suporte"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#e5efe8] bg-[#072d32] py-12 text-white">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <BrandLockup compact aria-label="TST Brasil Hub" />
+            <span className="text-xs text-[#a3c2bc]">© 2026 TST Brasil Hub. Todos os direitos reservados.</span>
+          </div>
+          <div className="flex items-center gap-6 text-xs font-semibold text-[#a3c2bc]">
+            <a href="#beneficios" className="hover:text-white">Benefícios</a>
+            <a href="#produto" className="hover:text-white">Ecossistema</a>
+            <Link href="/planos" className="hover:text-white">Planos</Link>
+            <a href="#contato" className="hover:text-white">Contato</a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
