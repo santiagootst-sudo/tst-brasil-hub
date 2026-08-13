@@ -84,9 +84,17 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#072d32] via-[#0b484e] to-[#0c7474] text-white py-20 lg:py-28">
-        <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-[#14a095]/30 blur-[140px] pointer-events-none" />
-        <div className="absolute right-0 bottom-0 h-[400px] w-[400px] rounded-full bg-[#39a77e]/20 blur-[120px] pointer-events-none" />
+      <section className="relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 bg-cover bg-center"
+          style={{ backgroundImage: "url('/manus-storage/tst-hub-hero-seguranca_e69cb11f.jpg')" }}
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,34,39,.94)_0%,rgba(5,65,70,.78)_42%,rgba(12,116,116,.58)_100%)]" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[#0c7474]/20 backdrop-blur-[1px]" />
+        <div className="absolute -left-32 -top-32 h-[500px] w-[500px] rounded-full bg-[#64e2d1]/20 blur-[140px] pointer-events-none" />
+        <div className="absolute right-0 bottom-0 h-[400px] w-[400px] rounded-full bg-[#39a77e]/25 blur-[120px] pointer-events-none" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-30 [background-image:radial-gradient(rgba(255,255,255,.2)_1px,transparent_1px)] [background-size:28px_28px]" />
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10 grid gap-12 lg:grid-cols-[1.1fr_.9fr] items-center">
           <div>

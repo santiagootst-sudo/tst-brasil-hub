@@ -332,3 +332,9 @@
 - [x] Criar a habilidade reutilizável tst-hub-evolution-workflow para padronizar o desenvolvimento, homologação e suporte de plataformas SaaS de SST.
 
 - [x] Conduzir auditoria de prontidão do portal para testes por usuários terceiros (link público, Stripe sandbox, webhook, isolamento e suporte via WhatsApp).
+
+- [ ] Definir estrutura comercial de planos (mensal, trimestral, anual) com sugestão de valores, descontos e descrições para o Stripe.
+
+- [ ] Criar tabela comparativa de ciclos (Mensal, Trimestral, Anual) destacando que a entrega é integral e o foco é o desconto progressivo.
+
+- [x] Atualizar o hero da landing page com verde translúcido em camadas (glassmorphism/gradient) e imagem de fundo temática de Segurança do Trabalho com tratamento escuro e legível.
