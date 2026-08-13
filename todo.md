@@ -366,3 +366,7 @@
 - [x] Atualizar suíte de testes, validar build e interface.
 
 - [x] Executar teste controlado do Gerador de PGR com dados fictícios, preencher etapas e exportar PDF para revisão.
+
+- [x] Incluir capa personalizada, sumário automático, matriz de riscos e plano de ação no PDF gerado.
+- [x] Criar interface de seleção modular para o usuário escolher quais seções incluir na exportação do PGR.
+- [x] Atualizar testes automatizados e validar build de produção sem regressões.

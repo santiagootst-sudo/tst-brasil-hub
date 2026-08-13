@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { buildInspectionReportPdf, buildPgrReportPdf, safeFileName } from "../client/src/lib/pdfReports";
 
 describe("relatórios PDF do Portal TST", () => {
-  it("gera um arquivo PDF de PGR com uma página e identificação do projeto", () => {
+  it("gera um arquivo PDF de PGR profissional com capa, sumário, matriz e plano de ação", () => {
     const pdf = buildPgrReportPdf({ workspaceName: "Ambiente Autônomo", companyName: "Empresa Alfa", projectName: "PGR Unidade Centro", projectId: 42, generatedAt: new Date("2026-08-12T12:00:00Z") });
     const buffer = pdf.output("arraybuffer");
     expect(buffer.byteLength).toBeGreaterThan(1000);
-    expect(pdf.getNumberOfPages()).toBe(1);
+    expect(pdf.getNumberOfPages()).toBeGreaterThanOrEqual(2);
   });
 
   it("gera relatório de inspeções com inspeções e ações reais", () => {

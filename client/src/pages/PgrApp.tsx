@@ -11,15 +11,19 @@ import {
   Loader2,
   ShieldCheck,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import PgrFullscreenOverlay from "@/components/PgrFullscreenOverlay";
-import { downloadPgrReportPdf } from "@/lib/pdfReports";
+import { downloadPgrReportPdf, type PgrExportModules } from "@/lib/pdfReports";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
 
@@ -47,6 +51,15 @@ export default function PgrApp() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [isPgrFullscreen, setIsPgrFullscreen] = useState(false);
   const [isIframeLoaded, setIsIframeLoaded] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportModules, setExportModules] = useState<PgrExportModules>({
+    cover: true,
+    summary: true,
+    companyInfo: true,
+    gheInventory: true,
+    riskMatrix: true,
+    actionPlan: true,
+  });
 
   const createCompany = trpc.portal.createCompany.useMutation({
     onSuccess: async () => {
@@ -120,129 +133,186 @@ export default function PgrApp() {
     ? `${iframeAccess.data.url}&workspace=portal-${workspace.data.id}-${selectedProject.legacyStorageKey}&portalAuth=1`
     : "";
 
-  const submitProject = (companyId: number) => {
-    const name = projectNames[companyId]?.trim() ?? "";
-    if (!name) {
-      toast.error("Informe o nome do PGR antes de criar.");
-      return;
-    }
-    createProject.mutate({ workspaceId, companyId, name });
-  };
-
-  const handleLogo = (companyId: number, file?: File) => {
-    if (!file) return;
-    if (!/[image\/(png|jpeg|webp)]/.test(file.type)) {
-      toast.error("Envie um logo PNG, JPEG ou WEBP.");
-      return;
-    }
-    if (file.size > 2_500_000) {
-      toast.error("O logo deve ter no máximo 2,5 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== "string") return;
-      uploadLogo.mutate({ workspaceId, companyId, dataUrl: reader.result });
-    };
-    reader.onerror = () => toast.error("Não foi possível ler o arquivo do logo.");
-    reader.readAsDataURL(file);
+  const handleExportPdf = () => {
+    if (!selectedProject) return;
+    downloadPgrReportPdf({
+      workspaceName: workspace.data?.name ?? "Ambiente",
+      companyName: selectedCompany?.name,
+      projectName: selectedProject.name,
+      projectId: selectedProject.id,
+      modules: exportModules,
+    });
+    setIsExportModalOpen(false);
+    toast.success("Relatório profissional do PGR exportado em PDF com sucesso!");
   };
 
   return (
     <DashboardLayout title="PGR Pro">
-      <div className="space-y-6">
-        <header className="flex flex-col justify-between gap-4 rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm md:flex-row md:items-center">
-          <div className="flex items-start gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><ShieldCheck className="h-6 w-6" /></span>
+      <div className="space-y-8 pb-12">
+        <section className="rounded-[2.5p] rounded-3xl bg-gradient-to-r from-[#063b43] to-[#0c7474] p-8 text-white shadow-xl lg:p-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Aplicativo integrado</p>
-              <h2 className="text-xl font-bold">PGR Pro · {workspace.data.name}</h2>
-              <p className="mt-1 text-sm text-[#6f858a]">Crie a empresa, identifique-a pelo logo e abra os PGRs vinculados. O gerador já entra pelo Portal TST, sem novo login.</p>
+              <p className="text-xs font-bold uppercase tracking-[.15em] text-[#8edec7]">Aplicativo integrado</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight">PGR Pro · Gerenciamento de Riscos Ocupacionais</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">
+                Crie empresas, gerencie inventários, aplique a NR-01 e exporte relatórios técnicos completos com capa profissional, sumário, matriz de riscos e plano de ação.
+              </p>
             </div>
+            <Link href="/app" className="inline-flex items-center gap-2 self-start rounded-2xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white backdrop-blur hover:bg-white/20">
+              <ArrowLeft className="h-4 w-4" /> Ambientes
+            </Link>
           </div>
-          <Link href="/app" className="inline-flex items-center gap-2 text-sm font-bold text-[#0c7474]"><ArrowLeft className="h-4 w-4" />Ambientes</Link>
-        </header>
+        </section>
 
-        <section className="rounded-3xl border border-[#dcebe8] bg-[#f9fcfb] p-6">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Carteira de empresas</p>
-              <h3 className="mt-1 text-2xl font-bold">Comece pela empresa atendida</h3>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-[#5d7479]">Cada empresa concentra seu logo e todos os projetos PGR que o TST cria para aquela operação.</p>
+              <h2 className="text-xl font-bold text-[#102b32]">Carteira de empresas atendidas</h2>
+              <p className="text-sm text-[#5d7479]">Cada empresa concentra seu logotipo, dados cadastrais e todos os projetos PGR criados para aquela operação.</p>
             </div>
             {canManage && (
-              <div className="flex w-full gap-2 md:w-[28rem]">
-                <Input value={companyName} onChange={event => setCompanyName(event.target.value)} placeholder="Nome da empresa atendida" className="h-11 rounded-xl bg-white" />
-                <Button disabled={createCompany.isPending || companyName.trim().length < 2} onClick={() => createCompany.mutate({ workspaceId, name: companyName.trim() })} className="h-11 shrink-0 rounded-xl bg-[#0c7474] text-white">
-                  <Building2 className="mr-2 h-4 w-4" />Criar empresa
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Nome da empresa atendida"
+                  value={companyName}
+                  onChange={e => setCompanyName(e.target.value)}
+                  className="h-10 rounded-xl border-[#bddbd5] bg-white text-sm"
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!companyName.trim()) {
+                      toast.error("Informe o nome da empresa.");
+                      return;
+                    }
+                    createCompany.mutate({ workspaceId, name: companyName.trim() });
+                  }}
+                  disabled={createCompany.isPending}
+                  className="h-10 rounded-xl bg-[#0c7474] px-5 text-sm font-bold text-white hover:bg-[#095c5c]"
+                >
+                  <Building2 className="mr-2 h-4 w-4" /> Criar empresa
                 </Button>
               </div>
             )}
           </div>
-        </section>
 
-        {companies.length ? (
-          <section className="grid gap-5 xl:grid-cols-2">
-            {companies.map(company => {
-              const companyProjects = availableProjects.filter(project => project.companyId === company.id);
-              return (
-                <article key={company.id} className="overflow-hidden rounded-3xl border border-[#dcebe8] bg-white shadow-sm">
-                  <div className="flex items-start gap-4 border-b border-[#e9f1ef] bg-[#fbfefd] p-5">
-                    {company.logoUrl ? (
-                      <img src={company.logoUrl} alt={`Logo da ${company.name}`} className="h-16 w-16 rounded-2xl border border-[#dcebe8] bg-white object-contain p-1" />
-                    ) : (
-                      <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-[#e8f6f1] text-lg font-bold text-[#0c7474]">{initials(company.name)}</span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c8c89]">Empresa atendida</p>
-                      <h4 className="truncate text-lg font-bold">{company.name}</h4>
-                      <p className="mt-1 text-xs text-[#6f858a]">{companyProjects.length ? `${companyProjects.length} PGR${companyProjects.length === 1 ? "" : "s"} vinculado${companyProjects.length === 1 ? "" : "s"}` : "Nenhum PGR criado ainda"}</p>
-                    </div>
-                    {canManage && (
-                      <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-[#0c7474] transition hover:bg-[#e8f6f1]">
-                        <ImagePlus className="h-4 w-4" />{uploadLogo.isPending ? "Enviando" : "Logo"}
-                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={event => handleLogo(company.id, event.target.files?.[0])} disabled={uploadLogo.isPending} />
-                      </label>
-                    )}
-                  </div>
+          {companies.length > 0 ? (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {companies.map(company => {
+                const companyProjects = availableProjects.filter(project => project.companyId === company.id);
+                const isCompanySelected = selectedCompany?.id === company.id;
+                const newProjectName = projectNames[company.id] ?? "";
 
-                  <div className="p-5">
-                    {companyProjects.length ? (
-                      <div className="space-y-2">
-                        {companyProjects.map(project => (
-                          <button key={project.id} type="button" onClick={() => { setSelectedProjectId(project.id); setIsIframeLoaded(false); setIsPgrFullscreen(true); }} className={`flex w-full items-center justify-between rounded-2xl border p-4 text-left transition ${selectedProject?.id === project.id ? "border-[#0c7474] bg-[#f1fcf7]" : "border-[#dcebe8] hover:border-[#9fd1c6]"}`}>
-                            <span>
-                              <strong className="block text-sm">{project.name}</strong>
-                              <small className="mt-1 block text-xs text-[#6f858a]">Abrir PGR em tela cheia</small>
-                            </span>
-                            <ExternalLink className="h-4 w-4 text-[#0c7474]" />
-                          </button>
-                        ))}
+                return (
+                  <article key={company.id} className={`flex flex-col justify-between rounded-3xl border p-6 transition-all ${isCompanySelected ? "border-[#0c7474] bg-[#fbfefd] shadow-md ring-2 ring-[#0c7474]/10" : "border-[#d7ebe6] bg-white hover:border-[#bddbd5]"}`}>
+                    <div>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          {company.logoUrl ? (
+                            <img src={company.logoUrl} alt={company.name} className="h-12 w-12 rounded-2xl object-cover border border-[#d7ebe6]" />
+                          ) : (
+                            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-base font-bold text-[#0c7474]">{initials(company.name)}</span>
+                          )}
+                          <div>
+                            <span className="text-[11px] font-bold uppercase tracking-[.1em] text-[#0c7474]">Empresa atendida</span>
+                            <h3 className="text-base font-bold text-[#102b32]">{company.name}</h3>
+                            <p className="text-xs text-[#5d7479]">{companyProjects.length} PGR vinculado(s)</p>
+                          </div>
+                        </div>
+
+                        {canManage && (
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-[#d7ebe6] bg-white px-3 py-1.5 text-xs font-bold text-[#0c7474] hover:bg-[#f3faf8]">
+                            <ImagePlus className="h-3.5 w-3.5" /> Logo
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  uploadLogo.mutate({ workspaceId, companyId: company.id, dataUrl: reader.result as string });
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+                        )}
                       </div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-[#bddbd5] bg-[#fbfefd] px-4 py-5 text-sm leading-6 text-[#5d7479]">Este é o ponto de partida. Crie o primeiro PGR diretamente para <strong>{company.name}</strong>.</div>
-                    )}
+
+                      <div className="mt-5 space-y-3 border-t border-[#eaf3f1] pt-4">
+                        <p className="text-xs font-bold uppercase tracking-[.1em] text-[#5d7479]">Projetos PGR da empresa</p>
+                        {companyProjects.length > 0 ? (
+                          <div className="space-y-2">
+                            {companyProjects.map(project => {
+                              const isSelected = selectedProjectId === project.id || (!selectedProjectId && selectedProject?.id === project.id);
+                              return (
+                                <div key={project.id} className={`flex items-center justify-between rounded-2xl border p-3.5 transition-all ${isSelected ? "border-[#0c7474] bg-white shadow-sm" : "border-[#eaf3f1] bg-[#f8fcfb]"}`}>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-[#102b32]">{project.name}</h4>
+                                    <span className="text-[11px] text-[#5d7479]">ID: {project.id} · NR-01 Atualizada</span>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedProjectId(project.id);
+                                      setIsIframeLoaded(false);
+                                      setIsPgrFullscreen(true);
+                                    }}
+                                    size="sm"
+                                    className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#095c5c]"
+                                  >
+                                    Abrir gerador
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs italic text-[#7e969b]">Nenhum projeto PGR criado para esta empresa ainda.</p>
+                        )}
+                      </div>
+                    </div>
 
                     {canManage && (
-                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                        <Input value={projectNames[company.id] ?? ""} onChange={event => setProjectNames(current => ({ ...current, [company.id]: event.target.value }))} placeholder="Ex.: PGR 2026 — Unidade Centro" className="h-10 rounded-xl" />
-                        <Button disabled={createProject.isPending || (projectNames[company.id]?.trim().length ?? 0) < 2} onClick={() => submitProject(company.id)} className="h-10 shrink-0 rounded-xl bg-[#0c7474] text-white">
-                          <FilePlus2 className="mr-2 h-4 w-4" />Criar PGR
+                      <div className="mt-6 flex items-center gap-2 border-t border-[#eaf3f1] pt-4">
+                        <Input
+                          placeholder="Ex.: PGR 2026 — Unidade Centro"
+                          value={newProjectName}
+                          onChange={e => setProjectNames({ ...projectNames, [company.id]: e.target.value })}
+                          className="h-9 rounded-xl border-[#bddbd5] bg-white text-xs"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const name = newProjectName.trim();
+                            if (!name) {
+                              toast.error("Informe o nome do projeto PGR.");
+                              return;
+                            }
+                            createProject.mutate({ workspaceId, companyId: company.id, name });
+                          }}
+                          disabled={createProject.isPending}
+                          size="sm"
+                          className="h-9 rounded-xl border border-[#9ccfc2] bg-[#f0f9f7] px-4 text-xs font-bold text-[#0c7474] hover:bg-[#e2f4f0]"
+                        >
+                          <FilePlus2 className="mr-1.5 h-3.5 w-3.5" /> Criar PGR
                         </Button>
                       </div>
                     )}
-                  </div>
-                </article>
-              );
-            })}
-          </section>
-        ) : (
-          <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-[#fbfefd] p-10 text-center">
-            <Building2 className="mx-auto h-10 w-10 text-[#0c7474]" />
-            <h3 className="mt-4 text-xl font-bold">Cadastre a primeira empresa para começar.</h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#5d7479]">Assim que a empresa estiver criada, o card exibirá a opção de adicionar logo e criar o PGR correspondente.</p>
-          </section>
-        )}
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-[#fbfefd] p-10 text-center">
+              <Building2 className="mx-auto h-10 w-10 text-[#0c7474]" />
+              <h3 className="mt-4 text-xl font-bold">Cadastre a primeira empresa para começar.</h3>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#5d7479]">Assim que a empresa estiver criada, o card exibirá a opção de adicionar logo e criar o PGR correspondente.</p>
+            </section>
+          )}
+        </section>
 
         {orphanProjects.length > 0 && (
           <section className="rounded-3xl border border-[#f0d4c5] bg-[#fffaf7] p-5">
@@ -260,7 +330,26 @@ export default function PgrApp() {
             <div className="flex flex-col justify-between gap-3 border-b border-[#e7f1ef] bg-[#fbfefd] px-5 py-4 text-xs text-[#5d7479] md:flex-row md:items-center">
               <span className="inline-flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-[#39a77e]" />Projeto aberto: <strong>{selectedProject.name}</strong></span>
               <span className="inline-flex items-center gap-2 text-[#0c7474]"><Sparkles className="h-4 w-4" />Acesso integrado pelo Portal TST</span>
-              <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={() => { if (!selectedProject) return; downloadPgrReportPdf({ workspaceName: workspace.data?.name ?? "Ambiente", companyName: selectedCompany?.name, projectName: selectedProject.name, projectId: selectedProject.id }); toast.success("Relatório do PGR exportado em PDF."); }} className="h-9 rounded-xl border-[#9ccfc2] px-4 text-xs font-bold text-[#0c7474]"><FileCheck2 className="mr-2 h-4 w-4" />Exportar PDF</Button><Button type="button" onClick={() => { setIsIframeLoaded(false); setIsPgrFullscreen(true); }} className="h-9 rounded-xl bg-[#0c7474] px-4 text-xs font-bold text-white"><ExternalLink className="mr-2 h-4 w-4" />Abrir PGR em tela cheia</Button></div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="h-9 rounded-xl border-[#9ccfc2] px-4 text-xs font-bold text-[#0c7474]"
+                >
+                  <FileCheck2 className="mr-2 h-4 w-4" /> Exportar PDF
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setIsIframeLoaded(false);
+                    setIsPgrFullscreen(true);
+                  }}
+                  className="h-9 rounded-xl bg-[#0c7474] px-4 text-xs font-bold text-white"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir PGR em tela cheia
+                </Button>
+              </div>
             </div>
             <div className="flex min-h-[180px] flex-col items-center justify-center p-8 text-center">
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><ExternalLink className="h-5 w-5" /></span>
@@ -285,6 +374,84 @@ export default function PgrApp() {
           onClose={() => { setIsPgrFullscreen(false); setIsIframeLoaded(false); }}
           onIframeLoad={() => setIsIframeLoaded(true)}
         />
+
+        <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
+          <DialogContent className="max-w-lg rounded-3xl p-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold text-[#102b32]">
+                <SlidersHorizontal className="h-5 w-5 text-[#0c7474]" /> Configurar Exportação do PGR
+              </DialogTitle>
+              <DialogDescription className="text-xs text-[#5d7479]">
+                Selecione quais módulos e seções estruturadas farão parte do relatório técnico em PDF.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="my-4 space-y-3 rounded-2xl border border-[#d7ebe6] bg-[#fbfefd] p-4 text-xs">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-cover"
+                  checked={exportModules.cover}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, cover: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-cover" className="font-bold text-[#102b32] cursor-pointer">Capa personalizada profissional</Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-summary"
+                  checked={exportModules.summary}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, summary: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-summary" className="font-bold text-[#102b32] cursor-pointer">Sumário automático</Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-company"
+                  checked={exportModules.companyInfo}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, companyInfo: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-company" className="font-bold text-[#102b32] cursor-pointer">01. Identificação da Empresa e Escopo</Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-ghe"
+                  checked={exportModules.gheInventory}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, gheInventory: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-ghe" className="font-bold text-[#102b32] cursor-pointer">02. Inventário de GHE e Perigos Ocupacionais</Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-matrix"
+                  checked={exportModules.riskMatrix}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, riskMatrix: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-matrix" className="font-bold text-[#102b32] cursor-pointer">03. Matriz de Avaliação de Riscos (Probabilidade x Severidade)</Label>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-action"
+                  checked={exportModules.actionPlan}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, actionPlan: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-action" className="font-bold text-[#102b32] cursor-pointer">04. Plano de Ação e Medidas Preventivas</Label>
+              </div>
+            </div>
+
+            <DialogFooter className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsExportModalOpen(false)} className="rounded-xl">
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleExportPdf} className="rounded-xl bg-[#0c7474] font-bold text-white hover:bg-[#095c5c]">
+                Baixar PDF Configurado
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
