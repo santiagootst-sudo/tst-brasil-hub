@@ -1,4 +1,4 @@
-export type CertificateNr = "NR-10" | "NR-15" | "NR-20" | "NR-33" | "NR-35";
+export type CertificateNr = "NR-05" | "NR-10" | "NR-15" | "NR-20" | "NR-33" | "NR-35";
 
 export type CertificateCourse = {
   name: string;
@@ -14,6 +14,31 @@ export type CertificateNrDefinition = {
 };
 
 export const certificateCatalog: Record<CertificateNr, CertificateNrDefinition> = {
+  "NR-05": {
+    title: "Comissão Interna de Prevenção de Acidentes e de Assédio — CIPA",
+    colors: ["#8c6f3d", "#b68b4a"],
+    courses: [
+      { name: "Treinamento CIPA — Grau de risco 1", workload: "8h" },
+      { name: "Treinamento CIPA — Grau de risco 2", workload: "12h" },
+      { name: "Treinamento CIPA — Grau de risco 3", workload: "16h" },
+      { name: "Treinamento CIPA — Grau de risco 4", workload: "20h" },
+    ],
+    content: [
+      "Objetivos, campo de aplicação e fundamentos da NR-05",
+      "Estudo do ambiente, das condições de trabalho e dos riscos do processo produtivo",
+      "Atribuições da CIPA, dos representantes e da organização",
+      "Identificação de perigos, avaliação de riscos e medidas de prevenção",
+      "Noções sobre acidentes e doenças relacionadas ao trabalho",
+      "Metodologia de investigação e análise de acidentes e doenças",
+      "Princípios gerais de higiene do trabalho e prevenção de riscos",
+      "Legislação trabalhista e previdenciária relacionada à segurança e saúde no trabalho",
+      "Inclusão de pessoas com deficiência e reabilitados nos processos de trabalho",
+      "Processo eleitoral, reuniões, atas, mandato e documentação da CIPA",
+      "Prevenção e combate ao assédio sexual e a outras formas de violência no trabalho",
+      "Organização da CIPA, SIPAT e integração com SESMT e trabalhadores",
+    ],
+    defaultValidityMonths: "24",
+  },
   "NR-10": {
     title: "Segurança em Instalações e Serviços com Eletricidade",
     colors: ["#1d9b98", "#08706f"],
@@ -120,6 +145,7 @@ export const certificateCatalog: Record<CertificateNr, CertificateNrDefinition> 
 export const certificateNrs = Object.keys(certificateCatalog) as CertificateNr[];
 
 export function certificateDescription(nr: CertificateNr, workload: string) {
+  if (nr === "NR-05") return `Capacitação para integrantes da CIPA e representante da NR-05 — ${workload}`;
   if (nr === "NR-10") return `Segurança em instalações elétricas com carga horária de ${workload}`;
   if (nr === "NR-15") return `Capacitação em avaliação e controle de ruído ocupacional — ${workload}`;
   if (nr === "NR-20") return `Capacitação em segurança com inflamáveis — ${workload}`;

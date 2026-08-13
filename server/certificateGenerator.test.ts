@@ -7,8 +7,8 @@ const generatorSource = readFileSync(resolve(process.cwd(), "client/src/componen
 const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/pages/Certificates.tsx"), "utf8");
 
  describe("gerador de certificados NR integrado", () => {
-  it("mantém as cinco normas do HTML original com cursos e conteúdo programático", () => {
-    expect(certificateNrs).toEqual(["NR-10", "NR-15", "NR-20", "NR-33", "NR-35"]);
+  it("mantém as seis normas suportadas com cursos e conteúdo programático", () => {
+    expect(certificateNrs).toEqual(["NR-05", "NR-10", "NR-15", "NR-20", "NR-33", "NR-35"]);
     for (const nr of certificateNrs) {
       expect(certificateCatalog[nr].courses.length).toBeGreaterThan(0);
       expect(certificateCatalog[nr].content.length).toBeGreaterThan(0);
@@ -17,6 +17,7 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
   });
 
   it("preserva as descrições específicas de cada norma", () => {
+    expect(certificateDescription("NR-05", "8h")).toContain("CIPA");
     expect(certificateDescription("NR-10", "40h")).toContain("instalações elétricas");
     expect(certificateDescription("NR-15", "Conforme NR-15")).toContain("ruído ocupacional");
     expect(certificateDescription("NR-20", "8h")).toContain("inflamáveis");
@@ -36,6 +37,10 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain("accentColor");
     expect(generatorSource).toContain("addPageBackground");
     expect(generatorSource).toContain('type="color"');
+    expect(generatorSource).toContain("programContent");
+    expect(generatorSource).toContain("Conteúdo programático mínimo sugerido");
+    expect(generatorSource).toContain('setPreviewSide("back")');
+    expect(generatorSource).toContain("Conteúdo prático sugerido");
   });
 
   it("integra a emissão ao workspace ativo e permite salvar no acervo real", () => {

@@ -297,3 +297,9 @@
 
 
 - [x] Emitir certificado vinculado à empresa de homologação com data retroativa para testar status vencido e validar no acervo documental.
+
+- [x] Adicionar NR-05 ao catálogo de certificados com cursos, validade e conteúdo programático sugerido.
+- [x] Tornar o conteúdo programático editável pelo instrutor, preservando itens obrigatórios sugeridos e permitindo acréscimos.
+- [x] Corrigir a pré-visualização para exibir frente e verso do certificado, incluindo o conteúdo programático editável.
+- [x] Aplicar o conteúdo programático editável no verso do PDF e manter a persistência no acervo.
+- [x] Adicionar testes e validar visualmente NR-05, edição do conteúdo e pré-visualização frente/verso.
