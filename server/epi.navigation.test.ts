@@ -39,4 +39,14 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage).toContain("epi-archive-file");
     expect(operationsPage).toContain("setExpandedArchiveEmployeeId(0)");
   });
+
+  it("oferece fechamento explícito, persiste filtros por empresa e sinaliza a abertura da gaveta", () => {
+    expect(operationsPage).toContain('Fechar gaveta');
+    expect(operationsPage).toContain('tst-hub:epi-profile-filters:${workspaceId}:${companyId}');
+    expect(operationsPage).toContain('window.localStorage.getItem(archiveFiltersKey)');
+    expect(operationsPage).toContain('window.localStorage.setItem(archiveFiltersKey, JSON.stringify(filters))');
+    expect(operationsPage).toContain('openingArchiveEmployeeId === employee.id');
+    expect(operationsPage).toContain('Abrindo arquivo...');
+    expect(operationsPage).toContain('aria-busy={openingArchiveEmployeeId === employee.id}');
+  });
 });

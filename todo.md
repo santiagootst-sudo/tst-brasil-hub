@@ -481,3 +481,8 @@
 - [x] Corrigir a renderização do arquivo de fichas para ocultar completamente a ficha do funcionário quando nenhuma gaveta estiver aberta.
 - [x] Validar o ciclo abrir → rolar até a ficha → fechar e confirmar que a ficha desaparece novamente.
 - [x] Atualizar testes, revisar responsividade, executar build e publicar a correção.
+
+- [x] Adicionar botão explícito de “Fechar gaveta” dentro da ficha expandida.
+- [x] Persistir busca e filtros do arquivo de fichas por empresa no navegador e restaurá-los ao recarregar.
+- [x] Adicionar animação de carregamento suave durante a abertura da gaveta.
+- [x] Atualizar testes, validar desktop/mobile, executar build e publicar a melhoria.

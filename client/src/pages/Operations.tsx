@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -15,6 +15,16 @@ import {
 
 const occurrenceLabels = { near_miss: "Quase acidente", incident: "Incidente", accident: "Acidente" } as const;
 type OperationsTab = "overview" | "stock" | "deliveries" | "requirements" | "alerts" | "employee_profile";
+type EpiProfileFilters = {
+  search: string;
+  departmentId: number;
+  roleId: number;
+  status: "all" | "signed" | "pending";
+  startDate: string;
+  endDate: string;
+};
+
+const epiProfileFiltersKey = (workspaceId: number, companyId: number) => `tst-hub:epi-profile-filters:${workspaceId}:${companyId}`;
 
 export default function Operations() {
   const search = useSearch();
@@ -57,12 +67,17 @@ export default function Operations() {
   const [stockFilter, setStockFilter] = useState("all");
   const [profileEmployeeSearch, setProfileEmployeeSearch] = useState("");
   const [expandedArchiveEmployeeId, setExpandedArchiveEmployeeId] = useState(0);
+  const [openingArchiveEmployeeId, setOpeningArchiveEmployeeId] = useState(0);
   const [profileDepartmentFilter, setProfileDepartmentFilter] = useState<number>(0);
   const [profileRoleFilter, setProfileRoleFilter] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<OperationsTab>(initialTab);
   const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
   const [profileStartDate, setProfileStartDate] = useState<string>("");
   const [profileEndDate, setProfileEndDate] = useState<string>("");
+  const persistedCompanyId = companyId || workspace.data?.companies[0]?.id || 0;
+  const archiveFiltersKey = workspaceId > 0 && persistedCompanyId > 0 ? epiProfileFiltersKey(workspaceId, persistedCompanyId) : "";
+  const [profileFiltersLoadedKey, setProfileFiltersLoadedKey] = useState("");
+  const archiveOpenTimer = useRef<number | null>(null);
 
   const refresh = () => Promise.all([utils.portal.operations.invalidate({ workspaceId }), utils.portal.organization.invalidate({ workspaceId })]);
   const createEpi = trpc.portal.createEpiItem.useMutation({ onSuccess: async () => { setEpiName(""); setCaNumber(""); setManufacturer(""); setStockQuantity("0"); setMinimumStock("0"); setExpiresAt(""); await refresh(); toast.success("Item de EPI registrado."); }, onError: error => toast.error(error.message) });
@@ -76,6 +91,81 @@ export default function Operations() {
     },
     onError: err => toast.error(err.message)
   });
+
+  useEffect(() => {
+    if (!archiveFiltersKey || typeof window === "undefined") return;
+    if (archiveOpenTimer.current !== null) {
+      window.clearTimeout(archiveOpenTimer.current);
+      archiveOpenTimer.current = null;
+    }
+    setExpandedArchiveEmployeeId(0);
+    setOpeningArchiveEmployeeId(0);
+    const defaults: EpiProfileFilters = { search: "", departmentId: 0, roleId: 0, status: "all", startDate: "", endDate: "" };
+    try {
+      const raw = window.localStorage.getItem(archiveFiltersKey);
+      const saved = raw ? JSON.parse(raw) as Partial<EpiProfileFilters> : defaults;
+      setProfileEmployeeSearch(typeof saved.search === "string" ? saved.search : defaults.search);
+      setProfileDepartmentFilter(typeof saved.departmentId === "number" ? saved.departmentId : defaults.departmentId);
+      setProfileRoleFilter(typeof saved.roleId === "number" ? saved.roleId : defaults.roleId);
+      setProfileStatusFilter(saved.status === "signed" || saved.status === "pending" ? saved.status : defaults.status);
+      setProfileStartDate(typeof saved.startDate === "string" ? saved.startDate : defaults.startDate);
+      setProfileEndDate(typeof saved.endDate === "string" ? saved.endDate : defaults.endDate);
+    } catch {
+      setProfileEmployeeSearch(defaults.search);
+      setProfileDepartmentFilter(defaults.departmentId);
+      setProfileRoleFilter(defaults.roleId);
+      setProfileStatusFilter(defaults.status);
+      setProfileStartDate(defaults.startDate);
+      setProfileEndDate(defaults.endDate);
+    }
+    setProfileFiltersLoadedKey(archiveFiltersKey);
+  }, [archiveFiltersKey]);
+
+  useEffect(() => {
+    if (!archiveFiltersKey || profileFiltersLoadedKey !== archiveFiltersKey || typeof window === "undefined") return;
+    const filters: EpiProfileFilters = {
+      search: profileEmployeeSearch,
+      departmentId: profileDepartmentFilter,
+      roleId: profileRoleFilter,
+      status: profileStatusFilter,
+      startDate: profileStartDate,
+      endDate: profileEndDate,
+    };
+    try {
+      window.localStorage.setItem(archiveFiltersKey, JSON.stringify(filters));
+    } catch {
+      // A private browsing context or a full storage quota must not block the archive.
+    }
+  }, [archiveFiltersKey, profileFiltersLoadedKey, profileEmployeeSearch, profileDepartmentFilter, profileRoleFilter, profileStatusFilter, profileStartDate, profileEndDate]);
+
+  useEffect(() => () => {
+    if (archiveOpenTimer.current !== null) window.clearTimeout(archiveOpenTimer.current);
+  }, []);
+
+  const closeArchiveDrawer = () => {
+    if (archiveOpenTimer.current !== null) {
+      window.clearTimeout(archiveOpenTimer.current);
+      archiveOpenTimer.current = null;
+    }
+    setOpeningArchiveEmployeeId(0);
+    setExpandedArchiveEmployeeId(0);
+  };
+
+  const openArchiveDrawer = (employeeId: number) => {
+    if (expandedArchiveEmployeeId === employeeId) {
+      closeArchiveDrawer();
+      return;
+    }
+    if (archiveOpenTimer.current !== null) window.clearTimeout(archiveOpenTimer.current);
+    setExpandedArchiveEmployeeId(0);
+    setOpeningArchiveEmployeeId(employeeId);
+    archiveOpenTimer.current = window.setTimeout(() => {
+      setExpandedArchiveEmployeeId(employeeId);
+      setOpeningArchiveEmployeeId(0);
+      archiveOpenTimer.current = null;
+      window.setTimeout(() => document.getElementById(`employee-file-${employeeId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 40);
+    }, 220);
+  };
 
   if (workspace.isLoading || organization.isLoading || operations.isLoading) return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
   if (workspace.error || organization.error || operations.error) return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-[#f3c4b1] bg-white p-10 text-center shadow-sm"><AlertTriangle className="mx-auto h-10 w-10 text-[#d7694d]" /><h2 className="mt-4 text-xl font-bold text-[#17343b]">Não foi possível abrir este ambiente.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#668087]">Verifique se o ambiente ainda está ativo e se sua conta possui vínculo com ele. Você pode retornar à escolha de ambientes para continuar.</p><Link href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Voltar aos ambientes</Link></section></DashboardLayout>;
@@ -482,7 +572,7 @@ export default function Operations() {
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#668087]" />
                     <Input
                       value={profileEmployeeSearch}
-                      onChange={e => { setProfileEmployeeSearch(e.target.value); setExpandedArchiveEmployeeId(0); }}
+                      onChange={e => { setProfileEmployeeSearch(e.target.value); closeArchiveDrawer(); }}
                       placeholder="Buscar funcionário..."
                       aria-label="Buscar funcionário nas fichas de EPI"
                       className="h-10 rounded-xl border-[#cfe3de] bg-white pl-9 text-xs font-semibold text-[#23454b]"
@@ -491,7 +581,7 @@ export default function Operations() {
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
                     value={profileDepartmentFilter}
-                    onChange={e => { setProfileDepartmentFilter(Number(e.target.value)); setExpandedArchiveEmployeeId(0); }}
+                    onChange={e => { setProfileDepartmentFilter(Number(e.target.value)); closeArchiveDrawer(); }}
                   >
                     <option value={0}>Todos os setores ({departments.length})</option>
                     {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
@@ -499,7 +589,7 @@ export default function Operations() {
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
                     value={profileRoleFilter}
-                    onChange={e => { setProfileRoleFilter(Number(e.target.value)); setExpandedArchiveEmployeeId(0); }}
+                    onChange={e => { setProfileRoleFilter(Number(e.target.value)); closeArchiveDrawer(); }}
                   >
                     <option value={0}>Todas as funções ({jobRoles.length})</option>
                     {jobRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
@@ -507,7 +597,7 @@ export default function Operations() {
                   <select 
                     className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
                     value={profileStatusFilter}
-                    onChange={e => setProfileStatusFilter(e.target.value as any)}
+                    onChange={e => { setProfileStatusFilter(e.target.value as EpiProfileFilters["status"]); closeArchiveDrawer(); }}
                   >
                     <option value="all">Status: Todos</option>
                     <option value="signed">Assinadas</option>
@@ -517,14 +607,14 @@ export default function Operations() {
                     type="date"
                     className="h-10 w-36 text-xs"
                     value={profileStartDate}
-                    onChange={e => setProfileStartDate(e.target.value)}
+                    onChange={e => { setProfileStartDate(e.target.value); closeArchiveDrawer(); }}
                     placeholder="Data inicial"
                   />
                   <Input 
                     type="date"
                     className="h-10 w-36 text-xs"
                     value={profileEndDate}
-                    onChange={e => setProfileEndDate(e.target.value)}
+                    onChange={e => { setProfileEndDate(e.target.value); closeArchiveDrawer(); }}
                     placeholder="Data final"
                   />
                 </div>
@@ -550,21 +640,12 @@ export default function Operations() {
                       <button
                         key={`drawer-${employee.id}`}
                         type="button"
-                        onClick={() => {
-                          const nextExpanded = isExpanded ? 0 : employee.id;
-                          setExpandedArchiveEmployeeId(nextExpanded);
-                          if (nextExpanded > 0) {
-                            setTimeout(() => {
-                              const el = document.getElementById(`employee-file-${employee.id}`);
-                              if (el) {
-                                el.scrollIntoView({ behavior: "smooth", block: "center" });
-                              }
-                            }, 120);
-                          }
-                        }}
+                        onClick={() => openArchiveDrawer(employee.id)}
+                        disabled={openingArchiveEmployeeId > 0}
                         className={`epi-archive-drawer group relative overflow-hidden rounded-xl border p-4 text-left ${isExpanded ? "border-[#8a5a37] bg-[#fff8ed] shadow-lg ring-2 ring-[#b88758]/30" : "border-[#d6c4ad] bg-[#f8f1e6] hover:border-[#b58b65] hover:-translate-y-0.5 hover:shadow-md"}`}
                         data-open={isExpanded}
                         aria-expanded={isExpanded}
+                        aria-busy={openingArchiveEmployeeId === employee.id}
                         aria-controls={`employee-file-${employee.id}`}
                       >
                         <span className="absolute inset-x-0 top-0 h-1 bg-[#b88758] opacity-70" />
@@ -572,7 +653,7 @@ export default function Operations() {
                           <span className="flex min-w-0 items-center gap-2.5"><FolderOpen className={`h-5 w-5 shrink-0 ${isExpanded ? "text-[#8a5a37]" : "text-[#b88758]"}`} /><span className="min-w-0"><strong className="block truncate text-sm font-bold text-[#5b3a25]">{employee.fullName}</strong><small className="mt-0.5 block text-xs text-[#795d48]">Gaveta {String(employee.id).padStart(2, "0")} · {employeeDeliveries.length} ficha(s)</small><small className="mt-1 block truncate text-[11px] font-medium text-[#8c6d52]">{departmentName.get(employee.departmentId ?? 0) ?? "Setor não informado"} · {roleName.get(employee.jobRoleId ?? 0) ?? "Função não informada"}</small></span></span>
                           <ChevronDown className={`h-4 w-4 shrink-0 text-[#8a5a37] transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                         </div>
-                        <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]"><span className="text-[#8c6d52]">{isExpanded ? "Gaveta aberta" : "Abrir gaveta"}</span>{pendingCount > 0 ? <span className="rounded-full bg-[#fff0e9] px-2 py-1 text-[#bd6e4f]">{pendingCount} pendente(s)</span> : <span className="rounded-full bg-[#e8f6f1] px-2 py-1 text-[#0c7474]">Regular</span>}</div>
+                        <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]"><span className="inline-flex items-center gap-1.5 text-[#8c6d52]">{openingArchiveEmployeeId === employee.id ? <><Loader2 className="h-3 w-3 animate-spin" /> Abrindo arquivo...</> : isExpanded ? "Gaveta aberta" : "Abrir gaveta"}</span>{pendingCount > 0 ? <span className="rounded-full bg-[#fff0e9] px-2 py-1 text-[#bd6e4f]">{pendingCount} pendente(s)</span> : <span className="rounded-full bg-[#e8f6f1] px-2 py-1 text-[#0c7474]">Regular</span>}</div>
                       </button>
                     );
                   })}
@@ -612,14 +693,25 @@ export default function Operations() {
                           </div>
                           <p className="mt-0.5 text-xs text-[#668087]">Colaborador ativo · {empDeliveries.length} ficha(s) listada(s)</p>
                         </div>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => { setActiveQrDelivery(empDeliveries[0] || { id: 0, employeeId: employee.id, epiItemId: epiItems[0]?.id || 0, quantity: 1, deliveryKind: "initial", deliveredAt: new Date(), signedByName: "Pendente" }); setQrSignedSuccess(false); }}
-                          className="rounded-xl border-[#bddbd5] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"
-                        >
-                          <QrCode className="mr-1.5 h-3.5 w-3.5" /> Solicitar Assinatura
-                        </Button>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={closeArchiveDrawer}
+                            className="rounded-xl border-[#d7c8b5] bg-[#fffaf2] text-xs font-bold text-[#795d48] hover:bg-[#f4eee5]"
+                          >
+                            <X className="mr-1.5 h-3.5 w-3.5" /> Fechar gaveta
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => { setActiveQrDelivery(empDeliveries[0] || { id: 0, employeeId: employee.id, epiItemId: epiItems[0]?.id || 0, quantity: 1, deliveryKind: "initial", deliveredAt: new Date(), signedByName: "Pendente" }); setQrSignedSuccess(false); }}
+                            className="rounded-xl border-[#bddbd5] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"
+                          >
+                            <QrCode className="mr-1.5 h-3.5 w-3.5" /> Solicitar Assinatura
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-3">
