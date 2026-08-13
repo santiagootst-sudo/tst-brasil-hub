@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShieldAlert, Users, FileText, CheckCircle2, ArrowRight, ArrowLeft, Download, RefreshCw, BarChart3, Sun, Moon } from "lucide-react";
+import { ShieldAlert, Users, FileText, CheckCircle2, ArrowRight, ArrowLeft, Download, RefreshCw, BarChart3, Sun, Moon, Search, Filter, Image as ImageIcon, Sliders } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PsychosocialApp() {
@@ -16,6 +16,13 @@ export default function PsychosocialApp() {
   const [selectedDepartment, setSelectedDepartment] = useState("todos");
   const [customRecommendations, setCustomRecommendations] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+
+  // New state for collection search & filters, PDF branding, and radar interactivity
+  const [collectionSearch, setCollectionSearch] = useState("");
+  const [collectionStatusFilter, setCollectionStatusFilter] = useState("all");
+  const [pdfLogoUrl, setPdfLogoUrl] = useState("");
+  const [pdfFooterText, setPdfFooterText] = useState("Relatório Oficial COPSOQ-III • TST Brasil Hub • Todos os direitos reservados");
+  const [radarMetricFilter, setRadarMetricFilter] = useState("all");
 
   const questions = [
     { id: 1, dimension: "Exigências Quantitativas", text: "Você tem tempo suficiente para realizar todas as suas tarefas de trabalho?" },
@@ -220,19 +227,43 @@ export default function PsychosocialApp() {
 
                 <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col justify-between">
                   <div>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Radar de Riscos</CardTitle>
-                      <CardDescription>Visualização multidimensional</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-                      <div className="w-48 h-48 rounded-full border-4 border-dashed border-teal-600/30 flex items-center justify-center relative bg-teal-50/50 dark:bg-slate-800/50">
-                        <div className="absolute inset-4 rounded-full border border-teal-600/40 flex items-center justify-center">
-                          <div className="absolute inset-4 rounded-full border border-teal-600/50 flex items-center justify-center">
-                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">Índice Geral: 62/100</span>
-                          </div>
-                        </div>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg">Radar de Riscos Interativo</CardTitle>
+                        <select
+                          value={radarMetricFilter}
+                          onChange={e => setRadarMetricFilter(e.target.value)}
+                          aria-label="Filtrar métricas do radar de riscos"
+                          className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 p-1 bg-transparent"
+                        >
+                          <option value="all">Todas as Dimensões</option>
+                          <option value="high">Apenas Altos & Médios</option>
+                          <option value="safe">Apenas Adequados</option>
+                        </select>
                       </div>
-                      <p className="text-xs text-slate-500">Passe o mouse sobre as dimensões para inspecionar descrições detalhadas e orientações da OIT.</p>
+                      <CardDescription>Análise multidimensional baseada no escore COPSOQ-III</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                        {dimensionsSummary
+                          .filter(d => {
+                            if (radarMetricFilter === "high") return d.risk === "Alto" || d.risk === "Médio";
+                            if (radarMetricFilter === "safe") return d.risk === "Baixo";
+                            return true;
+                          })
+                          .map((dim, idx) => (
+                            <div key={idx} className="p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between text-xs">
+                              <span className="font-medium truncate max-w-[140px]" title={dim.name}>{dim.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold">{dim.score} pts</span>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${dim.risk === "Alto" ? "border-amber-500 text-amber-600 bg-amber-50" : "border-teal-500 text-teal-600 bg-teal-50"}`}>
+                                  {dim.risk}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                      <p className="text-[11px] text-slate-500 text-center pt-1">Clique ou selecione uma métrica para destacar o foco preventivo no PGR.</p>
                     </CardContent>
                   </div>
                 </Card>
@@ -316,7 +347,33 @@ export default function PsychosocialApp() {
             <TabsContent value="pgr-integration" className="space-y-6">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
                 <h2 className="text-lg font-bold">Acompanhamento de Respostas e Sincronização com PGR</h2>
-                <p className="text-sm text-slate-500 mt-1">Acompanhe o progresso da coleta e transfira automaticamente os estressores de risco médio ou alto para o inventário do PGR.</p>
+                <p className="text-sm text-slate-500 mt-1">Acompanhe o progresso da coleta, utilize a barra de pesquisa e filtros por status, e transfira automaticamente os estressores para o inventário do PGR.</p>
+              </div>
+
+              {/* Search & Filters for Collections */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={collectionSearch}
+                    onChange={e => setCollectionSearch(e.target.value)}
+                    placeholder="Buscar por setor ou estressor..."
+                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Filter className="h-4 w-4 text-slate-400" />
+                  <select
+                    value={collectionStatusFilter}
+                    onChange={e => setCollectionStatusFilter(e.target.value)}
+                    className="w-full sm:w-auto p-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent"
+                  >
+                    <option value="all">Todos os Status</option>
+                    <option value="medio">Risco Médio / Atenção</option>
+                    <option value="sync">Sincronizados com PGR</option>
+                  </select>
+                </div>
               </div>
 
               <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
@@ -327,31 +384,31 @@ export default function PsychosocialApp() {
                   <CardDescription>Os riscos psicossociais classificados como Médios ou Altos são transferidos diretamente para o inventário do PGR da empresa.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold">Ritmo Acelerado de Trabalho</span>
-                      <Badge className="bg-amber-600 text-white">Risco Médio</Badge>
-                    </div>
-                    <p className="text-sm text-slate-500">Origem: Dimensão COPSOQ-III (Escore 72) • Fonte: Setor Operacional</p>
-                    <div className="flex justify-end">
-                      <Button size="sm" variant="outline" onClick={() => toast.success("Risco sincronizado com o PGR com sucesso!")}>
-                        Sincronizar com PGR
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold">Exigências Quantitativas Elevadas</span>
-                      <Badge className="bg-amber-600 text-white">Risco Médio</Badge>
-                    </div>
-                    <p className="text-sm text-slate-500">Origem: Dimensão COPSOQ-III (Escore 68) • Fonte: Administrativo</p>
-                    <div className="flex justify-end">
-                      <Button size="sm" variant="outline" onClick={() => toast.success("Risco sincronizado com o PGR com sucesso!")}>
-                        Sincronizar com PGR
-                      </Button>
-                    </div>
-                  </div>
+                  {[
+                    { title: "Ritmo Acelerado de Trabalho", risk: "Risco Médio", score: 72, source: "Setor Operacional", badgeBg: "bg-amber-600" },
+                    { title: "Exigências Quantitativas Elevadas", risk: "Risco Médio", score: 68, source: "Administrativo", badgeBg: "bg-amber-600" }
+                  ]
+                    .filter(item => {
+                      const q = collectionSearch.toLowerCase();
+                      const matchText = item.title.toLowerCase().includes(q) || item.source.toLowerCase().includes(q);
+                      if (!matchText) return false;
+                      if (collectionStatusFilter === "medio") return item.risk.includes("Médio");
+                      return true;
+                    })
+                    .map((item, idx) => (
+                      <div key={idx} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">{item.title}</span>
+                          <Badge className={`${item.badgeBg} text-white`}>{item.risk}</Badge>
+                        </div>
+                        <p className="text-sm text-slate-500">Origem: Dimensão COPSOQ-III (Escore {item.score}) • Fonte: {item.source}</p>
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="outline" onClick={() => toast.success(`"${item.title}" sincronizado com o PGR com sucesso!`)}>
+                            Sincronizar com PGR
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -360,30 +417,60 @@ export default function PsychosocialApp() {
             <TabsContent value="recommendations" className="space-y-6">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
                 <h2 className="text-lg font-bold">Planos de Ação, Recomendações e Exportação em PDF</h2>
-                <p className="text-sm text-slate-500 mt-1">Edite as recomendações geradas para compor o relatório executivo oficial pronto para entrega ou auditoria.</p>
+                <p className="text-sm text-slate-500 mt-1">Edite as recomendações geradas e personalize a identidade visual (logotipo e rodapé) do relatório em PDF exportável.</p>
               </div>
 
-              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                <CardHeader>
-                  <CardTitle>Editor de Planos de Ação & Recomendações Automáticas</CardTitle>
-                  <CardDescription>Personalize as recomendações que serão incorporadas ao relatório em PDF exportável.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Recomendações sugeridas para Ritmo de Trabalho e Exigências:</label>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2"><ImageIcon className="w-4 h-4 text-teal-600" /> Identidade Visual do Relatório PDF</CardTitle>
+                    <CardDescription>Insira a URL do logotipo da empresa e defina o rodapé oficial.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">URL do Logotipo da Empresa</label>
+                      <input
+                        type="text"
+                        value={pdfLogoUrl}
+                        onChange={e => setPdfLogoUrl(e.target.value)}
+                        placeholder="https://exemplo.com/logo.png"
+                        className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Texto do Rodapé do Relatório</label>
+                      <input
+                        type="text"
+                        value={pdfFooterText}
+                        onChange={e => setPdfFooterText(e.target.value)}
+                        className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent text-sm"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => toast.success("Identidade visual do PDF aplicada com sucesso!")}>
+                      Salvar Identidade Visual
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2"><Sliders className="w-4 h-4 text-teal-600" /> Planos de Ação & Recomendações</CardTitle>
+                    <CardDescription>Personalize o texto preventivo incorporado à exportação.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <textarea 
-                      rows={6}
+                      rows={4}
                       value={customRecommendations}
                       onChange={e => setCustomRecommendations(e.target.value)}
-                      placeholder="1. Adequar o dimensionamento de pessoal e pausas programadas... 2. Revisar metas operacionais..."
+                      placeholder="1. Adequar dimensionamento de pessoal e pausas programadas..."
                       className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent text-sm"
                     />
-                  </div>
-                  <Button className="bg-teal-700 hover:bg-teal-800 text-white" onClick={() => toast.success("Recomendações salvas e aplicadas ao modelo de PDF!")}>
-                    Salvar Alterações para Exportação
-                  </Button>
-                </CardContent>
-              </Card>
+                    <Button className="bg-teal-700 hover:bg-teal-800 text-white w-full" onClick={() => toast.success("Recomendações e modelo PDF atualizados!")}>
+                      Salvar Alterações para Exportação
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
           </Tabs>

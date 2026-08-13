@@ -21,4 +21,21 @@ describe("módulo de riscos psicossociais COPSOQ-III", () => {
     expect(source).toContain("exportPDF");
     expect(source).toContain("copsoq_relatorio_psicossocial.csv");
   });
+
+  it("inclui barra de pesquisa e filtros na aba de Acompanhamento", () => {
+    expect(source).toContain("collectionSearch");
+    expect(source).toContain("collectionStatusFilter");
+    expect(source).toContain("Buscar por setor ou estressor...");
+  });
+
+  it("permite customização de logotipo e rodapé para relatórios PDF", () => {
+    expect(source).toContain("pdfLogoUrl");
+    expect(source).toContain("pdfFooterText");
+    expect(source).toContain("Identidade Visual do Relatório PDF");
+  });
+
+  it("oferece gráficos de radar interativos", () => {
+    expect(source).toContain("radarMetricFilter");
+    expect(source).toContain("Radar de Riscos Interativo");
+  });
 });

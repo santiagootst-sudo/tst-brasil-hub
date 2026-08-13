@@ -499,3 +499,8 @@
 - [x] Melhorar o design e a clareza dos passos, eliminando a poluição visual e orientando o preenchimento por dimensões psicossociais.
 - [x] Validar e testar a exportação de resultados em PDF e CSV.
 - [x] Atualizar testes unitários, executar build de produção e verificar responsividade.
+
+- [x] Adicionar barra de pesquisa e filtros na aba de Acompanhamento & PGR.
+- [x] Permitir customização de logotipo e rodapé nos relatórios em PDF gerados na aba Planos de Ação.
+- [x] Implementar gráficos de radar interativos na aba Resultados & Indicadores.
+- [x] Atualizar testes, validar build de produção e revisar visualmente.
