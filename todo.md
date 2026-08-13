@@ -328,3 +328,5 @@
 - [x] Adicionar campo de seleção de assunto (Suporte, Vendas, Dúvidas) no formulário de contato da landing page.
 - [x] Atualizar todos os números de WhatsApp e links de suporte para o número oficial 54999097610.
 - [x] Executar suíte de testes e validar o build de produção.
+
+- [x] Criar a habilidade reutilizável tst-hub-evolution-workflow para padronizar o desenvolvimento, homologação e suporte de plataformas SaaS de SST.
