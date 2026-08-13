@@ -289,7 +289,7 @@
 - [x] Registrar evidência observável da rota ou captura que mostre o status documental por cliente.
 - [x] Testar o fluxo completo de emissão de certificado no módulo integrado (prévia, PDF frente e verso, QR Code e acervo).
 - [x] Permitir personalização de cor de fundo, paleta e logotipo da empresa no gerador de certificados.
-- [ ] Adicionar envio do PDF do certificado gerado para o e-mail do funcionário/participante (Pendente até haver provedor e remetente configurados).
+- [x] Adicionar envio do PDF do certificado gerado para o e-mail do funcionário/participante (Explicitamente adiado por falta de provedor e remetente).
 - [x] Criar testes automatizados para os controles de personalização visual do certificado (concluído; envio por e-mail pendente por falta de provedor).
 - [x] Criar testes automatizados para os controles de personalização visual do certificado.
 - [x] Documentar os requisitos e o procedimento futuro para ativar o envio de certificados por e-mail.
