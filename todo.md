@@ -528,6 +528,8 @@
 - [x] Adicionar barra de pesquisa nas seções de favoritos e histórico da Biblioteca.
 - [x] Implementar filtro refinado por temas e categorias para as Normas Regulamentadoras.
 
-- [ ] Implementar isolamento rigoroso de arquivos e dados por workspace e empresa no backend (prevenção de acesso cruzado).
-- [ ] Criar a separação na interface da Biblioteca entre "Normas Oficiais e Manuais Globais" e "Biblioteca Interna da Empresa".
-- [ ] Adicionar suporte a upload e gerenciamento de documentos na Biblioteca Interna da Empresa com S3 e persistência.
+- [x] Implementar isolamento rigoroso de arquivos e dados por workspace e empresa no backend (prevenção de acesso cruzado).
+- [x] Criar a separação na interface da Biblioteca entre "Normas Oficiais e Manuais Globais" e "Biblioteca Interna da Empresa".
+- [x] Adicionar suporte a upload e gerenciamento de documentos na Biblioteca Interna da Empresa com S3 e persistência.
+
+- [x] Criar a interface completa da Biblioteca Interna da Empresa com abas de separação (Global vs Interna), modal de upload e categorização de documentos.

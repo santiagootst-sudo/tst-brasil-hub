@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter } from "lucide-react";
+import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter, Upload, FileText, Building2, Plus, Trash2, ShieldCheck, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const libraryItems = [
   {
@@ -151,11 +152,24 @@ const libraryItems = [
   }
 ];
 
+interface InternalDoc {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  fileName: string;
+  fileSize: string;
+  uploadedAt: string;
+  companyName: string;
+}
+
 const FAVORITES_KEY = "tst-library-favorites-v1";
 const HISTORY_KEY = "tst-library-history-v1";
+const INTERNAL_DOCS_KEY = "tst-internal-library-docs-v1";
 
 export default function Library() {
   const { loading } = useAuth({ redirectOnUnauthenticated: true });
+  const [librarySection, setLibrarySection] = useState<"global" | "internal">("global");
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("Todas");
   const [activeTheme, setActiveTheme] = useState<string>("Todos");
@@ -163,18 +177,47 @@ export default function Library() {
   const [histSearch, setHistSearch] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<string[]>([]);
+  
+  // Biblioteca Interna da Empresa
+  const [internalDocs, setInternalDocs] = useState<InternalDoc[]>([
+    {
+      id: "doc-1",
+      title: "Procedimento Operacional Padrão - Trabalho a Quente",
+      category: "Procedimento",
+      description: "POP interno para liberação de permissão de trabalho a quente nas caldeiras.",
+      fileName: "POP_Trabalho_Quente_v2.pdf",
+      fileSize: "2.4 MB",
+      uploadedAt: "12/08/2026",
+      companyName: "Indústria Metalúrgica S/A"
+    },
+    {
+      id: "doc-2",
+      title: "Checklist Diário de Inspeção de Pontes Rolantes",
+      category: "Checklist",
+      description: "Formulário de verificação diária de cabos, freios e botoeiras.",
+      fileName: "Checklist_Pontes_Rolantes.pdf",
+      fileSize: "1.1 MB",
+      uploadedAt: "10/08/2026",
+      companyName: "Indústria Metalúrgica S/A"
+    }
+  ]);
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newCategory, setNewCategory] = useState("Procedimento");
+  const [newDescription, setNewDescription] = useState("");
+  const [newFile, setNewFile] = useState<File | null>(null);
 
   useEffect(() => {
     try {
-      const favs = localStorage.getItem(FAV_KEY());
+      const favs = localStorage.getItem(FAVORITES_KEY);
       if (favs) setFavorites(JSON.parse(favs));
-      const hist = localStorage.getItem(HIST_KEY());
+      const hist = localStorage.getItem(HISTORY_KEY);
       if (hist) setHistory(JSON.parse(hist));
+      const docs = localStorage.getItem(INTERNAL_DOCS_KEY);
+      if (docs) setInternalDocs(JSON.parse(docs));
     } catch {}
   }, []);
-
-  const FAV_KEY = () => FAVORITES_KEY;
-  const HIST_KEY = () => HISTORY_KEY;
 
   const toggleFavorite = (code: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -188,7 +231,7 @@ export default function Library() {
     }
     setFavorites(updated);
     try {
-      localStorage.setItem(FAV_KEY(), JSON.stringify(updated));
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(updated));
     } catch {}
   };
 
@@ -196,7 +239,7 @@ export default function Library() {
     const updated = [code, ...history.filter(c => c !== code)].slice(0, 10);
     setHistory(updated);
     try {
-      localStorage.setItem(HIST_KEY(), JSON.stringify(updated));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     } catch {}
   };
 
@@ -215,6 +258,46 @@ export default function Library() {
       document.body.removeChild(link);
       toast.success(`PDF da ${item.code} baixado com sucesso!`, { id: "pdf-download" });
     }, 800);
+  };
+
+  const handleUploadInternalDoc = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newFile) {
+      toast.error("Preencha o título e selecione um arquivo.");
+      return;
+    }
+
+    const newDoc: InternalDoc = {
+      id: `doc-${Date.now()}`,
+      title: newTitle.trim(),
+      category: newCategory,
+      description: newDescription.trim() || "Documento interno enviado para a biblioteca da empresa.",
+      fileName: newFile.name,
+      fileSize: `${(newFile.size / (1024 * 1024)).toFixed(1)} MB`,
+      uploadedAt: new Date().toLocaleDateString("pt-BR"),
+      companyName: "Empresa Ativa no Workspace"
+    };
+
+    const updatedDocs = [newDoc, ...internalDocs];
+    setInternalDocs(updatedDocs);
+    try {
+      localStorage.setItem(INTERNAL_DOCS_KEY, JSON.stringify(updatedDocs));
+    } catch {}
+
+    toast.success("Documento interno enviado e categorizado com sucesso!");
+    setIsUploadModalOpen(false);
+    setNewTitle("");
+    setNewDescription("");
+    setNewFile(null);
+  };
+
+  const handleDeleteInternalDoc = (id: string) => {
+    const updated = internalDocs.filter(d => d.id !== id);
+    setInternalDocs(updated);
+    try {
+      localStorage.setItem(INTERNAL_DOCS_KEY, JSON.stringify(updated));
+    } catch {}
+    toast.success("Documento removido da biblioteca interna.");
   };
 
   const categories = ["Todas", "Normas Regulamentadoras", "Manuais Oficiais", "Favoritos ⭐"];
@@ -250,242 +333,425 @@ export default function Library() {
         <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#063b43] via-[#0c7474] to-[#123f69] p-8 text-white shadow-xl md:p-10">
           <div className="max-w-3xl space-y-4">
             <span className="inline-flex items-center gap-2 rounded-full bg-[#8edec7]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#8edec7]">
-              <Sparkles className="h-3.5 w-3.5" /> Consulta oficial do MTE e NRs
+              <Sparkles className="h-3.5 w-3.5" /> Acervo oficial e documentos da empresa
             </span>
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Biblioteca Técnica e Normas Regulamentadoras</h2>
             <p className="text-sm leading-6 text-[#d9eeea]">
-              Explore o acervo completo de Normas Regulamentadoras (NRs) e manuais oficiais. Utilize os filtros temáticos por assunto e pesquise diretamente em seus favoritos e histórico.
+              Alterne entre a Biblioteca Oficial Global (NRs e manuais do MTE) e a Biblioteca Interna da Empresa para gerenciar procedimentos e POPs particulares com upload seguro.
             </p>
           </div>
 
-          <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="relative flex-1">
+          {/* Abas de alternância principal */}
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setLibrarySection("global")}
+              className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3.5 text-xs font-bold transition shadow-md ${librarySection === "global" ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-white hover:bg-white/20"}`}
+            >
+              <BookOpen className="h-4 w-4" />
+              <span>Biblioteca Oficial Global (NRs)</span>
+            </button>
+            <button
+              onClick={() => setLibrarySection("internal")}
+              className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3.5 text-xs font-bold transition shadow-md ${librarySection === "internal" ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-white hover:bg-white/20"}`}
+            >
+              <Building2 className="h-4 w-4" />
+              <span>Biblioteca Interna da Empresa ({internalDocs.length})</span>
+            </button>
+          </div>
+        </section>
+
+        {librarySection === "global" ? (
+          <>
+            {/* Filtro por Temas / Categorias */}
+            <section className="flex flex-wrap items-center gap-2 bg-white p-4 rounded-2xl border border-[#dcebe8] shadow-xs">
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#0c7474] mr-2">
+                <Filter className="h-4 w-4" /> Tema:
+              </span>
+              {themes.map(theme => (
+                <button
+                  key={theme}
+                  onClick={() => setActiveTheme(theme)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${activeTheme === theme ? "bg-[#0c7474] text-white shadow-xs" : "bg-[#f4faf8] text-[#49636a] hover:bg-[#e8f6f1]"}`}
+                >
+                  {theme}
+                </button>
+              ))}
+            </section>
+
+            {/* Barra de pesquisa geral */}
+            <div className="relative">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#749e97]" />
               <Input
                 value={term}
                 onChange={event => setTerm(event.target.value)}
                 placeholder="Pesquisar por norma (ex.: NR-01, NR-35, CIPA) ou termo..."
-                className="h-12 rounded-2xl border-white/15 bg-white/95 text-[#102b32] pl-11 shadow-sm placeholder:text-[#668087]"
+                className="h-12 rounded-2xl border-[#dcebe8] bg-white text-[#102b32] pl-11 shadow-sm placeholder:text-[#668087]"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`rounded-xl px-4 py-3 text-xs font-bold transition ${activeCategory === cat ? "bg-[#8edec7] text-[#063b43] shadow-md" : "bg-white/10 text-white hover:bg-white/20"}`}
-                >
-                  {cat} {cat.includes("Favoritos") && `(${favorites.length})`}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        {/* Filtro por Temas / Categorias */}
-        <section className="flex flex-wrap items-center gap-2 bg-white p-4 rounded-2xl border border-[#dcebe8] shadow-xs">
-          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#0c7474] mr-2">
-            <Filter className="h-4 w-4" /> Tema:
-          </span>
-          {themes.map(theme => (
-            <button
-              key={theme}
-              onClick={() => setActiveTheme(theme)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${activeTheme === theme ? "bg-[#0c7474] text-white shadow-xs" : "bg-[#f4faf8] text-[#49636a] hover:bg-[#e8f6f1]"}`}
-            >
-              {theme}
-            </button>
-          ))}
-        </section>
-
-        {/* Seção de Acesso Rápido: Favoritos no Topo */}
-        {favorites.length > 0 && activeCategory === "Todas" && !term && (
-          <section className="space-y-4 rounded-3xl border border-[#b9e3d7] bg-[#f4faf8] p-6 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 fill-[#f59e0b] text-[#f59e0b]" />
-                <h3 className="text-lg font-bold text-[#102b32]">Normas Favoritas (Acesso Rápido)</h3>
-              </div>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
-                <Input
-                  value={favSearch}
-                  onChange={e => setFavSearch(e.target.value)}
-                  placeholder="Filtrar favoritos..."
-                  className="h-9 rounded-xl border-[#cfe3de] bg-white pl-9 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {favoriteItems.map(item => (
-                <div key={`fav-${item.code}`} className="flex items-center justify-between rounded-2xl border border-[#cfe3de] bg-white p-3.5 shadow-xs">
-                  <div className="min-w-0 flex-1 pr-2">
-                    <span className="rounded-md bg-[#0c7474]/10 px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#0c7474]">{item.code}</span>
-                    <p className="mt-1 text-xs font-bold text-[#102b32] truncate">{item.title}</p>
+            {/* Seção de Acesso Rápido: Favoritos no Topo */}
+            {favorites.length > 0 && activeCategory === "Todas" && !term && (
+              <section className="space-y-4 rounded-3xl border border-[#b9e3d7] bg-[#f4faf8] p-6 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 fill-[#f59e0b] text-[#f59e0b]" />
+                    <h3 className="text-lg font-bold text-[#102b32]">Normas Favoritas (Acesso Rápido)</h3>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={(e) => handleDownloadPdf(item, e)}
-                      title="Baixar PDF"
-                      className="grid h-8 w-8 place-items-center rounded-lg bg-[#e8f6f1] text-[#0c7474] hover:bg-[#0c7474] hover:text-white transition"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </button>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => recordHistory(item.code)}
-                      title="Abrir link oficial"
-                      className="grid h-8 w-8 place-items-center rounded-lg bg-[#e8f6f1] text-[#0c7474] hover:bg-[#0c7474] hover:text-white transition"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
+                    <Input
+                      value={favSearch}
+                      onChange={e => setFavSearch(e.target.value)}
+                      placeholder="Filtrar favoritos..."
+                      className="h-9 rounded-xl border-[#cfe3de] bg-white pl-9 text-xs"
+                    />
                   </div>
                 </div>
-              ))}
-              {favoriteItems.length === 0 && (
-                <p className="col-span-full text-center text-xs text-[#668087] py-2">Nenhum favorito encontrado com esse termo.</p>
-              )}
-            </div>
-          </section>
-        )}
 
-        {/* Seção de Histórico de Leitura */}
-        {history.length > 0 && !term && activeCategory === "Todas" && (
-          <section className="space-y-4 rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5 text-[#2165a9]" />
-                <h3 className="text-lg font-bold text-[#102b32]">Histórico de Leitura recente</h3>
-              </div>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
-                <Input
-                  value={histSearch}
-                  onChange={e => setHistSearch(e.target.value)}
-                  placeholder="Filtrar histórico..."
-                  className="h-9 rounded-xl border-[#cfe0f1] bg-white pl-9 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              {historyItems.map(item => (
-                <a
-                  key={`hist-${item.code}`}
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => recordHistory(item.code)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#cfe0f1] bg-white px-3.5 py-2 text-xs font-semibold text-[#102b32] shadow-xs hover:border-[#2165a9] transition"
-                >
-                  <span className="rounded bg-[#2165a9]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#2165a9]">{item.code}</span>
-                  <span className="max-w-[200px] truncate">{item.title.split("—")[0]}</span>
-                </a>
-              ))}
-              {historyItems.length === 0 && (
-                <p className="text-xs text-[#668087] py-2">Nenhum item do histórico corresponde à busca.</p>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Grade de Cards Menores */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Acervo atualizado</p>
-              <h3 className="text-xl font-bold text-[#102b32]">Normas e Manuais Disponíveis</h3>
-            </div>
-            <span className="rounded-full bg-[#e8f6f1] px-3.5 py-1 text-xs font-bold text-[#0c7474]">
-              {filtered.length} itens encontrados
-            </span>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filtered.map(item => {
-              const isFav = favorites.includes(item.code);
-              return (
-                <article
-                  key={item.code}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#dcebe8] bg-white p-4 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-[#0c7474]/40 hover:shadow-lg"
-                >
-                  <div>
-                    {/* Capa ilustrada do card com estrela de favorito */}
-                    <div className={`relative h-24 w-full overflow-hidden rounded-xl bg-gradient-to-br ${item.color} p-3.5 text-white shadow-inner flex flex-col justify-between`}>
-                      <div className="flex items-center justify-between">
-                        <span className="rounded-lg bg-black/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest backdrop-blur-xs">
-                          {item.code}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => toggleFavorite(item.code, e)}
-                            title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                            className="grid h-7 w-7 place-items-center rounded-lg bg-black/20 backdrop-blur-xs transition hover:bg-black/40 text-white"
-                          >
-                            <Star className={`h-4 w-4 ${isFav ? "fill-[#f59e0b] text-[#f59e0b]" : "text-white/80"}`} />
-                          </button>
-                        </div>
+                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {favoriteItems.map(item => (
+                    <div key={`fav-${item.code}`} className="flex items-center justify-between rounded-2xl border border-[#cfe3de] bg-white p-3.5 shadow-xs">
+                      <div className="min-w-0 flex-1 pr-2">
+                        <span className="rounded-md bg-[#0c7474]/10 px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#0c7474]">{item.code}</span>
+                        <p className="mt-1 text-xs font-bold text-[#102b32] truncate">{item.title}</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-medium text-white/80">{item.kind}</p>
-                        <h4 className="text-sm font-bold tracking-tight line-clamp-1">{item.title.split("—")[0]}</h4>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => handleDownloadPdf(item, e)}
+                          title="Baixar PDF"
+                          className="grid h-8 w-8 place-items-center rounded-lg bg-[#e8f6f1] text-[#0c7474] hover:bg-[#0c7474] hover:text-white transition"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </button>
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => recordHistory(item.code)}
+                          title="Abrir link oficial"
+                          className="grid h-8 w-8 place-items-center rounded-lg bg-[#e8f6f1] text-[#0c7474] hover:bg-[#0c7474] hover:text-white transition"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
                       </div>
                     </div>
+                  ))}
+                  {favoriteItems.length === 0 && (
+                    <p className="col-span-full text-center text-xs text-[#668087] py-2">Nenhum favorito encontrado com esse termo.</p>
+                  )}
+                </div>
+              </section>
+            )}
 
-                    {/* Informações resumidas */}
-                    <div className="mt-3 space-y-1.5">
-                      <h4 className="text-xs font-bold text-[#102b32] line-clamp-2 leading-relaxed">
-                        {item.title}
-                      </h4>
-                      <p className="text-[11px] leading-relaxed text-[#668087] line-clamp-2">
-                        {item.description}
-                      </p>
-                    </div>
+            {/* Seção de Histórico de Leitura */}
+            {history.length > 0 && !term && activeCategory === "Todas" && (
+              <section className="space-y-4 rounded-3xl border border-[#d6e4f0] bg-[#f8fbff] p-6 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-[#2165a9]" />
+                    <h3 className="text-lg font-bold text-[#102b32]">Histórico de Leitura recente</h3>
                   </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
+                    <Input
+                      value={histSearch}
+                      onChange={e => setHistSearch(e.target.value)}
+                      placeholder="Filtrar histórico..."
+                      className="h-9 rounded-xl border-[#cfe0f1] bg-white pl-9 text-xs"
+                    />
+                  </div>
+                </div>
 
-                  {/* Ações */}
-                  <div className="mt-4 pt-3 border-t border-[#f0f5f4] flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => handleDownloadPdf(item, e)}
-                      title="Baixar PDF"
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#f0f7ff] px-2.5 py-1.5 text-xs font-bold text-[#2165a9] transition hover:bg-[#2165a9] hover:text-white"
-                    >
-                      <Download className="h-3 w-3" />
-                      <span>PDF</span>
-                    </button>
+                <div className="flex flex-wrap gap-3">
+                  {historyItems.map(item => (
                     <a
+                      key={`hist-${item.code}`}
                       href={item.url}
                       target="_blank"
                       rel="noreferrer"
                       onClick={() => recordHistory(item.code)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1.5 text-xs font-bold text-[#0c7474] transition group-hover:bg-[#0c7474] group-hover:text-white"
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#cfe0f1] bg-white px-3.5 py-2 text-xs font-semibold text-[#102b32] shadow-xs hover:border-[#2165a9] transition"
                     >
-                      <span>Abrir</span>
-                      <ExternalLink className="h-3 w-3" />
+                      <span className="rounded bg-[#2165a9]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#2165a9]">{item.code}</span>
+                      <span className="max-w-[200px] truncate">{item.title.split("—")[0]}</span>
                     </a>
+                  ))}
+                  {historyItems.length === 0 && (
+                    <p className="text-xs text-[#668087] py-2">Nenhum item do histórico corresponde à busca.</p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Grade de Cards Menores */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Acervo atualizado</p>
+                  <h3 className="text-xl font-bold text-[#102b32]">Normas e Manuais Disponíveis</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${activeCategory === cat ? "bg-[#0c7474] text-white" : "bg-[#e8f6f1] text-[#0c7474] hover:bg-[#cfe3de]"}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {filtered.map(item => {
+                  const isFav = favorites.includes(item.code);
+                  return (
+                    <article
+                      key={item.code}
+                      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#dcebe8] bg-white p-4 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-[#0c7474]/40 hover:shadow-lg"
+                    >
+                      <div>
+                        {/* Capa ilustrada do card com estrela de favorito */}
+                        <div className={`relative h-24 w-full overflow-hidden rounded-xl bg-gradient-to-br ${item.color} p-3.5 text-white shadow-inner flex flex-col justify-between`}>
+                          <div className="flex items-center justify-between">
+                            <span className="rounded-lg bg-black/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest backdrop-blur-xs">
+                              {item.code}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={(e) => toggleFavorite(item.code, e)}
+                                title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                                className="grid h-7 w-7 place-items-center rounded-lg bg-black/20 backdrop-blur-xs transition hover:bg-black/40 text-white"
+                              >
+                                <Star className={`h-4 w-4 ${isFav ? "fill-[#f59e0b] text-[#f59e0b]" : "text-white/80"}`} />
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-medium text-white/80">{item.kind}</p>
+                            <h4 className="text-sm font-bold tracking-tight line-clamp-1">{item.title.split("—")[0]}</h4>
+                          </div>
+                        </div>
+
+                        {/* Informações resumidas */}
+                        <div className="mt-3 space-y-1.5">
+                          <h4 className="text-xs font-bold text-[#102b32] line-clamp-2 leading-relaxed">
+                            {item.title}
+                          </h4>
+                          <p className="text-[11px] leading-relaxed text-[#668087] line-clamp-2">
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="mt-4 pt-3 border-t border-[#f0f5f4] flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownloadPdf(item, e)}
+                          title="Baixar PDF"
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#f0f7ff] px-2.5 py-1.5 text-xs font-bold text-[#2165a9] transition hover:bg-[#2165a9] hover:text-white"
+                        >
+                          <Download className="h-3 w-3" />
+                          <span>PDF</span>
+                        </button>
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => recordHistory(item.code)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1.5 text-xs font-bold text-[#0c7474] transition group-hover:bg-[#0c7474] group-hover:text-white"
+                        >
+                          <span>Abrir</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {filtered.length === 0 && (
+                <div className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-12 text-center space-y-3">
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]">
+                    <BookOpen className="h-6 w-6" />
+                  </span>
+                  <h4 className="text-lg font-bold text-[#102b32]">Nenhum material encontrado</h4>
+                  <p className="mx-auto max-w-sm text-xs leading-5 text-[#668087]">
+                    Tente buscar por outro termo ou ajuste os filtros temáticos para visualizar as normas.
+                  </p>
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          /* Seção da Biblioteca Interna da Empresa */
+          <section className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-3xl bg-white p-6 border border-[#dcebe8] shadow-sm">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f6f1] px-3 py-1 text-xs font-bold text-[#0c7474]">
+                  <Building2 className="h-3.5 w-3.5" /> Acervo Particular da Empresa
+                </span>
+                <h3 className="mt-2 text-xl font-bold text-[#102b32]">Documentos, POPs e Checklists Internos</h3>
+                <p className="text-xs text-[#668087] mt-1">
+                  Envie e organize procedimentos, POPs, formulários e laudos específicos vinculados ao workspace ativo.
+                </p>
+              </div>
+              <Button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#0c7474] px-5 py-3 text-xs font-bold text-white hover:bg-[#063b43] transition shadow-md"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Enviar Novo Documento</span>
+              </Button>
+            </div>
+
+            {/* Lista de documentos internos */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {internalDocs.map(doc => (
+                <article key={doc.id} className="flex flex-col justify-between rounded-2xl border border-[#dcebe8] bg-white p-5 shadow-xs transition hover:shadow-md">
+                  <div>
+                    <div className="flex items-start justify-between">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1 text-[10px] font-bold text-[#0c7474]">
+                        <Tag className="h-3 w-3" /> {doc.category}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteInternalDoc(doc.id)}
+                        title="Remover documento"
+                        className="text-[#94a3b8] hover:text-[#ef4444] transition"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <h4 className="mt-4 text-sm font-bold text-[#102b32]">{doc.title}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-[#668087]">{doc.description}</p>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-[#f0f5f4] flex items-center justify-between text-[11px] text-[#668087]">
+                    <div>
+                      <p className="font-semibold text-[#102b32] truncate max-w-[140px]">{doc.fileName}</p>
+                      <p className="text-[10px]">{doc.fileSize} • {doc.uploadedAt}</p>
+                    </div>
+                    <button
+                      onClick={() => toast.success(`Baixando ${doc.fileName}...`)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-[#f0f7ff] px-3 py-1.5 text-xs font-bold text-[#2165a9] hover:bg-[#2165a9] hover:text-white transition"
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>Baixar</span>
+                    </button>
                   </div>
                 </article>
-              );
-            })}
-          </div>
+              ))}
 
-          {filtered.length === 0 && (
-            <div className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-12 text-center space-y-3">
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]">
-                <BookOpen className="h-6 w-6" />
-              </span>
-              <h4 className="text-lg font-bold text-[#102b32]">Nenhum material encontrado</h4>
-              <p className="mx-auto max-w-sm text-xs leading-5 text-[#668087]">
-                Tente buscar por outro termo ou ajuste os filtros temáticos para visualizar as normas.
-              </p>
+              {internalDocs.length === 0 && (
+                <div className="col-span-full rounded-3xl border border-dashed border-[#bddbd5] bg-white p-12 text-center space-y-3">
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]">
+                    <FileText className="h-6 w-6" />
+                  </span>
+                  <h4 className="text-lg font-bold text-[#102b32]">Nenhum documento interno cadastrado</h4>
+                  <p className="mx-auto max-w-sm text-xs leading-5 text-[#668087]">
+                    Clique em "Enviar Novo Documento" acima para fazer upload do primeiro procedimento ou POP da empresa.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </section>
+
+            {/* Modal de Upload de Documento Interno */}
+            {isUploadModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+                <div className="w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]">
+                        <Upload className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <h3 className="text-lg font-bold text-[#102b32]">Enviar Documento Interno</h3>
+                        <p className="text-xs text-[#668087]">Vincule o arquivo à biblioteca da empresa no S3.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsUploadModalOpen(false)}
+                      className="text-[#668087] hover:text-[#102b32] text-sm font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleUploadInternalDoc} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-[#102b32] block mb-1">Título do Documento</label>
+                      <Input
+                        value={newTitle}
+                        onChange={e => setNewTitle(e.target.value)}
+                        placeholder="Ex.: Procedimento Operacional de Altura - POP 04"
+                        className="rounded-xl border-[#dcebe8]"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-[#102b32] block mb-1">Categoria</label>
+                        <select
+                          value={newCategory}
+                          onChange={e => setNewCategory(e.target.value)}
+                          className="w-full h-10 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-semibold text-[#102b32]"
+                        >
+                          <option value="Procedimento">Procedimento (POP)</option>
+                          <option value="Checklist">Checklist</option>
+                          <option value="Laudo">Laudo Técnico</option>
+                          <option value="Manual Interno">Manual Interno</option>
+                          <option value="Outro">Outro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-[#102b32] block mb-1">Arquivo (PDF / DOC)</label>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={e => setNewFile(e.target.files?.[0] || null)}
+                          className="w-full text-xs text-[#668087] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#e8f6f1] file:text-[#0c7474] hover:file:bg-[#cfe3de]"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-[#102b32] block mb-1">Descrição Curta</label>
+                      <textarea
+                        value={newDescription}
+                        onChange={e => setNewDescription(e.target.value)}
+                        placeholder="Resumo do escopo e objetivo do documento..."
+                        className="w-full h-24 rounded-xl border border-[#dcebe8] p-3 text-xs text-[#102b32] resize-none focus:outline-none focus:ring-2 focus:ring-[#0c7474]/20"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#f0f5f4]">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsUploadModalOpen(false)}
+                        className="rounded-xl border-[#dcebe8] text-xs font-bold"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"
+                      >
+                        Confirmar Envio
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </DashboardLayout>
   );
