@@ -438,3 +438,8 @@
 - [x] Implementar alertas visuais de urgência no widget da CIPA para reuniões nos próximos 3 dias.
 - [x] Atualizar suíte de testes e verificar build de produção.
 - [x] Publicar checkpoint final e registrar instruções de homologação.
+
+- [x] Implementar top bar de painéis temáticos (Resumo, CIPA, EPIs, Inspeções e Documentos) na Visão Geral.
+- [x] Compactar o dashboard principal para priorizar alertas críticos e reduzir a rolagem excessiva.
+- [x] Atualizar testes unitários e verificar build de produção.
+- [ ] Publicar checkpoint final e registrar instruções de homologação.
