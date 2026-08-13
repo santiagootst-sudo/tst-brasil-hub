@@ -504,3 +504,6 @@
 - [x] Permitir customização de logotipo e rodapé nos relatórios em PDF gerados na aba Planos de Ação.
 - [x] Implementar gráficos de radar interativos na aba Resultados & Indicadores.
 - [x] Atualizar testes, validar build de produção e revisar visualmente.
+
+- [x] Corrigir a persistência do formulário do PGR: dados preenchidos devem permanecer ao sair e reabrir o mesmo projeto.
+- [x] Revalidar isolamento entre projetos e confirmar que o PDF usa os dados persistidos após reabertura.
