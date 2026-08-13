@@ -402,3 +402,8 @@
 
 - [x] Criar um painel dedicado no perfil/histórico do funcionário para visualizar, baixar e gerenciar todas as Fichas de Entrega de EPI assinadas digitalmente.
 - [x] Executar suíte completa de testes automatizados e validar o build de produção.
+
+- [ ] Criar alerta visual no painel do funcionário para destacar rapidamente fichas de EPI pendentes de assinatura digital.
+- [ ] Implementar ação de registrar devolução ou troca de EPI direto no painel do funcionário, atualizando o estoque automaticamente.
+- [ ] Adicionar filtros de data e status de assinatura no painel do funcionário.
+- [ ] Executar suíte completa de testes automatizados e validar o build de produção.

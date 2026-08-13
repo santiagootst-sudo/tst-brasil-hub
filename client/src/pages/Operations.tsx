@@ -123,6 +123,16 @@ export default function Operations() {
 
   const [activeTab, setActiveTab] = useState<"overview" | "stock" | "deliveries" | "requirements" | "alerts" | "employee_profile">("overview");
   const [selectedProfileEmployeeId, setSelectedProfileEmployeeId] = useState<number>(0);
+  const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
+  const [profileStartDate, setProfileStartDate] = useState<string>("");
+  const [profileEndDate, setProfileEndDate] = useState<string>("");
+  const createReturn = trpc.portal.createEpiReturn.useMutation({
+    onSuccess: async () => {
+      await utils.portal.operations.invalidate({ workspaceId });
+      toast.success("Devolução ou troca registrada e estoque atualizado com sucesso!");
+    },
+    onError: err => toast.error(err.message)
+  });
 
   return <DashboardLayout title="Controle de EPIs"><div className="mx-auto max-w-7xl space-y-6">
     <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Centro Operacional de EPIs</p><h2 className="mt-2 text-3xl font-bold">Controle Avançado de EPIs e CA</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Gerenciamento inteligente de estoque, Certificados de Aprovação (CA), fichas de entrega com assinatura digital via QR Code e histórico por trabalhador.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-3"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{replacementDue.length}</b>reposições próximas</div></div></div></section>
@@ -440,52 +450,123 @@ export default function Operations() {
 
           {activeTab === "employee_profile" && (
             <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-[#102b32]">Perfil do Funcionário e Fichas Assinadas</h3>
-                  <p className="text-xs text-[#668087]">Histórico centralizado de EPIs entregues, status de aceite digital e download dos recibos.</p>
+                  <p className="text-xs text-[#668087]">Histórico centralizado de EPIs entregues, status de aceite digital, devoluções e download dos recibos.</p>
                 </div>
-                <select 
-                  className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
-                  value={selectedProfileEmployeeId}
-                  onChange={e => setSelectedProfileEmployeeId(Number(e.target.value))}
-                >
-                  <option value={0}>Todos os colaboradores ({employees.length})</option>
-                  {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
-                </select>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select 
+                    className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
+                    value={selectedProfileEmployeeId}
+                    onChange={e => setSelectedProfileEmployeeId(Number(e.target.value))}
+                  >
+                    <option value={0}>Todos os colaboradores ({employees.length})</option>
+                    {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
+                  </select>
+                  <select 
+                    className="h-10 rounded-xl border border-[#cfe3de] bg-white px-3 text-xs font-semibold text-[#23454b]"
+                    value={profileStatusFilter}
+                    onChange={e => setProfileStatusFilter(e.target.value as any)}
+                  >
+                    <option value="all">Status: Todos</option>
+                    <option value="signed">Assinadas</option>
+                    <option value="pending">Pendentes</option>
+                  </select>
+                  <Input 
+                    type="date"
+                    className="h-10 w-36 text-xs"
+                    value={profileStartDate}
+                    onChange={e => setProfileStartDate(e.target.value)}
+                    placeholder="Data inicial"
+                  />
+                  <Input 
+                    type="date"
+                    className="h-10 w-36 text-xs"
+                    value={profileEndDate}
+                    onChange={e => setProfileEndDate(e.target.value)}
+                    placeholder="Data final"
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
                 {employees.filter(emp => !selectedProfileEmployeeId || emp.id === selectedProfileEmployeeId).map(employee => {
-                  const empDeliveries = epiDeliveries.filter(d => d.employeeId === employee.id);
+                  const empDeliveries = epiDeliveries.filter(d => {
+                    if (d.employeeId !== employee.id) return false;
+                    const isPending = !d.signedByName || d.signedByName.includes("Pendente");
+                    if (profileStatusFilter === "signed" && isPending) return false;
+                    if (profileStatusFilter === "pending" && !isPending) return false;
+                    if (profileStartDate && new Date(d.deliveredAt) < new Date(profileStartDate)) return false;
+                    if (profileEndDate && new Date(d.deliveredAt) > new Date(`${profileEndDate}T23:59:59`)) return false;
+                    return true;
+                  });
+
+                  const hasPending = empDeliveries.some(d => !d.signedByName || d.signedByName.includes("Pendente"));
+
                   return (
                     <div key={employee.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-5 space-y-4 shadow-sm">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#eef4f2] pb-3">
                         <div>
-                          <h4 className="text-base font-bold text-[#102b32]">{employee.fullName}</h4>
-                          <p className="text-xs text-[#668087]">Colaborador ativo na empresa · {empDeliveries.length} ficha(s) emitida(s)</p>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-base font-bold text-[#102b32]">{employee.fullName}</h4>
+                            {hasPending ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff0e9] px-2.5 py-0.5 text-[10px] font-bold text-[#bd6e4f] border border-[#fdd8cc]">
+                                <AlertTriangle className="h-3 w-3" /> Assinatura Pendente
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#e8f6f1] px-2.5 py-0.5 text-[10px] font-bold text-[#0c7474]">
+                                <CheckCircle2 className="h-3 w-3" /> Regular
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-[#668087]">Colaborador ativo · {empDeliveries.length} ficha(s) listada(s)</p>
                         </div>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f6f1] px-3 py-1 text-xs font-bold text-[#0c7474]">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Fichas ativas
-                        </span>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => { setActiveQrDelivery(empDeliveries[0] || { id: 0, employeeId: employee.id, epiItemId: epiItems[0]?.id || 0, quantity: 1, deliveryKind: "initial", deliveredAt: new Date(), signedByName: "Pendente" }); setQrSignedSuccess(false); }}
+                          className="rounded-xl border-[#bddbd5] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"
+                        >
+                          <QrCode className="mr-1.5 h-3.5 w-3.5" /> Solicitar Assinatura
+                        </Button>
                       </div>
 
                       <div className="space-y-3">
                         <h5 className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5d7479]">Fichas de EPI e Termos de Aceite</h5>
-                        {empDeliveries.length ? empDeliveries.map(delivery => (
-                          <div key={delivery.id} className="rounded-xl border border-[#dcebe8] bg-white p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <strong className="text-sm font-bold text-[#123f69]">{epiNameById.get(delivery.epiItemId) ?? "EPI"}</strong>
-                                <span className="rounded-md bg-[#eaf4fd] px-2 py-0.5 text-[10px] font-bold text-[#3173a8]">Qtd: {delivery.quantity}</span>
+                        {empDeliveries.length ? empDeliveries.map(delivery => {
+                          const isPending = !delivery.signedByName || delivery.signedByName.includes("Pendente");
+                          return (
+                            <div key={delivery.id} className="rounded-xl border border-[#dcebe8] bg-white p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <strong className="text-sm font-bold text-[#123f69]">{epiNameById.get(delivery.epiItemId) ?? "EPI"}</strong>
+                                  <span className="rounded-md bg-[#eaf4fd] px-2 py-0.5 text-[10px] font-bold text-[#3173a8]">Qtd: {delivery.quantity}</span>
+                                  {isPending ? (
+                                    <span className="rounded bg-[#fff0e9] px-2 py-0.5 text-[10px] font-bold text-[#bd6e4f]">Pendente</span>
+                                  ) : (
+                                    <span className="rounded bg-[#e8f6f1] px-2 py-0.5 text-[10px] font-bold text-[#0c7474]">Assinado</span>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-xs text-[#668087]">Entregue em: {delivery.deliveredAt.toLocaleDateString("pt-BR")} · Aceite: <b>{delivery.signedByName}</b></p>
                               </div>
-                              <p className="mt-1 text-xs text-[#668087]">Entregue em: {delivery.deliveredAt.toLocaleDateString("pt-BR")} · Aceite digital: <b>{delivery.signedByName}</b></p>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Button size="sm" variant="outline" onClick={() => handleDownloadReceipt(delivery)} className="rounded-xl border-[#bddbd5] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">
+                                  <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
+                                </Button>
+                                {canManage && (
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => createReturn.mutate({ workspaceId, companyId: currentCompanyId, deliveryId: delivery.id, epiItemId: delivery.epiItemId, employeeId: delivery.employeeId, returnedAt: new Date(), condition: "good", notes: "Devolução registrada via painel do funcionário" })} 
+                                    className="rounded-xl bg-[#d67845] text-xs font-bold text-white hover:bg-[#bd643d]"
+                                  >
+                                    Registrar Devolução
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                            <Button size="sm" onClick={() => handleDownloadReceipt(delivery)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]">
-                              <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar Ficha PDF
-                            </Button>
-                          </div>
-                        )) : <p className="rounded-xl bg-[#f7fcfa] p-4 text-center text-xs text-[#668087]">Nenhuma ficha de EPI registrada para este colaborador.</p>}
+                          );
+                        }) : <p className="rounded-xl bg-[#f7fcfa] p-4 text-center text-xs text-[#668087]">Nenhuma ficha encontrada com os filtros aplicados para este colaborador.</p>}
                       </div>
                     </div>
                   );
