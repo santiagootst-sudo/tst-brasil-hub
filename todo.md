@@ -511,3 +511,5 @@
 - [x] Implementar preenchimento assistido por IA para sugerir inventários de GHE e perigos com base na atividade econômica.
 - [x] Implementar upload e gerenciamento de fotos e laudos complementares na aba de Identificação do PGR.
 - [x] Atualizar testes unitários, exportação PDF e validação de build de produção.
+
+- [x] Implementar inserção com um clique das sugestões de GHE da IA no inventário do PGR com revisão humana e proteção contra duplicidades.

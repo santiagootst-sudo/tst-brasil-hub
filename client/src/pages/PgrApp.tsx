@@ -436,6 +436,41 @@ export default function PgrApp() {
                           <div className="text-[11px] text-[#15803d]">
                             <strong>Medidas:</strong> {sug.suggestedMeasures.join("; ")}
                           </div>
+                          <div className="pt-2 flex justify-end">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                const storageKey = `tst-pgr-workspace-${workspaceId}-pgrDadosV23`;
+                                try {
+                                  const raw = localStorage.getItem(storageKey);
+                                  let data = raw ? JSON.parse(raw) : {};
+                                  if (!data.ghes) data.ghes = [];
+                                  // Verificar duplicidade
+                                  const exists = data.ghes.some((g: any) => g.name === sug.gheName);
+                                  if (exists) {
+                                    toast.error(`O GHE "${sug.gheName}" já consta no inventário deste PGR.`);
+                                    return;
+                                  }
+                                  data.ghes.push({
+                                    id: Date.now().toString(),
+                                    name: sug.gheName,
+                                    description: sug.description,
+                                    hazards: sug.suggestedHazards.join(", "),
+                                    measures: sug.suggestedMeasures.join(", "),
+                                  });
+                                  localStorage.setItem(storageKey, JSON.stringify(data));
+                                  toast.success(`GHE "${sug.gheName}" inserido com sucesso no inventário do PGR!`);
+                                } catch (e) {
+                                  console.error("Erro ao inserir GHE no localStorage", e);
+                                  toast.error("Não foi possível inserir o GHE no inventário.");
+                                }
+                              }}
+                              className="h-7 rounded-lg bg-[#0c7474] px-3 text-[11px] font-bold text-white hover:bg-[#095c5c]"
+                            >
+                              Inserir no Inventário PGR
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
