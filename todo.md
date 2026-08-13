@@ -292,3 +292,4 @@
 - [ ] Adicionar envio do PDF do certificado gerado para o e-mail do funcionário/participante.
 - [ ] Criar testes automatizados para personalização visual e envio de e-mail de certificado.
 - [x] Criar testes automatizados para os controles de personalização visual do certificado.
+- [x] Documentar os requisitos e o procedimento futuro para ativar o envio de certificados por e-mail.
