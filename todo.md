@@ -518,3 +518,5 @@
 - [x] Criar a página de pré-lançamento do Marketplace com mensagem de construção, carinha feliz e caixa de feedback interativa.
 
 - [x] Adicionar animação de sucesso fluida e mensagem de agradecimento dedicada após o envio do feedback no Marketplace.
+
+- [x] Atualizar o módulo Biblioteca com cards menores, capas ilustradas e catálogo completo de Normas Regulamentadoras (NRs).
