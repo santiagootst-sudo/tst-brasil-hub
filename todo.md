@@ -364,3 +364,5 @@
 - [x] Implementar validação de arquivo, prévia e opção de remover para voltar à imagem temática da NR.
 - [x] Integrar a imagem customizada à galeria de estilos, prévia HTML e PDF frente/verso.
 - [x] Atualizar suíte de testes, validar build e interface.
+
+- [x] Executar teste controlado do Gerador de PGR com dados fictícios, preencher etapas e exportar PDF para revisão.
