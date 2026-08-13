@@ -279,3 +279,8 @@
 - [x] Adicionar botão de logout visível e seguro no dashboard.
 - [x] Implementar animações de carregamento fluidas para os dados do TST Autônomo.
 - [x] Criar a seção de perfil no dashboard com edição de dados pessoais e preferências.
+- [x] Auditar e documentar a lógica do gerador de certificados HTML enviado.
+- [x] Criar interface premium do gerador de certificados integrada ao ambiente ativo.
+- [x] Preservar seleção de NR, cursos, validade, marca d'água, logo e geração PDF frente/verso.
+- [x] Integrar o gerador ao módulo de Certificados com contexto de workspace e estados de sucesso/erro.
+- [x] Criar testes automatizados e validar visualmente o novo módulo de certificados.
