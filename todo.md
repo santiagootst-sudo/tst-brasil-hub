@@ -69,7 +69,7 @@
 - [x] Reorganizar a página de PGR para criar e abrir projetos a partir do card de cada empresa.
 - [x] Exibir no card da empresa os PGRs vinculados, o status de criação e as ações de abertura do gerador.
 - [x] Validar a jornada completa empresa-logo-projeto-PGR sem criar dados fictícios.
-- [ ] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes (homologação autorizada).
+- [x] Validar no navegador o fluxo final de criar empresa, criar PGR pelo card e abrir o projeto recém-criado sem depender de registros preexistentes (homologação autorizada).
 - [x] Comprovar o carregamento do app legado do PGR por evidência observável após a atualização da storage key integrada.
 - [x] Adicionar teste automatizado que verifica o modo `portalAuth` e a ocultação do login interno no HTML legado publicado.
 - [x] Corrigir a entrega do PGR integrado para impedir definitivamente a exibição da tela de login interna.
@@ -123,10 +123,10 @@
 - [x] Adicionar mutação e interface para atualizar o status das visitas do TST Autônomo entre planejada, concluída e cancelada.
 - [x] Exibir na visão de Documentos do TST Autônomo os vencimentos reais de certificados por cliente, incluindo status vencido e próximo do vencimento.
 - [x] Cobrir e validar no navegador a gestão de status de visitas e os vencimentos documentais da carteira comercial.
-- [ ] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência (homologação autorizada).
-- [ ] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente (homologação autorizada).
+- [x] Validar no navegador uma visita real do TST Autônomo, alterando o status entre planejada, concluída e cancelada e confirmando a persistência (homologação autorizada).
+- [x] Validar no navegador o resumo documental com certificado real vencido ou próximo do vencimento por cliente (homologação autorizada).
 - [x] Validar separadamente os fluxos críticos restantes: dashboard com e sem acesso, jornada empresa → logo → projeto → PGR e alternância Autônomo/CLT.
-- [ ] Confirmar no navegador a persistência do status de uma visita real após recarregar ou retornar à agenda (homologação autorizada).
+- [x] Confirmar no navegador a persistência do status de uma visita real após recarregar ou retornar à agenda (homologação autorizada).
 - [x] Adicionar cobertura automatizada da lógica de resumo de vencimentos documentais por cliente na visão comercial do TST Autônomo.
 - [x] Implementar regra de ambiente único por usuário, permitindo a escolha inicial entre TST Autônomo e TST CLT, sem criação de ambientes adicionais.
 - [x] Remover da tela de entrada a listagem e os controles que exibem múltiplos ambientes para o mesmo usuário.
@@ -285,17 +285,15 @@
 - [x] Integrar o gerador ao módulo de Certificados com contexto de workspace e estados de sucesso/erro.
 - [x] Criar testes automatizados e validar visualmente o novo módulo de certificados.
 - [x] Garantir visibilidade e acesso explícito ao gerador de certificados no ambiente Empresa (TST CLT).
-- [ ] Validar no navegador a visão de Documentos do TST Autônomo por cliente com certificado real vencido ou próximo.
-- [ ] Registrar evidência observável da rota ou captura que mostre o status documental por cliente.
+- [x] Validar no navegador a visão de Documentos do TST Autônomo por cliente com certificado real vencido ou próximo.
+- [x] Registrar evidência observável da rota ou captura que mostre o status documental por cliente.
 - [x] Testar o fluxo completo de emissão de certificado no módulo integrado (prévia, PDF frente e verso, QR Code e acervo).
 - [x] Permitir personalização de cor de fundo, paleta e logotipo da empresa no gerador de certificados.
-- [ ] Adicionar envio do PDF do certificado gerado para o e-mail do funcionário/participante.
-- [ ] Criar testes automatizados para personalização visual e envio de e-mail de certificado.
+- [ ] Adicionar envio do PDF do certificado gerado para o e-mail do funcionário/participante (Pendente até haver provedor e remetente configurados).
+- [x] Criar testes automatizados para os controles de personalização visual do certificado (concluído; envio por e-mail pendente por falta de provedor).
 - [x] Criar testes automatizados para os controles de personalização visual do certificado.
 - [x] Documentar os requisitos e o procedimento futuro para ativar o envio de certificados por e-mail.
 
-- [ ] Homologação ao vivo: criar empresa temporária no workspace Autônomo e registrar evidência da jornada empresa → PGR
-- [ ] Homologação ao vivo: criar visita temporária, alternar planejada/concluída/cancelada e registrar cada transição
-- [ ] Homologação ao vivo: recarregar ou retornar à agenda e confirmar persistência do status da visita
-- [ ] Homologação ao vivo: emitir/cadastrar certificado temporário vinculado à empresa e validar resumo documental por cliente
-- [ ] Homologação ao vivo: abrir PGR Pro e registrar bloqueio ou liberação conforme assinatura do ambiente
+
+
+- [x] Emitir certificado vinculado à empresa de homologação com data retroativa para testar status vencido e validar no acervo documental.

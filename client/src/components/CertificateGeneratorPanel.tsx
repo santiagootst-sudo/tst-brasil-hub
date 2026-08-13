@@ -76,7 +76,7 @@ const initialForm = (companies: Array<{ id: number; name: string }> = []): FormS
   nr: "NR-35",
   course: certificateCatalog["NR-35"].courses[0].name,
   validity: "24",
-  completionDate: new Date().toISOString().slice(0, 10),
+    completionDate: new Date().toISOString().slice(0, 10),
   location: "",
   instructor: "",
   instructorRegistration: "",
