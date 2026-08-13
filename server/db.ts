@@ -46,6 +46,13 @@ export async function getUserById(userId: number) {
   return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
 }
 
+export async function updateUserProfile(userId: number, input: { name: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(users).set({ name: input.name, updatedAt: new Date() }).where(eq(users.id, userId));
+  return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+}
+
 export async function listUsersForAdmin() {
   const db = await getDb();
   if (!db) return [];

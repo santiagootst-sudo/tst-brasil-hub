@@ -19,6 +19,20 @@ function daysUntil(date: Date | string | null) {
   return Math.ceil((new Date(date).getTime() - Date.now()) / 86_400_000);
 }
 
+function WorkspaceOverviewSkeleton() {
+  const shimmer = "rounded-2xl bg-[#dceee8] motion-safe:animate-pulse motion-reduce:animate-none";
+  return <DashboardLayout title="Visão geral">
+    <div className="mx-auto max-w-7xl space-y-7" aria-busy="true" aria-label="Carregando dados do dashboard">
+      <section className="rounded-[2rem] border border-[#d3e7e0] bg-gradient-to-br from-[#effbf7] via-white to-[#eaf7f1] p-7 shadow-[0_22px_60px_rgba(28,74,77,0.08)] lg:p-9">
+        <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/80"><Loader2 className="h-4 w-4 animate-spin text-[#0c7474] motion-reduce:animate-none" /></span><div><div className={`${shimmer} h-3 w-28`} /><p className="mt-2 text-xs font-semibold text-[#668087]">Atualizando seu panorama operacional...</p></div></div>
+        <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{Array.from({ length: 5 }).map((_, index) => <div key={index} className="rounded-2xl border border-white/80 bg-white/55 p-4 shadow-sm"><div className={`${shimmer} h-9 w-9 rounded-xl`} /><div className={`${shimmer} mt-5 h-8 w-16`} /><div className={`${shimmer} mt-2 h-3 w-24`} /></div>)}</div>
+      </section>
+      <section className="grid gap-5 lg:grid-cols-2"><div className="h-64 rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><div className={`${shimmer} h-3 w-32`} /><div className={`${shimmer} mt-3 h-7 w-56`} /><div className={`${shimmer} mt-7 h-36 w-full rounded-2xl`} /></div><div className="h-64 rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm"><div className={`${shimmer} h-3 w-28`} /><div className={`${shimmer} mt-3 h-7 w-44`} /><div className={`${shimmer} mt-7 h-36 w-full rounded-2xl`} /></div></section>
+      <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[#668087]"><span className="h-2 w-2 rounded-full bg-[#0c7474] motion-safe:animate-bounce motion-reduce:animate-none" /> Os indicadores serão exibidos quando os registros reais terminarem de carregar.</div>
+    </div>
+  </DashboardLayout>;
+}
+
 export default function WorkspaceOverview() {
   const search = useSearch();
   const workspaceId = workspaceIdFromSearch(search) ?? 0;
@@ -36,7 +50,7 @@ export default function WorkspaceOverview() {
   const queryError = [workspace, certificates, trainings, organization, operations, planning, commercial].find((query) => query.isError)?.error;
 
   if (workspace.isLoading || certificates.isLoading || trainings.isLoading || organization.isLoading || operations.isLoading || planning.isLoading || (workspace.data?.kind === "autonomo" && commercial.isLoading)) {
-    return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+    return <WorkspaceOverviewSkeleton />;
   }
 
   if (queryError) {

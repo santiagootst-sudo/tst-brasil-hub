@@ -276,3 +276,6 @@
 - [x] Atualizar a tela de login e escolha de perfil com a nova marca TST Brasil Hub.
 - [x] Validar responsividade, testes e salvar checkpoint final.
 - [x] Diagnosticar e corrigir o erro `invalid oauth state` no retorno do login OAuth.
+- [x] Adicionar botão de logout visível e seguro no dashboard.
+- [x] Implementar animações de carregamento fluidas para os dados do TST Autônomo.
+- [x] Criar a seção de perfil no dashboard com edição de dados pessoais e preferências.
