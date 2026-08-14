@@ -715,7 +715,28 @@ export default function Operations() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs text-[#795d48]">
+                    {profileDepartmentFilter > 0 ? (
+                      <span className="font-bold text-[#5b3a25]">📂 Pasta ativa: {departmentName.get(profileDepartmentFilter)}</span>
+                    ) : (
+                      <span>Selecione uma pasta para exibir os colaboradores.</span>
+                    )}
+                  </div>
+                  {profileDepartmentFilter > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setProfileDepartmentFilter(0); closeArchiveDrawer(); }}
+                      className="rounded-xl border-[#d7c8b5] bg-white text-xs font-bold text-[#795d48] hover:bg-[#f4eee5]"
+                    >
+                      <X className="mr-1.5 h-3.5 w-3.5" /> Recolher todas as pastas
+                    </Button>
+                  )}
+                </div>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {departments.map(dept => {
                     const deptEmployees = profileEmployees.filter(emp => emp.departmentId === dept.id);
                     const deptDeliveries = epiDeliveries.filter(d => deptEmployees.some(emp => emp.id === d.employeeId));
@@ -723,10 +744,10 @@ export default function Operations() {
                     const isDeptOpen = profileDepartmentFilter === dept.id;
 
                     return (
-                      <div key={`dept-folder-${dept.id}`} className="rounded-2xl border border-[#d6c4ad] bg-[#fdf8f0] p-4 shadow-xs space-y-3">
+                      <div key={`dept-folder-${dept.id}`} className={`rounded-2xl border p-4 shadow-xs space-y-3 transition ${isDeptOpen ? "border-[#8a5a37] bg-[#fff8ed] ring-2 ring-[#b88758]/20" : "border-[#d6c4ad] bg-[#fdf8f0]"}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2.5">
-                            <FolderOpen className="h-5 w-5 text-[#8a5a37]" />
+                            <FolderOpen className={`h-5 w-5 ${isDeptOpen ? "text-[#8a5a37]" : "text-[#b88758]"}`} />
                             <div>
                               <strong className="block text-sm font-bold text-[#5b3a25]">{dept.name}</strong>
                               <small className="text-[11px] text-[#795d48]">{deptEmployees.length} colaborador(es) · {deptDeliveries.length} ficha(s)</small>
@@ -739,6 +760,22 @@ export default function Operations() {
                           )}
                         </div>
 
+                        {/* Mini-avatares dos colaboradores na capa da pasta */}
+                        {deptEmployees.length > 0 && (
+                          <div className="flex items-center gap-1 py-1">
+                            <div className="flex -space-x-1.5 overflow-hidden">
+                              {deptEmployees.slice(0, 4).map((emp, idx) => (
+                                <span key={emp.id} className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#8a5a37] text-[10px] font-bold text-white ring-2 ring-[#fdf8f0]" title={emp.fullName}>
+                                  {emp.fullName.charAt(0)}
+                                </span>
+                              ))}
+                            </div>
+                            {deptEmployees.length > 4 && (
+                              <span className="text-[10px] font-semibold text-[#795d48] ml-1">+{deptEmployees.length - 4}</span>
+                            )}
+                          </div>
+                        )}
+
                         <div className="pt-2 border-t border-[#eadcd0] flex items-center justify-between">
                           <span className="text-[11px] font-medium text-[#8c6d52]">Pasta setorial</span>
                           <Button
@@ -750,7 +787,7 @@ export default function Operations() {
                             }}
                             className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${isDeptOpen ? "bg-[#8a5a37] text-white" : "bg-white text-[#795d48] border border-[#d6c4ad] hover:bg-[#f4eee5]"}`}
                           >
-                            {isDeptOpen ? "Ocultar funcionários" : "Abrir pasta"}
+                            {isDeptOpen ? "Fechar pasta" : "Abrir pasta"}
                           </Button>
                         </div>
                       </div>
@@ -758,20 +795,34 @@ export default function Operations() {
                   })}
                 </div>
 
-                {/* Funcionários da pasta aberta ou listagem filtrada (só exibe se um setor estiver selecionado) */}
+                {/* Funcionários da pasta aberta com barra de busca interna */}
                 {profileDepartmentFilter > 0 ? (
-                  <div className="mt-6 pt-5 border-t border-[#dfcfbd]">
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="mt-6 pt-5 border-t border-[#dfcfbd] space-y-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <h5 className="text-xs font-bold uppercase tracking-[.1em] text-[#5b3a25]">
-                        Funcionários da pasta: {departmentName.get(profileDepartmentFilter) || "Setor"}
+                        Funcionários da pasta: {departmentName.get(profileDepartmentFilter) || "Setor"} ({profileEmployees.filter(emp => emp.departmentId === profileDepartmentFilter).length})
                       </h5>
-                      <button
-                        type="button"
-                        onClick={() => { setProfileDepartmentFilter(0); closeArchiveDrawer(); }}
-                        className="text-xs font-bold text-[#8a5a37] hover:underline"
-                      >
-                        Fechar pasta / Recolher
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="relative min-w-[200px]">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#795d48]" />
+                          <Input
+                            value={profileEmployeeSearch}
+                            onChange={e => { setProfileEmployeeSearch(e.target.value); closeArchiveDrawer(); }}
+                            placeholder="Buscar nesta pasta..."
+                            aria-label="Buscar funcionário nesta pasta"
+                            className="h-9 rounded-xl border-[#d6c4ad] bg-white pl-8 text-xs font-semibold text-[#5b3a25]"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setProfileDepartmentFilter(0); closeArchiveDrawer(); }}
+                          className="rounded-xl border-[#d7c8b5] bg-white text-xs font-bold text-[#795d48] hover:bg-[#f4eee5]"
+                        >
+                          Fechar pasta
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
