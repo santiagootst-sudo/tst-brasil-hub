@@ -708,3 +708,70 @@ export function downloadInspectionReportPdf(input: InspectionReportInput) {
   const document = buildInspectionReportPdf(input);
   document.save(`${safeFileName(input.companyName)}-inspecoes-plano-acao.pdf`);
 }
+
+export type ConsolidatedEpiReportInput = {
+  workspaceName: string;
+  companyName: string;
+  generatedAt?: PdfDate;
+  epiItems: Array<{
+    name: string;
+    caNumber?: string | null;
+    manufacturer?: string | null;
+    stockQuantity: number;
+    minimumStock: number;
+    expiresAt?: PdfDate;
+  }>;
+  deliveriesCount: number;
+};
+
+export function downloadConsolidatedEpiReportPdf(input: ConsolidatedEpiReportInput) {
+  const doc = setupDocument("Relatório Consolidado de Estoque e EPIs (NR-06)", input.workspaceName, input.generatedAt);
+  let y = 56;
+
+  doc.setFillColor(242, 250, 248);
+  doc.roundedRect(16, y, 178, 20, 3, 3, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(12, 116, 116);
+  doc.text("EMPRESA EM FOCO", 20, y + 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(71, 99, 106);
+  doc.text(`Empresa: ${input.companyName}`, 20, y + 14);
+  doc.text(`Total de Equipamentos: ${input.epiItems.length}`, 115, y + 14);
+  y += 28;
+
+  doc.setTextColor(12, 116, 116);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("01. INVENTÁRIO DE ESTOQUE E CERTIFICADOS DE APROVAÇÃO (CA)", 16, y);
+  y += 8;
+
+  doc.setFillColor(12, 116, 116);
+  doc.rect(16, y, 178, 7, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Equipamento / EPI", 19, y + 5);
+  doc.text("CA", 90, y + 5);
+  doc.text("Estoque", 120, y + 5);
+  doc.text("Validade CA", 145, y + 5);
+  y += 7;
+
+  input.epiItems.forEach((item, index) => {
+    y = ensureSpace(doc, y, 10);
+    doc.setFillColor(index % 2 === 0 ? 245 : 255, 247, 247);
+    doc.rect(16, y, 178, 8, "F");
+    doc.setTextColor(16, 43, 50);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(item.name.substring(0, 40), 19, y + 5);
+    doc.setFont("helvetica", "normal");
+    doc.text(item.caNumber || "N/D", 90, y + 5);
+    doc.text(`${item.stockQuantity} un. (Min: ${item.minimumStock})`, 120, y + 5);
+    doc.text(item.expiresAt ? new Date(item.expiresAt).toLocaleDateString("pt-BR") : "Vigente", 145, y + 5);
+    y += 8;
+  });
+
+  doc.save(`Relatorio_Consolidado_EPIs_${input.companyName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+}

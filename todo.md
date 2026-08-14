@@ -535,3 +535,7 @@
 - [x] Criar a interface completa da Biblioteca Interna da Empresa com abas de separação (Global vs Interna), modal de upload e categorização de documentos.
 
 - [x] Criar protótipo em código da interface do Controle de EPIs com top bar contextual e abas estruturadas (Resumo, Estoque, Entregas, Funcionários, Arquivo, Devoluções, Relatórios).
+
+- [x] Adicionar barra de pesquisa global na top bar do módulo de EPIs para localizar funcionários, CAs e fichas.
+- [x] Implementar filtros visuais avançados na aba de Estoque & CAs para estoque crítico e CA vencido.
+- [x] Incluir botão de exportação de relatório consolidado de EPIs da empresa ativa em formato PDF.

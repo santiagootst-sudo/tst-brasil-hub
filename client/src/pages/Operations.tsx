@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
-import { downloadEpiReceiptPdf } from "@/lib/pdfReports";
+import { downloadEpiReceiptPdf, downloadConsolidatedEpiReportPdf } from "@/lib/pdfReports";
 import { 
   AlertTriangle, ClipboardCheck, ClipboardPlus, HardHat, Loader2, PackageCheck, 
   Plus, ShieldAlert, QrCode, Smartphone, CheckCircle2, Download, Check, X, Sparkles, UsersRound, Archive, FolderOpen, Search, ChevronDown
@@ -264,16 +264,44 @@ export default function Operations() {
               </div>
             </div>
 
-            {/* Seletor de Empresa em Foco na Top Bar */}
-            <div className="flex items-center gap-3 bg-[#f7fcfa] border border-[#dcebe8] px-4 py-2.5 rounded-2xl">
-              <span className="text-xs font-bold text-[#668087] whitespace-nowrap">Empresa:</span>
-              <select
-                value={currentCompanyId}
-                onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); }}
-                className="h-9 bg-transparent border-0 text-xs font-bold text-[#102b32] focus:outline-none cursor-pointer"
+            {/* Pesquisa Global e Seletor de Empresa na Top Bar */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#749e97]" />
+                <Input
+                  value={stockSearch}
+                  onChange={e => setStockSearch(e.target.value)}
+                  placeholder="Pesquisar funcionário, CA ou EPI..."
+                  className="h-10 rounded-2xl border-[#dcebe8] bg-[#f7fcfa] pl-10 text-xs text-[#102b32] placeholder:text-[#668087]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#f7fcfa] border border-[#dcebe8] px-4 py-2 rounded-2xl">
+                <span className="text-xs font-bold text-[#668087] whitespace-nowrap">Empresa:</span>
+                <select
+                  value={currentCompanyId}
+                  onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); }}
+                  className="h-7 bg-transparent border-0 text-xs font-bold text-[#102b32] focus:outline-none cursor-pointer"
+                >
+                  {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+                </select>
+              </div>
+
+              <Button
+                onClick={() => {
+                  downloadConsolidatedEpiReportPdf({
+                    workspaceName: current.name,
+                    companyName: currentCompany?.name ?? "Empresa",
+                    epiItems: epiItems,
+                    deliveriesCount: epiDeliveries.length
+                  });
+                  toast.success("Relatório consolidado de EPIs baixado em PDF!");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#2165a9] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#184f85] transition shadow-xs"
               >
-                {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
-              </select>
+                <Download className="h-3.5 w-3.5" />
+                <span>Exportar Relatório PDF</span>
+              </Button>
             </div>
           </div>
 
@@ -399,20 +427,26 @@ export default function Operations() {
                   </div>
                 </div>
 
-                {filteredEpiItems.length ? filteredEpiItems.map(item => (
-                  <div key={item.id} className="rounded-2xl border border-[#e6f0ee] bg-[#fcfdfd] p-4 flex items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-bold text-[#102b32]">{item.name}</strong>
-                        {item.caNumber && <span className="rounded-md bg-[#eaf4fd] px-2 py-0.5 text-[10px] font-bold text-[#3173a8]">CA {item.caNumber}</span>}
+                {filteredEpiItems.length ? filteredEpiItems.map(item => {
+                  const isCritical = item.stockQuantity <= item.minimumStock;
+                  const isCaExpired = item.expiresAt && item.expiresAt.getTime() <= Date.now();
+                  return (
+                    <div key={item.id} className={`rounded-2xl border p-4 flex items-center justify-between gap-4 transition ${isCritical || isCaExpired ? "border-[#fdd8cc] bg-[#fffaf8]" : "border-[#e6f0ee] bg-[#fcfdfd]"}`}>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <strong className="text-sm font-bold text-[#102b32]">{item.name}</strong>
+                          {item.caNumber && <span className="rounded-md bg-[#eaf4fd] px-2 py-0.5 text-[10px] font-bold text-[#3173a8]">CA {item.caNumber}</span>}
+                          {isCaExpired && <span className="rounded-md bg-[#fee2e2] px-2 py-0.5 text-[10px] font-bold text-[#dc2626]">⚠️ CA Vencido</span>}
+                          {isCritical && <span className="rounded-md bg-[#fff0e9] px-2 py-0.5 text-[10px] font-bold text-[#bd6e4f]">⚠️ Estoque Crítico</span>}
+                        </div>
+                        <p className="mt-1 text-xs text-[#668087]">{item.manufacturer ?? "Fabricante não informado"} {item.expiresAt ? `· Validade CA: ${item.expiresAt.toLocaleDateString("pt-BR")}` : ""}</p>
                       </div>
-                      <p className="mt-1 text-xs text-[#668087]">{item.manufacturer ?? "Fabricante não informado"} {item.expiresAt ? `· Validade CA: ${item.expiresAt.toLocaleDateString("pt-BR")}` : ""}</p>
+                      <span className={`rounded-xl px-3 py-1.5 text-xs font-bold shrink-0 ${isCritical ? "bg-[#fff0e9] text-[#bd6e4f] border border-[#fdd8cc]" : "bg-[#e8f6f1] text-[#0c7474] border border-[#bbf7d0]"}`}>
+                        {item.stockQuantity} em estoque (Mín: {item.minimumStock})
+                      </span>
                     </div>
-                    <span className={`rounded-xl px-3 py-1.5 text-xs font-bold shrink-0 ${item.stockQuantity <= item.minimumStock ? "bg-[#fff0e9] text-[#bd6e4f] border border-[#fdd8cc]" : "bg-[#e8f6f1] text-[#0c7474] border border-[#bbf7d0]"}`}>
-                      {item.stockQuantity} em estoque
-                    </span>
-                  </div>
-                )) : <p className="rounded-2xl bg-[#f7fcfa] p-6 text-center text-sm text-[#668087]">Nenhum EPI encontrado com os filtros aplicados.</p>}
+                  );
+                }) : <p className="rounded-2xl bg-[#f7fcfa] p-6 text-center text-sm text-[#668087]">Nenhum EPI encontrado com os filtros aplicados.</p>}
               </div>
             </div>
           )}
