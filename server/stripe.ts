@@ -29,10 +29,16 @@ export async function createSubscriptionCheckout(input: {
 
   const previous = await getSubscriptionForUser(input.userId);
   const priceId = await resolveRecurringPriceId(plan);
+
+  // Configuração para o plano de lançamento: 1º mês por R$ 69,90, depois R$ 99,90/mês
+  // Se o plano for 'autonomo', aplicamos um cupom de teste ou desconto de introdução de 30% / trial duration
+  const discounts = input.planCode === "autonomo" ? [{ coupon: process.env.STRIPE_LAUNCH_COUPON_ID || undefined }] : undefined;
+
   const session = await stripeClient().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: true,
+    discounts: discounts?.filter(d => Boolean(d.coupon)),
     customer: previous?.stripeCustomerId ?? undefined,
     customer_email: previous?.stripeCustomerId ? undefined : input.userEmail ?? undefined,
     client_reference_id: input.userId.toString(),

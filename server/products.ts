@@ -11,23 +11,13 @@ export const subscriptionPlans = [
   },
   {
     code: "autonomo",
-    name: "TST Autônomo",
-    audience: "Para prestar serviços e gerir clientes",
-    displayPrice: "R$ 149,90",
+    name: "TST Brasil Hub Pro (Lançamento)",
+    audience: "Para técnicos e empresas de SST com acesso completo",
+    displayPrice: "R$ 69,90 no 1º mês (depois R$ 99,90/mês)",
     priceId: process.env.STRIPE_PRICE_AUTONOMO ?? "",
     lookupKey: "portal_tst_autonomo_monthly_brl",
     featured: true,
-    features: ["Tudo do PGR Pro", "Ambientes de clientes", "PGR por empresa", "Materiais e modelos SST"],
-  },
-  {
-    code: "empresa",
-    name: "TST Empresa",
-    audience: "Para a operação interna do TST CLT",
-    displayPrice: "R$ 249,90",
-    priceId: process.env.STRIPE_PRICE_EMPRESA ?? "",
-    lookupKey: "portal_tst_empresa_monthly_brl",
-    featured: false,
-    features: ["Tudo do PGR Pro", "Ambiente CLT", "Equipe e treinamentos", "Indicadores e alertas"],
+    features: ["Acesso completo a todos os módulos", "Gerador de PGR, EPIs, CIPA e Biblioteca", "R$ 69,90 no primeiro mês", "Renovação automática por R$ 99,90/mês"],
   },
 ] as const;
 
