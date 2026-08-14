@@ -54,7 +54,8 @@ describe("checkout e portal de cobrança", () => {
 
     await createSubscriptionCheckout({ userId: 14, planCode: "mensal", origin: "https://portal.example" });
 
-    expect(stripe.checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ allow_promotion_codes: false, discounts: [{ coupon: "coupon_launch" }] }));
+    expect(stripe.checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ discounts: [{ coupon: "coupon_launch" }] }));
+    expect(stripe.checkoutCreate.mock.calls[0][0]).not.toHaveProperty("allow_promotion_codes");
   });
 
   it("resolve o preço trimestral pela lookup key correspondente", async () => {

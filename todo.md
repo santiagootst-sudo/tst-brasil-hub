@@ -571,3 +571,8 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 
 - [x] Adicionar o selo visual “Melhor Opção” ao card do plano anual na página de preços.
 - [x] Validar a visualização do selo em desktop e mobile sem alterar o checkout.
+
+- [x] Adicionar abaixo do preço anual o valor equivalente por mês, destacando a economia.
+- [x] Aplicar pulso suave e acessível ao selo “Melhor Opção”, respeitando redução de movimento.
+- [x] Validar em modo de teste os checkouts mensal, trimestral e anual, incluindo retornos de sucesso e cancelamento.
+- [x] Revisar no Stripe de teste textos comerciais, recibos e configurações fiscais antes do convite a usuários externos.

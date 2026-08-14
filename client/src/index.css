@@ -395,3 +395,28 @@
     }
   }
 }
+
+
+@layer components {
+  .pricing-badge-pulse {
+    animation: pricing-badge-pulse 2.8s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+    transform-origin: center;
+  }
+
+  @keyframes pricing-badge-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 2px 8px rgba(90, 61, 14, 0.08);
+    }
+    50% {
+      transform: scale(1.035);
+      box-shadow: 0 6px 18px rgba(90, 61, 14, 0.18);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pricing-badge-pulse {
+      animation: none;
+    }
+  }
+}

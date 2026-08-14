@@ -45,8 +45,7 @@ export async function createSubscriptionCheckout(input: {
   const session = await stripeClient().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
-    allow_promotion_codes: !launchCouponId,
-    discounts,
+    ...(launchCouponId ? { discounts: [{ coupon: launchCouponId }] } : { allow_promotion_codes: true }),
     customer: previous?.stripeCustomerId ?? undefined,
     customer_email: previous?.stripeCustomerId ? undefined : input.userEmail ?? undefined,
     client_reference_id: input.userId.toString(),
