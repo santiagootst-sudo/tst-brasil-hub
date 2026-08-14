@@ -758,72 +758,76 @@ export default function Operations() {
                   })}
                 </div>
 
-                {/* Funcionários da pasta aberta ou listagem filtrada */}
-                <div className="mt-6 pt-5 border-t border-[#dfcfbd]">
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-xs font-bold uppercase tracking-[.1em] text-[#5b3a25]">
-                      {profileDepartmentFilter > 0 ? `Funcionários da pasta: ${departmentName.get(profileDepartmentFilter) || "Setor"}` : "Todos os funcionários (Selecione uma pasta acima para filtrar)"}
-                    </h5>
-                    {profileDepartmentFilter > 0 && (
+                {/* Funcionários da pasta aberta ou listagem filtrada (só exibe se um setor estiver selecionado) */}
+                {profileDepartmentFilter > 0 ? (
+                  <div className="mt-6 pt-5 border-t border-[#dfcfbd]">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-xs font-bold uppercase tracking-[.1em] text-[#5b3a25]">
+                        Funcionários da pasta: {departmentName.get(profileDepartmentFilter) || "Setor"}
+                      </h5>
                       <button
                         type="button"
-                        onClick={() => setProfileDepartmentFilter(0)}
+                        onClick={() => { setProfileDepartmentFilter(0); closeArchiveDrawer(); }}
                         className="text-xs font-bold text-[#8a5a37] hover:underline"
                       >
-                        Mostrar todos os setores
+                        Fechar pasta / Recolher
                       </button>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {profileEmployees.filter(emp => emp.departmentId === profileDepartmentFilter).map(employee => {
+                        const employeeDeliveries = epiDeliveries.filter(delivery => delivery.employeeId === employee.id);
+                        const pendingCount = employeeDeliveries.filter(delivery => !delivery.signedByName || delivery.signedByName.includes("Pendente")).length;
+                        const isExpanded = expandedArchiveEmployeeId === employee.id;
+                        return (
+                          <button
+                            key={`drawer-${employee.id}`}
+                            type="button"
+                            onClick={() => openArchiveDrawer(employee.id)}
+                            disabled={openingArchiveEmployeeId > 0}
+                            className={`epi-archive-drawer group relative overflow-hidden rounded-xl border p-4 text-left ${isExpanded ? "border-[#8a5a37] bg-[#fff8ed] shadow-lg ring-2 ring-[#b88758]/30" : "border-[#d6c4ad] bg-[#f8f1e6] hover:border-[#b58b65] hover:-translate-y-0.5 hover:shadow-md"}`}
+                            data-open={isExpanded}
+                            aria-expanded={isExpanded}
+                            aria-busy={openingArchiveEmployeeId === employee.id}
+                            aria-controls={`employee-file-${employee.id}`}
+                          >
+                            <span className="absolute inset-x-0 top-0 h-1 bg-[#b88758] opacity-70" />
+                            <div className="flex items-start justify-between gap-3">
+                              <span className="flex min-w-0 items-center gap-2.5">
+                                <Archive className={`h-5 w-5 shrink-0 ${isExpanded ? "text-[#8a5a37]" : "text-[#b88758]"}`} />
+                                <span className="min-w-0">
+                                  <strong className="block truncate text-sm font-bold text-[#5b3a25]">{employee.fullName}</strong>
+                                  <small className="mt-0.5 block text-xs text-[#795d48]">Ficha individual · {employeeDeliveries.length} entrega(s)</small>
+                                  <small className="mt-1 block truncate text-[11px] font-medium text-[#8c6d52]">{departmentName.get(employee.departmentId ?? 0) ?? "Setor não informado"} · {roleName.get(employee.jobRoleId ?? 0) ?? "Função não informada"}</small>
+                                </span>
+                              </span>
+                              <ChevronDown className={`h-4 w-4 shrink-0 text-[#8a5a37] transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                            </div>
+                            <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]">
+                              <span className="inline-flex items-center gap-1.5 text-[#8c6d52]">
+                                {openingArchiveEmployeeId === employee.id ? <><Loader2 className="h-3 w-3 animate-spin" /> Abrindo arquivo...</> : isExpanded ? "Ficha aberta" : "Abrir arquivo..."}
+                              </span>
+                              {pendingCount > 0 ? (
+                                <span className="rounded-full bg-[#fff0e9] px-2 py-1 text-[#bd6e4f]">{pendingCount} pendente(s)</span>
+                              ) : (
+                                <span className="rounded-full bg-[#e8f6f1] px-2 py-1 text-[#0c7474]">Regular</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!profileEmployees.filter(emp => emp.departmentId === profileDepartmentFilter).length && (
+                      <div className="mt-3 rounded-xl border border-dashed border-[#c9b69e] bg-[#fffaf2] p-5 text-center text-sm text-[#795d48]">
+                        Nenhum funcionário cadastrado nesta pasta de setor.
+                      </div>
                     )}
                   </div>
-
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {profileEmployees.map(employee => {
-                      const employeeDeliveries = epiDeliveries.filter(delivery => delivery.employeeId === employee.id);
-                      const pendingCount = employeeDeliveries.filter(delivery => !delivery.signedByName || delivery.signedByName.includes("Pendente")).length;
-                      const isExpanded = expandedArchiveEmployeeId === employee.id;
-                      return (
-                        <button
-                          key={`drawer-${employee.id}`}
-                          type="button"
-                          onClick={() => openArchiveDrawer(employee.id)}
-                          disabled={openingArchiveEmployeeId > 0}
-                          className={`epi-archive-drawer group relative overflow-hidden rounded-xl border p-4 text-left ${isExpanded ? "border-[#8a5a37] bg-[#fff8ed] shadow-lg ring-2 ring-[#b88758]/30" : "border-[#d6c4ad] bg-[#f8f1e6] hover:border-[#b58b65] hover:-translate-y-0.5 hover:shadow-md"}`}
-                          data-open={isExpanded}
-                          aria-expanded={isExpanded}
-                          aria-busy={openingArchiveEmployeeId === employee.id}
-                          aria-controls={`employee-file-${employee.id}`}
-                        >
-                          <span className="absolute inset-x-0 top-0 h-1 bg-[#b88758] opacity-70" />
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="flex min-w-0 items-center gap-2.5">
-                              <Archive className={`h-5 w-5 shrink-0 ${isExpanded ? "text-[#8a5a37]" : "text-[#b88758]"}`} />
-                              <span className="min-w-0">
-                                <strong className="block truncate text-sm font-bold text-[#5b3a25]">{employee.fullName}</strong>
-                                <small className="mt-0.5 block text-xs text-[#795d48]">Ficha individual · {employeeDeliveries.length} entrega(s)</small>
-                                <small className="mt-1 block truncate text-[11px] font-medium text-[#8c6d52]">{departmentName.get(employee.departmentId ?? 0) ?? "Setor não informado"} · {roleName.get(employee.jobRoleId ?? 0) ?? "Função não informada"}</small>
-                              </span>
-                            </span>
-                            <ChevronDown className={`h-4 w-4 shrink-0 text-[#8a5a37] transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                          </div>
-                          <div className="mt-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.08em]">
-                            <span className="inline-flex items-center gap-1.5 text-[#8c6d52]">
-                              {openingArchiveEmployeeId === employee.id ? <><Loader2 className="h-3 w-3 animate-spin" /> Abrindo arquivo...</> : isExpanded ? "Gaveta aberta" : "Abrir arquivo..."}
-                            </span>
-                            {pendingCount > 0 ? (
-                              <span className="rounded-full bg-[#fff0e9] px-2 py-1 text-[#bd6e4f]">{pendingCount} pendente(s)</span>
-                            ) : (
-                              <span className="rounded-full bg-[#e8f6f1] px-2 py-1 text-[#0c7474]">Regular</span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+                ) : (
+                  <div className="mt-6 pt-4 border-t border-[#dfcfbd] text-center text-xs text-[#795d48] italic">
+                    📁 Nenhuma pasta de setor aberta no momento. Clique em <b>"Abrir pasta"</b> acima para consultar os colaboradores e fichas.
                   </div>
-                  {!profileEmployees.length && (
-                    <div className="rounded-xl border border-dashed border-[#c9b69e] bg-[#fffaf2] p-5 text-center text-sm text-[#795d48]">
-                      Nenhum funcionário encontrado neste setor.
-                    </div>
-                  )}
-                </div>
+                )}
               </section>
 
               <div className="space-y-4">

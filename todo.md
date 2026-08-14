@@ -543,3 +543,5 @@
 - [x] Adicionar botão de filtro rápido na top bar do Centro Operacional de EPIs para exibir apenas EPIs com CA vencido ou estoque crítico.
 
 - [x] Organizar o armário de fichas de EPI em pastas/divisórias por setor, exibindo os funcionários e fichas somente após abrir o setor correspondente.
+
+- [x] Corrigir o armário de fichas de EPI para que a lista de funcionários fique totalmente oculta no estado inicial, aparecendo apenas após o usuário clicar em "Abrir pasta" em um setor específico.
