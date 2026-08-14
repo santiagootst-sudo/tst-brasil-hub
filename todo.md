@@ -560,3 +560,5 @@
 - [x] Tornar evidente e acessível o cadastro de novos setores e cargos diretamente no modal de funcionário e na top bar de EPIs.
 
 - [x] Corrigir o erro na validação de CPF da importação em lote com normalização de strings e verificação robusta de duplicidade.
+
+- [ ] Configurar no Stripe em modo de teste a assinatura mensal do TST Brasil Hub com primeira cobrança de R$ 69,90 e renovações de R$ 99,90.
