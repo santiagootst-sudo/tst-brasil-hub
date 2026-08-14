@@ -549,3 +549,5 @@
 - [x] Adicionar mini-avatares nas capas das pastas de setor do armário de EPIs.
 - [x] Incluir botão de atalho global "Recolher todas as pastas" para fechar setores abertos.
 - [x] Implementar barra de busca rápida interna dentro da pasta de setor aberta.
+
+- [x] Adicionar botão e modal de Cadastro de Funcionário na top bar do Centro Operacional de EPIs com vínculo a empresa ativa, setor e função.

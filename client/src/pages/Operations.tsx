@@ -72,6 +72,22 @@ export default function Operations() {
   const [profileRoleFilter, setProfileRoleFilter] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<OperationsTab>(initialTab);
   const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [newEmployeeName, setNewEmployeeName] = useState("");
+  const [newEmployeeDepartmentId, setNewEmployeeDepartmentId] = useState(0);
+  const [newEmployeeRoleId, setNewEmployeeRoleId] = useState(0);
+
+  const createEmployeeMutation = trpc.portal.createEmployee.useMutation({
+    onSuccess: async () => {
+      setNewEmployeeName("");
+      setNewEmployeeDepartmentId(0);
+      setNewEmployeeRoleId(0);
+      setIsEmployeeModalOpen(false);
+      await refresh();
+      toast.success("Funcionário cadastrado com sucesso!");
+    },
+    onError: error => toast.error(error.message)
+  });
   const [profileStartDate, setProfileStartDate] = useState<string>("");
   const [profileEndDate, setProfileEndDate] = useState<string>("");
   const persistedCompanyId = companyId || workspace.data?.companies[0]?.id || 0;
@@ -293,21 +309,31 @@ export default function Operations() {
                 </select>
               </div>
 
-              <Button
-                onClick={() => {
-                  downloadConsolidatedEpiReportPdf({
-                    workspaceName: current.name,
-                    companyName: currentCompany?.name ?? "Empresa",
-                    epiItems: epiItems,
-                    deliveriesCount: epiDeliveries.length
-                  });
-                  toast.success("Relatório consolidado de EPIs baixado em PDF!");
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#2165a9] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#184f85] transition shadow-xs"
-              >
-                <Download className="h-3.5 w-3.5" />
-                <span>Exportar Relatório PDF</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsEmployeeModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#0c7474] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#063b43] transition shadow-xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Cadastrar Funcionário</span>
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    downloadConsolidatedEpiReportPdf({
+                      workspaceName: current.name,
+                      companyName: currentCompany?.name ?? "Empresa",
+                      epiItems: epiItems,
+                      deliveriesCount: epiDeliveries.length
+                    });
+                    toast.success("Relatório consolidado de EPIs baixado em PDF!");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#2165a9] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#184f85] transition shadow-xs"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Exportar Relatório PDF</span>
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1084,5 +1110,91 @@ export default function Operations() {
         </div>
       </div>
     )}
-  </div></DashboardLayout>;
+
+      {/* Modal de Cadastro de Funcionário direto na Top Bar */}
+      {isEmployeeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-[#dcebe8] space-y-5 animate-in fade-in-95 zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#f0f5f4] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]">
+                  <UsersRound className="h-4 w-4" />
+                </span>
+                <div>
+                  <h4 className="text-base font-bold text-[#102b32]">Cadastrar Funcionário</h4>
+                  <p className="text-[11px] text-[#668087]">Vincular colaborador à empresa: <b>{currentCompany?.name}</b></p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsEmployeeModalOpen(false)}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#23454b]">Nome Completo</label>
+                <Input
+                  value={newEmployeeName}
+                  onChange={e => setNewEmployeeName(e.target.value)}
+                  placeholder="Ex.: Carlos Eduardo Silva"
+                  className="rounded-xl border-[#cfe3de] h-10 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#23454b]">Setor</label>
+                <select
+                  value={newEmployeeDepartmentId}
+                  onChange={e => setNewEmployeeDepartmentId(Number(e.target.value))}
+                  className="w-full rounded-xl border border-[#cfe3de] bg-white h-10 px-3 text-xs font-semibold text-[#23454b]"
+                >
+                  <option value={0}>Selecionar setor (opcional)</option>
+                  {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#23454b]">Função / Cargo</label>
+                <select
+                  value={newEmployeeRoleId}
+                  onChange={e => setNewEmployeeRoleId(Number(e.target.value))}
+                  className="w-full rounded-xl border border-[#cfe3de] bg-white h-10 px-3 text-xs font-semibold text-[#23454b]"
+                >
+                  <option value={0}>Selecionar função (opcional)</option>
+                  {jobRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEmployeeModalOpen(false)}
+                  className="rounded-xl border-[#dcebe8] text-xs font-semibold text-[#5d7479]"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={createEmployeeMutation.isPending || newEmployeeName.trim().length < 2}
+                  onClick={() => createEmployeeMutation.mutate({
+                    workspaceId,
+                    companyId: persistedCompanyId,
+                    fullName: newEmployeeName.trim(),
+                    departmentId: newEmployeeDepartmentId || null,
+                    jobRoleId: newEmployeeRoleId || null,
+                    hiredAt: null
+                  })}
+                  className="rounded-xl bg-[#0c7474] text-white text-xs font-bold hover:bg-[#063b43]"
+                >
+                  {createEmployeeMutation.isPending ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Salvando...</> : "Salvar Funcionário"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </DashboardLayout>;
 }
