@@ -1258,9 +1258,9 @@ export default function Operations() {
                 <Button
                   disabled={createEmployeeMutation.isPending || newEmployeeName.trim().length < 2}
                   onClick={() => {
-                    const cleanCpf = newEmployeeCpf.trim();
-                    if (cleanCpf) {
-                      const exists = employees.some((emp: any) => emp.cpf && emp.cpf.trim() === cleanCpf);
+                    const cleanCpf = newEmployeeCpf.replace(/\D/g, "");
+                    if (cleanCpf.length === 11) {
+                      const exists = employees.some((emp: any) => emp.cpf && emp.cpf.replace(/\D/g, "") === cleanCpf);
                       if (exists) {
                         toast.error("Já existe um funcionário cadastrado com este CPF nesta empresa!");
                         return;
@@ -1331,8 +1331,9 @@ export default function Operations() {
                       const name = parts[0];
                       const cpf = parts[1] || "";
                       if (!name || name.length < 2) return;
-                      if (cpf) {
-                        const duplicate = employees.some((emp: any) => emp.cpf && emp.cpf.trim() === cpf);
+                      const cleanImportCpf = cpf.replace(/\D/g, "");
+                      if (cleanImportCpf.length === 11) {
+                        const duplicate = employees.some((emp: any) => emp.cpf && emp.cpf.replace(/\D/g, "") === cleanImportCpf);
                         if (duplicate) {
                           skipped++;
                           return;

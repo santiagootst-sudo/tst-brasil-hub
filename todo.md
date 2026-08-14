@@ -558,3 +558,5 @@
 
 - [x] Adicionar validação automática de CPF na importação em lote de funcionários para evitar duplicidades.
 - [x] Tornar evidente e acessível o cadastro de novos setores e cargos diretamente no modal de funcionário e na top bar de EPIs.
+
+- [x] Corrigir o erro na validação de CPF da importação em lote com normalização de strings e verificação robusta de duplicidade.
