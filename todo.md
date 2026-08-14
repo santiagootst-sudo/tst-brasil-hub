@@ -576,3 +576,5 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Aplicar pulso suave e acessível ao selo “Melhor Opção”, respeitando redução de movimento.
 - [x] Validar em modo de teste os checkouts mensal, trimestral e anual, incluindo retornos de sucesso e cancelamento.
 - [x] Revisar no Stripe de teste textos comerciais, recibos e configurações fiscais antes do convite a usuários externos.
+
+- [x] Verificar os links de checkout de teste dos ciclos mensal, trimestral e anual, incluindo preço associado e URLs de retorno.

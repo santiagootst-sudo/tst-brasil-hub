@@ -38,7 +38,7 @@ for (const plan of plans) {
   const discountOk = plan.code !== "mensal" || retrieved.discounts?.length === 1;
   if (!retrieved.url || !successOk || !cancelOk || !discountOk) throw new Error(`Validação incompleta para ${plan.code}`);
   await stripe.checkout.sessions.expire(session.id);
-  results.push({ plan: plan.code, sessionId: session.id, urlCreated: Boolean(retrieved.url), successUrlOk: successOk, cancelUrlOk: cancelOk, launchDiscountApplied: discountOk && appliesLaunchCoupon, finalStatus: "expired após validação" });
+  results.push({ plan: plan.code, sessionId: session.id, checkoutUrl: retrieved.url, priceId: price.id, unitAmount: price.unit_amount, currency: price.currency, interval: price.recurring?.interval, intervalCount: price.recurring?.interval_count, urlCreated: Boolean(retrieved.url), successUrl: retrieved.success_url, cancelUrl: retrieved.cancel_url, successUrlOk: successOk, cancelUrlOk: cancelOk, launchDiscountApplied: discountOk && appliesLaunchCoupon, finalStatus: "expired após validação" });
 }
 
 console.log(JSON.stringify({ results }, null, 2));
