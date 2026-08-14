@@ -539,3 +539,5 @@
 - [x] Adicionar barra de pesquisa global na top bar do módulo de EPIs para localizar funcionários, CAs e fichas.
 - [x] Implementar filtros visuais avançados na aba de Estoque & CAs para estoque crítico e CA vencido.
 - [x] Incluir botão de exportação de relatório consolidado de EPIs da empresa ativa em formato PDF.
+
+- [x] Adicionar botão de filtro rápido na top bar do Centro Operacional de EPIs para exibir apenas EPIs com CA vencido ou estoque crítico.

@@ -196,7 +196,13 @@ export default function Operations() {
 
   const filteredEpiItems = epiItems.filter((item: any) => {
     const matchesSearch = !stockSearch.trim() || item.name.toLowerCase().includes(stockSearch.toLowerCase()) || (item.caNumber && item.caNumber.toLowerCase().includes(stockSearch.toLowerCase()));
-    const matchesFilter = stockFilter === "all" || (stockFilter === "critical" && item.stockQuantity <= item.minimumStock) || (stockFilter === "ok" && item.stockQuantity > item.minimumStock);
+    const isCritical = item.stockQuantity <= item.minimumStock;
+    const isCaExpired = item.expiresAt && item.expiresAt.getTime() <= now;
+    let matchesFilter = true;
+    if (stockFilter === "critical") matchesFilter = isCritical;
+    else if (stockFilter === "ca_expired") matchesFilter = Boolean(isCaExpired);
+    else if (stockFilter === "issues") matchesFilter = Boolean(isCritical || isCaExpired);
+    else if (stockFilter === "ok") matchesFilter = !isCritical && !isCaExpired;
     return matchesSearch && matchesFilter;
   });
 
@@ -419,11 +425,23 @@ export default function Operations() {
                   <h4 className="text-xs font-bold uppercase tracking-[.12em] text-[#5d7479]">Itens Cadastrados ({epiItems.length})</h4>
                   <div className="flex flex-wrap items-center gap-2">
                     <Input placeholder="Buscar por nome ou CA..." className="h-9 w-60 text-xs rounded-xl" value={stockSearch} onChange={e => setStockSearch(e.target.value)} />
-                    <select className="h-9 text-xs rounded-xl border border-[#cfe3de] bg-white px-2.5 font-semibold text-[#23454b]" value={stockFilter} onChange={e => setStockFilter(e.target.value)}>
-                      <option value="all">Todos os status</option>
-                      <option value="critical">Estoque crítico</option>
-                      <option value="ok">Estoque regular</option>
-                    </select>
+                    <div className="flex items-center gap-1.5 overflow-x-auto">
+                      {[
+                        { id: "all", label: "Todos" },
+                        { id: "issues", label: "⚠️ Alertas (Crítico / CA Vencido)" },
+                        { id: "critical", label: "Estoque Crítico" },
+                        { id: "ca_expired", label: "CA Vencido" },
+                        { id: "ok", label: "Regular" }
+                      ].map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => setStockFilter(f.id)}
+                          className={`rounded-xl px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${stockFilter === f.id ? "bg-[#0c7474] text-white shadow-xs" : "bg-white text-[#5d7479] border border-[#dcebe8] hover:bg-[#f2faf8]"}`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
