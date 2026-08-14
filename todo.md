@@ -568,3 +568,6 @@
 - [x] Validar visualmente a página de preços e cobrir os novos planos com testes automatizados.
 
 Posicionamento comercial aprovado pelo usuário em 2026-08-14.
+
+- [x] Adicionar o selo visual “Melhor Opção” ao card do plano anual na página de preços.
+- [x] Validar a visualização do selo em desktop e mobile sem alterar o checkout.

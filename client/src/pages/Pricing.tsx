@@ -84,6 +84,7 @@ export default function Pricing() {
             return (
               <article key={plan.code} className={`relative flex flex-col rounded-[1.75rem] border bg-white p-6 shadow-[0_12px_36px_rgba(19,76,76,.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(19,76,76,.12)] sm:p-7 ${isFeatured ? "border-[#0c8c89] ring-4 ring-[#d9f1e7]" : "border-[#deece9]"}`}>
                 {isFeatured && <span className="absolute -top-3 left-7 rounded-full bg-[#0c7474] px-3 py-1 text-xs font-bold text-white shadow-sm">Mais escolhido</span>}
+                {code === "anual" && <span className="absolute -top-3 right-7 rounded-full border border-[#d6a84f]/40 bg-[#f4c76b] px-3 py-1 text-xs font-bold text-[#5a3d0e] shadow-sm">Melhor Opção</span>}
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">{cycleLabel[code]}</p>
