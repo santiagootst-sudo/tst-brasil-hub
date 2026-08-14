@@ -533,3 +533,5 @@
 - [x] Adicionar suporte a upload e gerenciamento de documentos na Biblioteca Interna da Empresa com S3 e persistência.
 
 - [x] Criar a interface completa da Biblioteca Interna da Empresa com abas de separação (Global vs Interna), modal de upload e categorização de documentos.
+
+- [x] Criar protótipo em código da interface do Controle de EPIs com top bar contextual e abas estruturadas (Resumo, Estoque, Entregas, Funcionários, Arquivo, Devoluções, Relatórios).

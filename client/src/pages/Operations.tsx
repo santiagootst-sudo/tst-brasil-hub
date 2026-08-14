@@ -250,43 +250,70 @@ export default function Operations() {
     <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}><div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Centro Operacional de EPIs</p><h2 className="mt-2 text-3xl font-bold">Controle Avançado de EPIs e CA</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Gerenciamento inteligente de estoque, Certificados de Aprovação (CA), fichas de entrega com assinatura digital via QR Code e histórico por trabalhador.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-3"><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div><div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{replacementDue.length}</b>reposições próximas</div></div></div></section>
 
     {!companies.length ? <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><HardHat className="mx-auto h-10 w-10 text-[#0c7474]" /><h3 className="mt-4 text-xl font-bold">Cadastre uma empresa antes de controlar a operação.</h3><p className="mt-2 text-sm text-[#668087]">Os EPIs e as ocorrências devem estar vinculados a uma empresa do ambiente.</p><Link href={`/app/pgr?workspace=${current.id}`} className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Abrir empresas e PGR</Link></section> : <>
-      <section className="flex flex-col gap-5 lg:flex-row">
-        {/* Sidebar Interna do Centro Operacional */}
-        <aside className="w-full lg:w-72 shrink-0 space-y-3">
-          <div className="rounded-3xl border border-[#dcebe8] bg-white p-4 shadow-sm">
-            <label className="block text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Empresa em foco</label>
-            <select value={currentCompanyId} onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); }} className="mt-2.5 h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-semibold text-[#23454b]">{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select>
+      <section className="space-y-6">
+        {/* Top Bar Contextual do Centro Operacional de EPIs */}
+        <div className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#0c7474]/10 text-[#0c7474]">
+                <HardHat className="h-6 w-6" />
+              </span>
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-[.14em] text-[#0c8c89]">Centro Operacional</span>
+                <h3 className="text-xl font-bold text-[#102b32]">Controle de EPIs, CA e Assinatura Digital</h3>
+              </div>
+            </div>
+
+            {/* Seletor de Empresa em Foco na Top Bar */}
+            <div className="flex items-center gap-3 bg-[#f7fcfa] border border-[#dcebe8] px-4 py-2.5 rounded-2xl">
+              <span className="text-xs font-bold text-[#668087] whitespace-nowrap">Empresa:</span>
+              <select
+                value={currentCompanyId}
+                onChange={event => { setCompanyId(Number(event.target.value)); setRequirementRoleId(0); setRequirementEpiId(0); }}
+                className="h-9 bg-transparent border-0 text-xs font-bold text-[#102b32] focus:outline-none cursor-pointer"
+              >
+                {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
+              </select>
+            </div>
           </div>
 
-          <nav className="rounded-3xl border border-[#dcebe8] bg-white p-3 shadow-sm space-y-1">
-            <button onClick={() => setActiveTab("overview")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "overview" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
-              <span className="flex items-center gap-2.5"><PackageCheck className="h-4 w-4" /> Visão Geral</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{epiItems.length}</span>
-            </button>
-            <button onClick={() => setActiveTab("stock")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "stock" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
-              <span className="flex items-center gap-2.5"><HardHat className="h-4 w-4" /> Estoque, CA e Fabricantes</span>
-              {lowStock.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-[#bd6e4f] text-white">{lowStock.length}</span>}
-            </button>
-            <button onClick={() => setActiveTab("deliveries")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "deliveries" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
-              <span className="flex items-center gap-2.5"><ClipboardCheck className="h-4 w-4" /> Fichas de Entrega</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{epiDeliveries.length}</span>
-            </button>
-            <button onClick={() => setActiveTab("requirements")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "requirements" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
-              <span className="flex items-center gap-2.5"><Smartphone className="h-4 w-4" /> Requisitos por Função</span>
-            </button>
-            <button onClick={() => setActiveTab("employee_profile")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "employee_profile" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
-              <span className="flex items-center gap-2.5"><UsersRound className="h-4 w-4" /> Fichas por Funcionário</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{employees.length}</span>
-            </button>
-            <button onClick={() => setActiveTab("alerts")} className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition ${activeTab === "alerts" ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20" : "text-[#47636a] hover:bg-[#f2faf8] hover:text-[#0c7474]"}`}>
-              <span className="flex items-center gap-2.5"><ShieldAlert className="h-4 w-4" /> Validades e Alertas</span>
-              {expiringOrExpired.length > 0 && <span className="text-xs px-2 py-0.5 rounded-full bg-[#bd6e4f] text-white">{expiringOrExpired.length}</span>}
-            </button>
-          </nav>
-        </aside>
+          {/* Abas da Top Bar do Módulo */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-2 border-t border-[#f0f5f4] scrollbar-none">
+            {[
+              { id: "overview", label: "Visão Geral", icon: PackageCheck, count: epiItems.length },
+              { id: "stock", label: "Estoque & CAs", icon: HardHat, count: lowStock.length, alert: lowStock.length > 0 },
+              { id: "deliveries", label: "Fichas de Entrega", icon: ClipboardCheck, count: epiDeliveries.length },
+              { id: "requirements", label: "Requisitos por Função", icon: Smartphone, count: 0 },
+              { id: "employee_profile", label: "Fichas por Funcionário", icon: UsersRound, count: employees.length },
+              { id: "alerts", label: "Validades & Alertas", icon: ShieldAlert, count: expiringOrExpired.length, alert: expiringOrExpired.length > 0 }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as OperationsTab)}
+                  className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold transition shadow-2xs ${
+                    isActive
+                      ? "bg-[#0c7474] text-white shadow-md shadow-[#0c7474]/20"
+                      : "bg-[#f8fbfa] text-[#49636a] border border-[#dcebe8] hover:bg-[#e8f6f1] hover:text-[#0c7474]"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${isActive ? "bg-white/20 text-white" : tab.alert ? "bg-[#bd6e4f] text-white" : "bg-[#0c7474]/15 text-[#0c7474]"}`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Conteúdo Principal por Aba */}
-        <main className="flex-1 space-y-6">
+        <main className="space-y-6">
           {activeTab === "overview" && (
             <div className="grid gap-5 md:grid-cols-2">
               <div className="rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-sm space-y-4">
