@@ -541,3 +541,5 @@
 - [x] Incluir botão de exportação de relatório consolidado de EPIs da empresa ativa em formato PDF.
 
 - [x] Adicionar botão de filtro rápido na top bar do Centro Operacional de EPIs para exibir apenas EPIs com CA vencido ou estoque crítico.
+
+- [x] Organizar o armário de fichas de EPI em pastas/divisórias por setor, exibindo os funcionários e fichas somente após abrir o setor correspondente.
