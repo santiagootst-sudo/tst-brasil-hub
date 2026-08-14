@@ -551,3 +551,7 @@
 - [x] Implementar barra de busca rápida interna dentro da pasta de setor aberta.
 
 - [x] Adicionar botão e modal de Cadastro de Funcionário na top bar do Centro Operacional de EPIs com vínculo a empresa ativa, setor e função.
+
+- [x] Implementar geração automática da primeira ficha de EPI ao concluir o cadastro do funcionário.
+- [x] Adicionar inputs inline para cadastrar novos setores e cargos diretamente no modal de funcionário.
+- [x] Incluir botão de importação em lote de funcionários por planilha CSV na top bar de EPIs.
