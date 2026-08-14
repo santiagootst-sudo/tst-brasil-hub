@@ -74,17 +74,43 @@ export default function Operations() {
   const [profileStatusFilter, setProfileStatusFilter] = useState<"all" | "signed" | "pending">("all");
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [newEmployeeName, setNewEmployeeName] = useState("");
+  const [newEmployeeCpf, setNewEmployeeCpf] = useState("");
   const [newEmployeeDepartmentId, setNewEmployeeDepartmentId] = useState(0);
   const [newEmployeeRoleId, setNewEmployeeRoleId] = useState(0);
+  const [quickDeptName, setQuickDeptName] = useState("");
+  const [quickRoleName, setQuickRoleName] = useState("");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importCsvText, setImportCsvText] = useState("");
+
+  const createDepartmentMutation = trpc.portal.createDepartment.useMutation({
+    onSuccess: async (res: any) => {
+      setQuickDeptName("");
+      await refresh();
+      if (res && res.id) setNewEmployeeDepartmentId(res.id);
+      toast.success("Setor cadastrado com sucesso!");
+    },
+    onError: (err: any) => toast.error(err.message)
+  });
+
+  const createRoleMutation = trpc.portal.createJobRole.useMutation({
+    onSuccess: async (res: any) => {
+      setQuickRoleName("");
+      await refresh();
+      if (res && res.id) setNewEmployeeRoleId(res.id);
+      toast.success("Função cadastrada com sucesso!");
+    },
+    onError: (err: any) => toast.error(err.message)
+  });
 
   const createEmployeeMutation = trpc.portal.createEmployee.useMutation({
     onSuccess: async () => {
       setNewEmployeeName("");
+      setNewEmployeeCpf("");
       setNewEmployeeDepartmentId(0);
       setNewEmployeeRoleId(0);
       setIsEmployeeModalOpen(false);
       await refresh();
-      toast.success("Funcionário cadastrado com sucesso!");
+      toast.success("Funcionário cadastrado e primeira ficha de EPI gerada!");
     },
     onError: error => toast.error(error.message)
   });
@@ -309,13 +335,21 @@ export default function Operations() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   onClick={() => setIsEmployeeModalOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-[#0c7474] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#063b43] transition shadow-xs"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Cadastrar Funcionário</span>
+                </Button>
+
+                <Button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#3173a8] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#235882] transition shadow-xs"
+                >
+                  <Download className="h-3.5 w-3.5 rotate-180" />
+                  <span>Importar Planilha (CSV)</span>
                 </Button>
 
                 <Button
@@ -1111,31 +1145,28 @@ export default function Operations() {
       </div>
     )}
 
-      {/* Modal de Cadastro de Funcionário direto na Top Bar */}
+      {/* Modal de Cadastro de Funcionário com criação rápida de setor/cargo */}
       {isEmployeeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-[#dcebe8] space-y-5 animate-in fade-in-95 zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-[#dcebe8] space-y-4 animate-in fade-in-95 zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-[#f0f5f4] pb-3">
               <div className="flex items-center gap-2">
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f6f1] text-[#0c7474]">
                   <UsersRound className="h-4 w-4" />
                 </span>
                 <div>
-                  <h4 className="text-base font-bold text-[#102b32]">Cadastrar Funcionário</h4>
-                  <p className="text-[11px] text-[#668087]">Vincular colaborador à empresa: <b>{currentCompany?.name}</b></p>
+                  <h4 className="text-base font-bold text-[#102b32]">Cadastrar Funcionário & Ficha</h4>
+                  <p className="text-[11px] text-[#668087]">Empresa: <b>{currentCompany?.name}</b> (Gera 1ª Ficha de EPI automática)</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setIsEmployeeModalOpen(false)}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100"
-              >
+              <button onClick={() => setIsEmployeeModalOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#23454b]">Nome Completo</label>
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#23454b]">Nome Completo *</label>
                 <Input
                   value={newEmployeeName}
                   onChange={e => setNewEmployeeName(e.target.value)}
@@ -1144,31 +1175,79 @@ export default function Operations() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#23454b]">Setor</label>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#23454b]">CPF (Opcional - Validação de Duplicidade)</label>
+                <Input
+                  value={newEmployeeCpf}
+                  onChange={e => setNewEmployeeCpf(e.target.value)}
+                  placeholder="Ex.: 000.000.000-00"
+                  className="rounded-xl border-[#cfe3de] h-10 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5 rounded-2xl border border-[#dcebe8] bg-[#f8fbfa] p-3.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0c7474]">Setor / Departamento</label>
+                  <span className="text-[10px] text-[#668087]">Se não encontrar, cadastre abaixo</span>
+                </div>
                 <select
                   value={newEmployeeDepartmentId}
                   onChange={e => setNewEmployeeDepartmentId(Number(e.target.value))}
                   className="w-full rounded-xl border border-[#cfe3de] bg-white h-10 px-3 text-xs font-semibold text-[#23454b]"
                 >
-                  <option value={0}>Selecionar setor (opcional)</option>
+                  <option value={0}>Selecione um setor existente...</option>
                   {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
                 </select>
+                <div className="flex items-center gap-2 pt-1">
+                  <Input
+                    value={quickDeptName}
+                    onChange={e => setQuickDeptName(e.target.value)}
+                    placeholder="Ou cadastre novo setor (ex.: Soldagem)"
+                    className="rounded-xl border-[#cfe3de] h-9 text-xs bg-white"
+                  />
+                  <Button
+                    type="button"
+                    disabled={createDepartmentMutation.isPending || quickDeptName.trim().length < 2}
+                    onClick={() => createDepartmentMutation.mutate({ workspaceId, companyId: persistedCompanyId, name: quickDeptName.trim(), description: null })}
+                    className="rounded-xl bg-[#0c7474] text-white text-xs px-3 h-9 shrink-0 font-bold"
+                  >
+                    Adicionar Setor
+                  </Button>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#23454b]">Função / Cargo</label>
+              <div className="space-y-1.5 rounded-2xl border border-[#dcebe8] bg-[#f8fbfa] p-3.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#3173a8]">Função / Cargo</label>
+                  <span className="text-[10px] text-[#668087]">Se não encontrar, cadastre abaixo</span>
+                </div>
                 <select
                   value={newEmployeeRoleId}
                   onChange={e => setNewEmployeeRoleId(Number(e.target.value))}
                   className="w-full rounded-xl border border-[#cfe3de] bg-white h-10 px-3 text-xs font-semibold text-[#23454b]"
                 >
-                  <option value={0}>Selecionar função (opcional)</option>
+                  <option value={0}>Selecione uma função existente...</option>
                   {jobRoles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                 </select>
+                <div className="flex items-center gap-2 pt-1">
+                  <Input
+                    value={quickRoleName}
+                    onChange={e => setQuickRoleName(e.target.value)}
+                    placeholder="Ou cadastre nova função (ex.: Soldador)"
+                    className="rounded-xl border-[#cfe3de] h-9 text-xs bg-white"
+                  />
+                  <Button
+                    type="button"
+                    disabled={createRoleMutation.isPending || quickRoleName.trim().length < 2}
+                    onClick={() => createRoleMutation.mutate({ workspaceId, companyId: persistedCompanyId, departmentId: newEmployeeDepartmentId || null, name: quickRoleName.trim(), description: null })}
+                    className="rounded-xl bg-[#3173a8] text-white text-xs px-3 h-9 shrink-0 font-bold"
+                  >
+                    Adicionar Função
+                  </Button>
+                </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#f0f5f4]">
                 <Button
                   variant="outline"
                   onClick={() => setIsEmployeeModalOpen(false)}
@@ -1178,17 +1257,104 @@ export default function Operations() {
                 </Button>
                 <Button
                   disabled={createEmployeeMutation.isPending || newEmployeeName.trim().length < 2}
-                  onClick={() => createEmployeeMutation.mutate({
-                    workspaceId,
-                    companyId: persistedCompanyId,
-                    fullName: newEmployeeName.trim(),
-                    departmentId: newEmployeeDepartmentId || null,
-                    jobRoleId: newEmployeeRoleId || null,
-                    hiredAt: null
-                  })}
+                  onClick={() => {
+                    const cleanCpf = newEmployeeCpf.trim();
+                    if (cleanCpf) {
+                      const exists = employees.some((emp: any) => emp.cpf && emp.cpf.trim() === cleanCpf);
+                      if (exists) {
+                        toast.error("Já existe um funcionário cadastrado com este CPF nesta empresa!");
+                        return;
+                      }
+                    }
+                    createEmployeeMutation.mutate({
+                      workspaceId,
+                      companyId: persistedCompanyId,
+                      fullName: newEmployeeName.trim(),
+                      departmentId: newEmployeeDepartmentId || null,
+                      jobRoleId: newEmployeeRoleId || null,
+                      hiredAt: null
+                    });
+                  }}
                   className="rounded-xl bg-[#0c7474] text-white text-xs font-bold hover:bg-[#063b43]"
                 >
-                  {createEmployeeMutation.isPending ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Salvando...</> : "Salvar Funcionário"}
+                  {createEmployeeMutation.isPending ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Salvando...</> : "Salvar & Gerar 1ª Ficha"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Importação em Lote por CSV (com verificação de CPF duplicado) */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-[#dcebe8] space-y-4 animate-in fade-in-95 zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#f0f5f4] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]">
+                  <Download className="h-4 w-4 rotate-180" />
+                </span>
+                <div>
+                  <h4 className="text-base font-bold text-[#102b32]">Importar Funcionários em Lote (CSV)</h4>
+                  <p className="text-[11px] text-[#668087]">Empresa: <b>{currentCompany?.name}</b> (Com validação de CPF)</p>
+                </div>
+              </div>
+              <button onClick={() => setIsImportModalOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#23454b]">Cole os dados em formato CSV (Nome, CPF)</label>
+                <Textarea
+                  value={importCsvText}
+                  onChange={e => setImportCsvText(e.target.value)}
+                  placeholder="Exemplo:\nJoão da Silva, 111.222.333-44\nMaria Oliveira, 222.333.444-55"
+                  className="min-h-32 rounded-xl border-[#cfe3de] text-xs font-mono"
+                />
+                <p className="text-[11px] text-[#668087]">O sistema validará automaticamente se o CPF já está cadastrado para evitar duplicidades.</p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#f0f5f4]">
+                <Button variant="outline" onClick={() => setIsImportModalOpen(false)} className="rounded-xl border-[#dcebe8] text-xs font-semibold text-[#5d7479]">
+                  Cancelar
+                </Button>
+                <Button
+                  disabled={!importCsvText.trim()}
+                  onClick={() => {
+                    const lines = importCsvText.split("\n").map(l => l.trim()).filter(Boolean);
+                    let imported = 0;
+                    let skipped = 0;
+                    lines.forEach(line => {
+                      const parts = line.split(",").map(p => p.trim());
+                      const name = parts[0];
+                      const cpf = parts[1] || "";
+                      if (!name || name.length < 2) return;
+                      if (cpf) {
+                        const duplicate = employees.some((emp: any) => emp.cpf && emp.cpf.trim() === cpf);
+                        if (duplicate) {
+                          skipped++;
+                          return;
+                        }
+                      }
+                      imported++;
+                      createEmployeeMutation.mutate({
+                        workspaceId,
+                        companyId: persistedCompanyId,
+                        fullName: name,
+                        departmentId: null,
+                        jobRoleId: null,
+                        hiredAt: null
+                      });
+                    });
+                    setIsImportModalOpen(false);
+                    setImportCsvText("");
+                    toast.success(`Importação concluída: ${imported} adicionados, ${skipped} ignorados por CPF duplicado.`);
+                  }}
+                  className="rounded-xl bg-[#3173a8] text-white text-xs font-bold hover:bg-[#235882]"
+                >
+                  Processar Importação CSV
                 </Button>
               </div>
             </div>

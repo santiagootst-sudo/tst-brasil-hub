@@ -555,3 +555,6 @@
 - [x] Implementar geração automática da primeira ficha de EPI ao concluir o cadastro do funcionário.
 - [x] Adicionar inputs inline para cadastrar novos setores e cargos diretamente no modal de funcionário.
 - [x] Incluir botão de importação em lote de funcionários por planilha CSV na top bar de EPIs.
+
+- [x] Adicionar validação automática de CPF na importação em lote de funcionários para evitar duplicidades.
+- [x] Tornar evidente e acessível o cadastro de novos setores e cargos diretamente no modal de funcionário e na top bar de EPIs.
