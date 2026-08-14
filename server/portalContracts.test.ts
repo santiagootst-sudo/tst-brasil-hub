@@ -20,7 +20,9 @@ describe("contratos de resposta do Portal TST", () => {
 
   it("valida a composição do painel de ambiente e do estado de cobrança", () => {
     expect(workspaceDetailSchema.parse({ id: 7, name: "Unidade A", kind: "clt", role: "owner", companies: [], pgrProjects: [] })).toMatchObject({ id: 7 });
-    expect(subscriptionPlanSchema.parse({ code: "autonomo", name: "TST Autônomo", audience: "Serviços", displayPrice: "R$ 149,90", lookupKey: "portal_tst_autonomo_monthly_brl", featured: true, features: ["PGR"], checkoutReady: true })).toMatchObject({ code: "autonomo" });
+    expect(subscriptionPlanSchema.parse({ code: "mensal", name: "Plano Mensal", audience: "Serviços", billingCycle: "mensal", displayPrice: "R$ 69,90 no primeiro mês", promotionDisplayPrice: "R$ 69,90 no primeiro mês", recurringDisplayPrice: "R$ 99,90/mês", initialPriceCents: 6990, recurringPriceCents: 9990, lookupKey: "portal_tst_hub_monthly_brl", featured: false, features: ["PGR"], checkoutReady: true })).toMatchObject({ code: "mensal", recurringPriceCents: 9990 });
+    expect(subscriptionPlanSchema.parse({ code: "trimestral", name: "Plano Trimestral", audience: "Serviços", billingCycle: "trimestral", displayPrice: "R$ 269,70 a cada 3 meses", promotionDisplayPrice: "R$ 269,70 a cada 3 meses", recurringDisplayPrice: "R$ 269,70 a cada 3 meses", initialPriceCents: 26970, recurringPriceCents: 26970, lookupKey: "portal_tst_hub_quarterly_brl", featured: true, features: ["PGR"], checkoutReady: true })).toMatchObject({ code: "trimestral" });
+    expect(subscriptionPlanSchema.parse({ code: "anual", name: "Plano Anual", audience: "Serviços", billingCycle: "anual", displayPrice: "R$ 898,80 por ano", promotionDisplayPrice: "R$ 898,80 por ano", recurringDisplayPrice: "R$ 898,80 por ano", initialPriceCents: 89880, recurringPriceCents: 89880, lookupKey: "portal_tst_hub_annual_brl", featured: false, features: ["PGR"], checkoutReady: true })).toMatchObject({ code: "anual" });
     expect(billingStatusSchema.parse({ subscription: null, plan: null, hasPaidAccess: false })).toEqual({ subscription: null, plan: null, hasPaidAccess: false });
   });
 

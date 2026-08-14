@@ -1,28 +1,60 @@
+const legacyPlanAliases: Record<string, "mensal"> = {
+  pgr_pro: "mensal",
+  autonomo: "mensal",
+  empresa: "mensal",
+};
+
 export const subscriptionPlans = [
   {
-    code: "pgr_pro",
-    name: "PGR Pro",
-    audience: "Para começar pelo Gerador de PGR",
-    displayPrice: "R$ 79,90",
-    priceId: process.env.STRIPE_PRICE_PGR_PRO ?? "",
-    lookupKey: "portal_tst_pgr_pro_monthly_brl",
+    code: "mensal",
+    name: "Plano Mensal",
+    audience: "Flexibilidade para começar sem compromisso anual.",
+    billingCycle: "mensal",
+    displayPrice: "R$ 69,90 no primeiro mês",
+    promotionDisplayPrice: "R$ 69,90 no primeiro mês",
+    recurringDisplayPrice: "R$ 99,90/mês",
+    initialPriceCents: 6990,
+    recurringPriceCents: 9990,
+    priceId: process.env.STRIPE_PRICE_MONTHLY ?? "",
+    lookupKey: process.env.STRIPE_LOOKUP_KEY_MONTHLY ?? "portal_tst_hub_monthly_brl",
     featured: false,
-    features: ["Gerador de PGR", "Inventário de riscos", "Exportação de documentos", "Biblioteca essencial"],
+    features: ["Acesso completo ao Portal TST Brasil Hub", "Gerador de PGR e documentos legais", "Controle de EPIs, CIPA e Biblioteca", "Cancelamento pelo portal de cobrança"],
   },
   {
-    code: "autonomo",
-    name: "TST Brasil Hub Pro (Lançamento)",
-    audience: "Para técnicos e empresas de SST com acesso completo",
-    displayPrice: "R$ 69,90 no 1º mês (depois R$ 99,90/mês)",
-    priceId: process.env.STRIPE_PRICE_AUTONOMO ?? "",
-    lookupKey: "portal_tst_autonomo_monthly_brl",
+    code: "trimestral",
+    name: "Plano Trimestral",
+    audience: "Organização para uma rotina de SST com visão de três meses.",
+    billingCycle: "trimestral",
+    displayPrice: "R$ 269,70 a cada 3 meses",
+    promotionDisplayPrice: "R$ 269,70 a cada 3 meses",
+    recurringDisplayPrice: "R$ 269,70 a cada 3 meses",
+    initialPriceCents: 26970,
+    recurringPriceCents: 26970,
+    priceId: process.env.STRIPE_PRICE_QUARTERLY ?? "",
+    lookupKey: process.env.STRIPE_LOOKUP_KEY_QUARTERLY ?? "portal_tst_hub_quarterly_brl",
     featured: true,
-    features: ["Acesso completo a todos os módulos", "Gerador de PGR, EPIs, CIPA e Biblioteca", "R$ 69,90 no primeiro mês", "Renovação automática por R$ 99,90/mês"],
+    features: ["Todos os módulos do Portal TST Brasil Hub", "Cobrança única a cada três meses", "Previsibilidade para o ciclo operacional", "Biblioteca, treinamentos e certificados"],
+  },
+  {
+    code: "anual",
+    name: "Plano Anual",
+    audience: "Continuidade para estruturar a gestão de SST durante todo o ano.",
+    billingCycle: "anual",
+    displayPrice: "R$ 898,80 por ano",
+    promotionDisplayPrice: "R$ 898,80 por ano",
+    recurringDisplayPrice: "R$ 898,80 por ano",
+    initialPriceCents: 89880,
+    recurringPriceCents: 89880,
+    priceId: process.env.STRIPE_PRICE_ANNUAL ?? "",
+    lookupKey: process.env.STRIPE_LOOKUP_KEY_ANNUAL ?? "portal_tst_hub_annual_brl",
+    featured: false,
+    features: ["Todos os módulos do Portal TST Brasil Hub", "Cobrança única anual", "Continuidade sem reajuste após a promoção", "Prioridade para organizar documentos e rotinas"],
   },
 ] as const;
 
 export type PlanCode = (typeof subscriptionPlans)[number]["code"];
 
 export function getSubscriptionPlan(code: string) {
-  return subscriptionPlans.find(plan => plan.code === code);
+  const normalizedCode = legacyPlanAliases[code] ?? code;
+  return subscriptionPlans.find(plan => plan.code === normalizedCode);
 }

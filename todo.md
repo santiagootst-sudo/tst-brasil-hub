@@ -562,3 +562,9 @@
 - [x] Corrigir o erro na validação de CPF da importação em lote com normalização de strings e verificação robusta de duplicidade.
 
 - [x] Configurar no Stripe em modo de teste a assinatura mensal do TST Brasil Hub com primeira cobrança de R$ 69,90 e renovações de R$ 99,90.
+
+- [x] Atualizar no portal a tabela de preços mensal, trimestral e anual: mensal R$ 69,90 no primeiro mês e R$ 99,90/mês depois; trimestral R$ 269,70 a cada 3 meses; anual R$ 898,80 por ano.
+- [x] Alinhar o checkout e a configuração Stripe aos ciclos mensal, trimestral e anual com os valores comerciais aprovados.
+- [x] Validar visualmente a página de preços e cobrir os novos planos com testes automatizados.
+
+Posicionamento comercial aprovado pelo usuário em 2026-08-14.

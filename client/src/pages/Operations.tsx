@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,8 @@ import { downloadConsolidatedEpiReportPdf, downloadEpiReceiptPdf } from "@/lib/p
 
 export default function Operations() {
   const utils = trpc.useUtils();
+  const search = useSearch();
+  const requestedTab = new URLSearchParams(search).get("tab");
   const [workspaceId] = useState(1);
   const [currentTab, setCurrentTab] = useState<"overview" | "stock" | "deliveries" | "roles" | "employees" | "alerts">("overview");
 
@@ -49,6 +52,8 @@ export default function Operations() {
   const [stockFilterMode, setStockFilterMode] = useState<"all" | "alerts" | "critical" | "expired">("all");
   const [selectedFolderSectorId, setSelectedFolderSectorId] = useState<number | null>(null);
   const [folderSearchQuery, setFolderSearchQuery] = useState("");
+  const [expandedArchiveEmployeeId, setExpandedArchiveEmployeeId] = useState(0);
+  const [openingArchiveEmployeeId, setOpeningArchiveEmployeeId] = useState(0);
 
   // Modals state
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
@@ -67,7 +72,7 @@ export default function Operations() {
   const [qrSignedSuccess, setQrSignedSuccess] = useState(false);
 
   // Queries
-  const { data: companies = [] } = trpc.companies.list.useQuery({ workspaceId });
+  const { data: companies = [], error: companiesError } = trpc.companies.list.useQuery({ workspaceId }, { retry: false });
   const [currentCompanyId, setCurrentCompanyId] = useState<number>(0);
 
   const activeCompanyId = currentCompanyId || companies[0]?.id || 1;
@@ -76,11 +81,11 @@ export default function Operations() {
   const { data: profile } = trpc.auth.me.useQuery();
   const current = profile?.currentEnvironment || { kind: "clt", label: "TST CLT / Empresa" };
 
-  const { data: departments = [] } = trpc.departments.list.useQuery({ workspaceId, companyId: activeCompanyId });
-  const { data: jobRoles = [] } = trpc.jobRoles.list.useQuery({ workspaceId, companyId: activeCompanyId });
-  const { data: employees = [] } = trpc.employees.list.useQuery({ workspaceId, companyId: activeCompanyId });
-  const { data: stockItems = [] } = trpc.epiItems.list.useQuery({ workspaceId, companyId: activeCompanyId });
-  const { data: deliveries = [] } = trpc.epiDeliveries.list.useQuery({ workspaceId, companyId: activeCompanyId });
+  const { data: departments = [] } = trpc.departments.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
+  const { data: jobRoles = [] } = trpc.jobRoles.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
+  const { data: employees = [] } = trpc.employees.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
+  const { data: stockItems = [] } = trpc.epiItems.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
+  const { data: deliveries = [] } = trpc.epiDeliveries.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
 
   // Mutations
   const createDepartmentMutation = trpc.departments.create.useMutation({
@@ -137,6 +142,42 @@ export default function Operations() {
   });
 
   const pendingDeliveries = deliveries.filter((d: any) => !d.isSigned);
+
+  const [profileDepartmentFilter, setProfileDepartmentFilter] = useState(0);
+  const [profileRoleFilter, setProfileRoleFilter] = useState(0);
+  const companyId = activeCompanyId;
+  const archiveFiltersKey = `tst-hub:epi-profile-filters:${workspaceId}:${companyId}`;
+  const filters = { profileDepartmentFilter, profileRoleFilter };
+  const profileEmployees = employees.filter((employee: any) => {
+    if (profileDepartmentFilter > 0 && employee.departmentId !== profileDepartmentFilter) return false;
+    if (profileRoleFilter > 0 && employee.jobRoleId !== profileRoleFilter) return false;
+    return true;
+  });
+  const expandedArchiveEmployee = expandedArchiveEmployeeId > 0 && profileEmployees.filter(emp => emp.id === expandedArchiveEmployeeId)[0];
+
+  useEffect(() => {
+    if (requestedTab === "employee_profile") setCurrentTab("deliveries");
+  }, [requestedTab]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(archiveFiltersKey);
+      if (!stored) return;
+      const saved = JSON.parse(stored) as Partial<typeof filters>;
+      setProfileDepartmentFilter(Number(saved.profileDepartmentFilter) || 0);
+      setProfileRoleFilter(Number(saved.profileRoleFilter) || 0);
+    } catch {
+      // Prefer the empty filter state if local storage is unavailable or malformed.
+    }
+  }, [archiveFiltersKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(archiveFiltersKey, JSON.stringify(filters));
+    } catch {
+      // Local persistence is an enhancement; it must not block the archive.
+    }
+  }, [archiveFiltersKey, profileDepartmentFilter, profileRoleFilter]);
 
   // Filtered stock list
   const filteredStock = stockItems.filter((item: any) => {
@@ -198,6 +239,10 @@ export default function Operations() {
     });
     toast.success("Comprovante digital em PDF baixado com sucesso!");
   };
+
+  if (companiesError) {
+    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Não foi possível abrir este ambiente.</h2><p className="mt-2 text-sm text-[#668087]">Verifique o ambiente ativo e tente novamente.</p></section></DashboardLayout>;
+  }
 
   return (
     <DashboardLayout title="Controle de EPIs">
@@ -608,7 +653,15 @@ export default function Operations() {
                       <p className="text-xs text-[#668087]">Colaboradores e fichas de EPI vinculadas a este setor</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={profileDepartmentFilter} onChange={event => setProfileDepartmentFilter(Number(event.target.value))} className="h-9 rounded-xl border border-[#cfe3de] bg-white px-2 text-[11px] font-semibold text-[#315158]">
+                      <option value={0}>Todos os setores</option>
+                      {departments.map((department: any) => <option key={department.id} value={department.id}>{department.name}</option>)}
+                    </select>
+                    <select value={profileRoleFilter} onChange={event => setProfileRoleFilter(Number(event.target.value))} className="h-9 rounded-xl border border-[#cfe3de] bg-white px-2 text-[11px] font-semibold text-[#315158]">
+                      <option value={0}>Todas as funções</option>
+                      {jobRoles.map((role: any) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                    </select>
                     <div className="relative">
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#668087]" />
                       <Input
@@ -630,10 +683,11 @@ export default function Operations() {
 
                 {/* Colaboradores da Pasta */}
                 <div className="space-y-4">
-                  {employees
+                  {profileEmployees
                     .filter((e: any) => e.departmentId === selectedFolderSectorId)
                     .filter((e: any) => e.fullName.toLowerCase().includes(folderSearchQuery.toLowerCase()))
                     .map((emp: any) => {
+                      const employee = emp;
                       const empDeliveries = deliveries.filter((d: any) => d.employeeId === emp.id);
                       return (
                         <div key={emp.id} className="rounded-2xl border border-[#dcebe8] bg-[#f8fbfa] p-5 space-y-3">
@@ -647,13 +701,35 @@ export default function Operations() {
                                 <p className="text-xs text-[#668087]">CPF: {emp.cpf || "Não informado"} • Admissão: {emp.hiredAt ? new Date(emp.hiredAt).toLocaleDateString("pt-BR") : "Recente"}</p>
                               </div>
                             </div>
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0c7474] border border-[#cfe3de]">
-                              {empDeliveries.length} EPIs entregues
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0c7474] border border-[#cfe3de]">
+                                {empDeliveries.length} EPIs entregues
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                aria-busy={openingArchiveEmployeeId === employee.id}
+                                onClick={() => {
+                                  if (expandedArchiveEmployeeId === employee.id) {
+                                    setExpandedArchiveEmployeeId(0);
+                                    return;
+                                  }
+                                  setOpeningArchiveEmployeeId(employee.id);
+                                  window.setTimeout(() => {
+                                    setOpeningArchiveEmployeeId(0);
+                                    setExpandedArchiveEmployeeId(employee.id);
+                                    document.getElementById(`epi-archive-file-${employee.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  }, 220);
+                                }}
+                                className="h-8 rounded-lg bg-[#0c7474] px-3 text-[11px] font-bold text-white"
+                              >
+                                {openingArchiveEmployeeId === employee.id ? "Abrindo arquivo..." : expandedArchiveEmployeeId === employee.id ? "Fechar gaveta" : "Abrir ficha"}
+                              </Button>
+                            </div>
                           </div>
 
                           {/* Histórico de Entregas do Colaborador */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                          {expandedArchiveEmployeeId === emp.id && <div id={`epi-archive-file-${employee.id}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
                             {empDeliveries.map((d: any) => (
                               <div key={d.id} className="rounded-xl border border-[#cfe3de] bg-white p-3 space-y-2 text-xs">
                                 <div className="flex items-center justify-between">
@@ -693,7 +769,7 @@ export default function Operations() {
                             {empDeliveries.length === 0 && (
                               <p className="text-xs text-[#668087] py-2">Nenhum EPI entregue a este colaborador ainda.</p>
                             )}
-                          </div>
+                          </div>}
                         </div>
                       );
                     })}

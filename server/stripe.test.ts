@@ -24,14 +24,14 @@ describe("processStripeEvent", () => {
     const event = {
       id: "evt_checkout_123",
       type: "checkout.session.completed",
-      data: { object: { metadata: { user_id: "12", plan_code: "autonomo" }, customer: "cus_123", subscription: "sub_123" } },
+      data: { object: { metadata: { user_id: "12", plan_code: "mensal" }, customer: "cus_123", subscription: "sub_123" } },
     } as unknown as Stripe.Event;
     await processStripeEvent(event);
     expect(db.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
       userId: 12,
       stripeCustomerId: "cus_123",
       stripeSubscriptionId: "sub_123",
-      planCode: "autonomo",
+      planCode: "mensal",
       status: "active",
     }));
   });
@@ -40,14 +40,14 @@ describe("processStripeEvent", () => {
     const event = {
       id: "evt_subscription_123",
       type: "customer.subscription.deleted",
-      data: { object: { id: "sub_123", customer: "cus_123", metadata: { user_id: "12", plan_code: "empresa" }, status: "canceled", current_period_end: 1_789_000_000, cancel_at_period_end: true, items: { data: [{ price: { id: "price_123" } }] } } },
+      data: { object: { id: "sub_123", customer: "cus_123", metadata: { user_id: "12", plan_code: "trimestral" }, status: "canceled", current_period_end: 1_789_000_000, cancel_at_period_end: true, items: { data: [{ price: { id: "price_123" } }] } } },
     } as unknown as Stripe.Event;
     await processStripeEvent(event);
     expect(db.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({
       userId: 12,
       stripeSubscriptionId: "sub_123",
       stripePriceId: "price_123",
-      planCode: "empresa",
+      planCode: "trimestral",
       status: "canceled",
       cancelAtPeriodEnd: true,
       currentPeriodEnd: new Date(1_789_000_000_000),
@@ -76,13 +76,13 @@ describe("processStripeEvent", () => {
       id: "evt_webhook_123",
       object: "event",
       type: "checkout.session.completed",
-      data: { object: { metadata: { user_id: "12", plan_code: "autonomo" }, customer: "cus_123", subscription: "sub_123" } },
+      data: { object: { metadata: { user_id: "12", plan_code: "mensal" }, customer: "cus_123", subscription: "sub_123" } },
     });
     const localStripe = new StripeClient(process.env.STRIPE_SECRET_KEY);
     const signature = localStripe.webhooks.generateTestHeaderString({ payload, secret: process.env.STRIPE_WEBHOOK_SECRET });
     const response = createResponse();
     await stripeWebhookHandler({ headers: { "stripe-signature": signature }, body: Buffer.from(payload) } as never, response as never);
-    expect(db.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({ userId: 12, status: "active", planCode: "autonomo" }));
+    expect(db.upsertSubscription).toHaveBeenCalledWith(expect.objectContaining({ userId: 12, status: "active", planCode: "mensal" }));
     expect(response.json).toHaveBeenCalledWith({ received: true });
     process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
     process.env.STRIPE_SECRET_KEY = previousKey;

@@ -124,7 +124,11 @@ export const createSupportTicketInput = workspaceIdInput.extend({
   message: z.string().trim().min(10).max(2000),
 });
 
-export const checkoutInput = z.object({ planCode: z.enum(["pgr_pro", "autonomo", "empresa"]) });
+export const billingPlanCodes = ["mensal", "trimestral", "anual"] as const;
+export const billingPlanCodeSchema = z.enum(billingPlanCodes);
+export const billingCycleSchema = z.enum(["mensal", "trimestral", "anual"]);
+
+export const checkoutInput = z.object({ planCode: billingPlanCodeSchema });
 
 export const workspaceKindSchema = z.enum(["autonomo", "clt"]);
 export const workspaceRoleSchema = z.enum(["owner", "manager", "member"]);
@@ -280,10 +284,15 @@ export const subscriptionSchema = z.object({
 });
 
 export const subscriptionPlanSchema = z.object({
-  code: z.enum(["pgr_pro", "autonomo", "empresa"]),
+  code: billingPlanCodeSchema,
   name: z.string(),
   audience: z.string(),
+  billingCycle: billingCycleSchema,
   displayPrice: z.string(),
+  recurringDisplayPrice: z.string(),
+  promotionDisplayPrice: z.string(),
+  initialPriceCents: z.number().int().nonnegative(),
+  recurringPriceCents: z.number().int().nonnegative(),
   lookupKey: z.string(),
   featured: z.boolean(),
   features: z.array(z.string()),
