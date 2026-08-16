@@ -579,5 +579,5 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 
 - [x] Verificar os links de checkout de teste dos ciclos mensal, trimestral e anual, incluindo preço associado e URLs de retorno.
 
-- [ ] Configurar o domínio personalizado `tstbrasilhub.com.br` para apontar ao portal TST Brasil Hub.
-- [ ] Validar DNS, certificado HTTPS e acesso ao domínio raiz após a propagação.
+- [x] Configurar o domínio personalizado `tstbrasilhub.com.br` para apontar ao portal TST Brasil Hub.
+- [x] Validar DNS, certificado HTTPS e acesso ao domínio raiz após a propagação.
