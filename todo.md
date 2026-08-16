@@ -582,4 +582,5 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Configurar o domínio personalizado `tstbrasilhub.com.br` para apontar ao portal TST Brasil Hub.
 - [x] Conduzir comparativo detalhado de hospedagem com foco em infraestrutura e servidores no Brasil.
 - [x] Elaborar o passo a passo completo para criação de servidor Oracle Cloud Always Free e deploy com Coolify.
+- [x] Elaborar o guia prático de comandos SSH para configuração de VPS Linux (Locaweb), Node.js, PM2, Nginx e SSL.
 - [x] Validar DNS, certificado HTTPS e acesso ao domínio raiz após a propagação.
