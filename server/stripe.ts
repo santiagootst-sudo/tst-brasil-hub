@@ -71,30 +71,49 @@ export async function createSubscriptionCheckout(input: {
   const launchCouponId = input.planCode === "mensal" ? await resolveLaunchCouponId() : undefined;
   const discounts = launchCouponId ? [{ coupon: launchCouponId }] : undefined;
 
-  const session = await stripeClient().checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: priceId, quantity: 1 }],
-    ...(launchCouponId ? { discounts: [{ coupon: launchCouponId }] } : { allow_promotion_codes: true }),
-    customer: previous?.stripeCustomerId ?? undefined,
-    customer_email: previous?.stripeCustomerId ? undefined : input.userEmail ?? undefined,
-    client_reference_id: input.userId.toString(),
-    metadata: {
-      user_id: input.userId.toString(),
-      customer_email: input.userEmail ?? "",
-      customer_name: input.userName ?? "",
-      plan_code: input.planCode,
-    },
-    subscription_data: {
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripeClient().checkout.sessions.create({
+      mode: "subscription",
+      line_items: [{ price: priceId, quantity: 1 }],
+      ...(launchCouponId ? { discounts: [{ coupon: launchCouponId }] } : { allow_promotion_codes: true }),
+      customer: previous?.stripeCustomerId ?? undefined,
+      customer_email: previous?.stripeCustomerId ? undefined : input.userEmail ?? undefined,
+      client_reference_id: input.userId.toString(),
       metadata: {
         user_id: input.userId.toString(),
+        customer_email: input.userEmail ?? "",
+        customer_name: input.userName ?? "",
         plan_code: input.planCode,
       },
-    },
-    success_url: `${input.origin}/app?billing=success`,
-    cancel_url: `${input.origin}/planos?billing=cancelled`,
-  });
+      subscription_data: {
+        metadata: {
+          user_id: input.userId.toString(),
+          plan_code: input.planCode,
+        },
+      },
+      success_url: `${input.origin}/app?billing=success`,
+      cancel_url: `${input.origin}/planos?billing=cancelled`,
+    });
+  } catch (error) {
+    console.error("[Stripe] Falha ao criar checkout", {
+      userId: input.userId,
+      planCode: input.planCode,
+      priceId,
+      hasLaunchCoupon: Boolean(launchCouponId),
+      reason: error instanceof Error ? error.message : "Erro Stripe não identificado",
+    });
+    throw error;
+  }
 
   if (!session.url) throw new Error("Não foi possível criar a sessão de checkout.");
+  console.info("[Stripe] Sessão de checkout criada", {
+    userId: input.userId,
+    planCode: input.planCode,
+    priceId,
+    hasLaunchCoupon: Boolean(launchCouponId),
+    sessionId: session.id ?? null,
+  });
   return { url: session.url };
 }
 

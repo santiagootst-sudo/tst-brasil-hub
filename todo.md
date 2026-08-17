@@ -614,3 +614,5 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Mapear os requisitos de integração Stripe e as variáveis necessárias (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, lookup keys e cupons de lançamento) para homologação em modo de teste
 
 - [x] Configurar a conta Stripe correta (`acct_1U5LnQLIEYTVZdbw`) e revalidar o checkout e webhooks de teste
+- [ ] Validar a criação efetiva de sessões Stripe mensal, trimestral e anual pelos registros de API da conta de teste.
+- [x] Registrar nos logs da aplicação o sucesso ou a falha da criação de checkout para diagnóstico operacional seguro.

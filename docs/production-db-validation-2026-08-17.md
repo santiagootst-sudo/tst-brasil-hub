@@ -67,3 +67,13 @@ O painel de variáveis do Render continua exibindo `DATABASE_URL` como segredo c
 - Confirmar, nos logs pós-reinicialização, que não há mensagem de `DATABASE_URL` ausente, erro TLS ou erro de acesso ao TiDB.
 - Validar, em produção, criação e permanência de um workspace após reinício do serviço.
 - Corrigir a requisição de autenticação externa que ainda registra `project_id is required` nos logs, pois ela é independente da conectividade com o banco.
+
+## Stripe — conta de teste correta
+
+O diagnóstico da conta `acct_1U3LnQLIEYTVZdbw` mostrou que o catálogo estava vazio. Foram criados diretamente no Stripe, em modo de teste, três produtos com preços recorrentes em BRL: **Plano Mensal** (R$ 99,90 por mês), **Plano Trimestral** (R$ 269,70 a cada três meses) e **Plano Anual** (R$ 898,80 por ano). A próxima etapa é criar o desconto único de lançamento do mensal e confirmar a abertura de checkout de cada ciclo no portal.
+
+O cupom de lançamento foi preparado com o identificador `portal_tst_launch`, desconto fixo de R$ 30,00 em BRL e duração única, preservando a regra comercial de R$ 69,90 na primeira cobrança mensal e R$ 99,90 nas seguintes.
+
+O cupom foi criado no Stripe de teste e a variável `STRIPE_LAUNCH_COUPON_ID=portal_tst_launch` foi salva no Render. O serviço foi reiniciado às 19:56 (GMT-3) para carregar essa configuração antes da nova rodada de checkout.
+
+Para tornar a homologação auditável, a aplicação agora registra, sem valores secretos, o plano, o preço selecionado, a presença do cupom e o identificador da sessão quando o Stripe cria o checkout. Se a criação falhar, o processo registra apenas o motivo e o contexto não sensível. A cobertura automatizada confirma os dois caminhos.

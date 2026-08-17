@@ -32,9 +32,10 @@ describe("checkout e portal de cobrança", () => {
   });
 
   it("cria checkout mensal recorrente com metadados e URLs corretos", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
     db.getSubscriptionForUser.mockResolvedValue(undefined);
     stripe.priceList.mockResolvedValue({ data: [{ id: "price_monthly" }] });
-    stripe.checkoutCreate.mockResolvedValue({ url: "https://checkout.example/session" });
+    stripe.checkoutCreate.mockResolvedValue({ id: "cs_monthly", url: "https://checkout.example/session" });
 
     await expect(createSubscriptionCheckout({ userId: 12, userEmail: "tst@example.com", userName: "TST", planCode: "mensal", origin: "https://portal.example" })).resolves.toEqual({ url: "https://checkout.example/session" });
 
@@ -47,6 +48,31 @@ describe("checkout e portal de cobrança", () => {
       success_url: "https://portal.example/app?billing=success",
       cancel_url: "https://portal.example/planos?billing=cancelled",
     }));
+    expect(info).toHaveBeenCalledWith("[Stripe] Sessão de checkout criada", expect.objectContaining({
+      userId: 12,
+      planCode: "mensal",
+      priceId: "price_monthly",
+      sessionId: "cs_monthly",
+    }));
+    info.mockRestore();
+  });
+
+  it("registra a falha de checkout sem expor a credencial Stripe", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    db.getSubscriptionForUser.mockResolvedValue(undefined);
+    stripe.priceList.mockResolvedValue({ data: [{ id: "price_annual" }] });
+    stripe.checkoutCreate.mockRejectedValue(new Error("Preço inválido"));
+
+    await expect(createSubscriptionCheckout({ userId: 88, planCode: "anual", origin: "https://portal.example" })).rejects.toThrow("Preço inválido");
+
+    expect(error).toHaveBeenCalledWith("[Stripe] Falha ao criar checkout", expect.objectContaining({
+      userId: 88,
+      planCode: "anual",
+      priceId: "price_annual",
+      reason: "Preço inválido",
+    }));
+    expect(JSON.stringify(error.mock.calls)).not.toContain("sk_test_local_123");
+    error.mockRestore();
   });
 
   it("registra a conta e a chave de consulta sem expor a credencial", async () => {
