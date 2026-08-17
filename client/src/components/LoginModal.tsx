@@ -23,6 +23,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setIsSubmitting(false);
       toast.success("Login efetuado com sucesso!");
       utils.auth.me.invalidate();
+      const isMaster = emailInput.trim().toLowerCase() === "santiagoocorretor@gmail.com";
+      if (isMaster) {
+        localStorage.removeItem("tst_pending_plan");
+        window.location.assign("/app");
+        return;
+      }
       const pendingPlan = localStorage.getItem("tst_pending_plan");
       if (pendingPlan) {
         window.location.assign("/planos");
