@@ -16,16 +16,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [emailInput, setEmailInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
-
-  const handleOAuthLogin = () => {
-    if (isOAuthConfigured()) {
-      startLogin();
-    } else {
-      toast.info("O servidor de autenticação externo não está configurado neste ambiente de teste.");
-    }
-  };
-
   const utils = trpc.useUtils();
   const directLoginMutation = trpc.auth.directLogin.useMutation({
     onSuccess: () => {
@@ -39,6 +29,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       toast.error(err.message || "Erro ao entrar.");
     }
   });
+
+  if (!isOpen) return null;
+
+  const handleOAuthLogin = () => {
+    if (isOAuthConfigured()) {
+      startLogin();
+    } else {
+      toast.info("O servidor de autenticação externo não está configurado neste ambiente de teste.");
+    }
+  };
 
   const handleMasterLogin = (e: React.FormEvent) => {
     e.preventDefault();
