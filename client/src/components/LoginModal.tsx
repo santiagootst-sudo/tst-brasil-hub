@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { startLogin, isOAuthConfigured } from "@/const";
+import { COOKIE_NAME } from "@shared/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Shield, Sparkles, X, Mail, Loader2 } from "lucide-react";
@@ -19,9 +20,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const utils = trpc.useUtils();
   const directLoginMutation = trpc.auth.directLogin.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       setIsSubmitting(false);
       toast.success("Login efetuado com sucesso!");
+      try {
+        if (data?.token) {
+          document.cookie = `${COOKIE_NAME}=${data.token}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+          sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+        }
+      } catch (e) {
+        console.error("Failed to store session token", e);
+      }
       utils.auth.me.invalidate();
       const isMaster = emailInput.trim().toLowerCase() === "santiagoocorretor@gmail.com";
       if (isMaster) {
