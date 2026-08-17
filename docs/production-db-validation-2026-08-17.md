@@ -32,6 +32,32 @@ O build do Render concluiu a compilação da aplicação sem erro. Foram observa
 
 Os logs do deploy confirmaram a execução de `pnpm run start`, a inicialização do serviço Node e a abertura do servidor na nova instância. A validação seguinte será uma autenticação nova seguida de uma leitura direta no TiDB.
 
+Após o envio da instrumentação de conexão ao GitHub, o painel do Render ainda apontava para o commit anterior `c186f71`. Será iniciado um novo deploy manual do commit mais recente para que os logs revelem, de forma segura, o resultado efetivo da validação TiDB.
+
+O Render iniciou o deploy do commit `70b1973`, que contém a validação `SELECT 1` e os logs seguros de conexão. Acompanhar a inicialização dessa versão permitirá distinguir entre variável ausente, falha de TLS/credencial e conexão confirmada.
+
+O build da versão `70b1973` foi concluído sem falhas e o Render iniciou a nova instância. Os mesmos avisos analíticos opcionais e de tamanho de bundle permaneceram não bloqueantes.
+
+Os logs passaram à etapa `pnpm run start` na nova instância. A próxima chamada autenticada ao portal acionará a validação de banco e registrará o resultado seguro no log de aplicação.
+
+A consulta histórica dos logs confirmou que, antes desta rodada, o processo executava em contingência: `DATABASE_URL ausente` e operações de usuário simuladas em memória. Os resultados exibidos nessa busca são anteriores ao deploy de `70b1973`; a confirmação da instância atual seguirá após atualização dos logs e nova chamada ao portal.
+
+Após acionar o painel autenticado, a tela de logs ainda retornou somente a instância antiga identificada como `[4htjh]`. Portanto, não é possível concluir a validação até que o deploy `70b1973` seja marcado como ativo e seus logs sejam disponibilizados pelo Render.
+
+O deploy `70b1973` foi marcado como ativo às 19:15 (GMT-3) e a aplicação foi chamada novamente pelo caminho `/app` para disparar a verificação de banco no processo atual. A interface apresentou estado inicial de carregamento durante essa chamada.
+
+A página `/app` concluiu o carregamento na instância `70b1973`. Foi aberta uma nova consulta de logs filtrada por `Database` para registrar o resultado da operação no processo ativo.
+
+Com autorização do administrador, foi iniciada a prova de persistência de workspace. O portal autenticado carregou a jornada de perfis e será usado para criar o ambiente principal de Prestador de Serviço antes de reiniciar novamente o serviço.
+
+O ambiente `TST Brasil Hub — Administração` foi criado no perfil Prestador e aberto com sucesso no dashboard. O TiDB confirmou o registro `workspaces.id = 270001`, do tipo `autonomo`, pertencente ao administrador `19080001`, com vínculo `owner` correspondente em `workspace_members`.
+
+O serviço `tst-brasil-hub` foi reiniciado no Render às 19:27 (GMT-3), após a gravação do ambiente. A próxima verificação abrirá novamente o dashboard e relerá o registro no TiDB para confirmar que a instância nova preservou o contexto.
+
+## Estratégia de schema
+
+O banco TiDB já contém as 31 tabelas descritas no schema atual e a validação `drizzle-kit check` foi aprovada. A pasta de snapshots histórica não possui os arquivos SQL correspondentes, portanto o comando legado `generate && migrate` não consegue reconstruir uma cadeia de migrações confiável e falha antes de qualquer DDL. A tentativa de `drizzle-kit push` foi interrompida de forma segura: a introspecção do TiDB interpretou chaves primárias existentes como ausentes e tentou reaplicá-las, resultando em `ER_MULTIPLE_PRI_KEY`; nenhuma tabela foi truncada. Para este banco existente, o comando operacional `db:push` agora executa somente `drizzle-kit check`. Alterações futuras de schema serão revisadas e aplicadas com SQL explícito e idempotente, em vez de depender de DDL automático incompatível.
+
 Após a troca de instância, o navegador retornou ao painel `/app` usando a sessão já existente. Essa sessão comprova que a aplicação está disponível, mas não é suficiente para comprovar gravação no banco, pois a autenticação anterior pode ter sido emitida pelo modo de contingência. A validação de persistência seguirá por diagnóstico do processo e por consulta ao TiDB, sem criar ambiente de teste no portal sem nova autorização.
 
 O painel de variáveis do Render continua exibindo `DATABASE_URL` como segredo configurado. O navegador preserva a sessão existente e o menu de saída não está exposto ao mecanismo de automação nesta tela, portanto a próxima validação será feita por observabilidade do backend e consulta ao banco, em vez de forçar uma sessão nova por uma ação não suportada pela interface automatizada.

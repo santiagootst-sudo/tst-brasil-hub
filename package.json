@@ -10,7 +10,8 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate"
+    "db:validate": "drizzle-kit check",
+    "db:push": "pnpm db:validate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

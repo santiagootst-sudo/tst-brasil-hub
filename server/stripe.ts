@@ -11,16 +11,27 @@ function stripeClient() {
 
 async function resolveRecurringPriceId(plan: NonNullable<ReturnType<typeof getSubscriptionPlan>>) {
   if (plan.priceId) return plan.priceId;
+  const client = stripeClient();
   try {
-    const prices = await stripeClient().prices.list({ lookup_keys: [plan.lookupKey], active: true, limit: 1 });
-    if (prices.data[0]) return prices.data[0].id;
+    const [account, prices] = await Promise.all([
+      client.accounts.retrieve(),
+      client.prices.list({ lookup_keys: [plan.lookupKey], active: true, limit: 1 }),
+    ]);
+    const resolvedPriceId = prices.data[0]?.id;
+    console.info("[Stripe] Resolução de preço", {
+      accountId: account.id,
+      planCode: plan.code,
+      lookupKey: plan.lookupKey,
+      found: Boolean(resolvedPriceId),
+    });
+    if (resolvedPriceId) return resolvedPriceId;
   } catch (err) {
     console.warn("[Stripe] Failed to list prices by lookup key:", err);
   }
 
   // Fallback: listar preços ativos e buscar por unit_amount correspondente ao plano
   try {
-    const allPrices = await stripeClient().prices.list({ active: true, limit: 100, type: "recurring" });
+    const allPrices = await client.prices.list({ active: true, limit: 100, type: "recurring" });
     const matching = allPrices.data.find(p => p.unit_amount === plan.recurringPriceCents && p.currency === "brl");
     if (matching) return matching.id;
 

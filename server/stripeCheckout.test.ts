@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({ getSubscriptionForUser: vi.fn(), upsertSubscription: vi.fn() }));
 const stripe = vi.hoisted(() => ({
+  accountRetrieve: vi.fn(),
   priceList: vi.fn(),
   couponList: vi.fn(),
   checkoutCreate: vi.fn(),
@@ -11,6 +12,7 @@ const stripe = vi.hoisted(() => ({
 vi.mock("./db", () => db);
 vi.mock("stripe", () => ({
   default: class StripeMock {
+    accounts = { retrieve: stripe.accountRetrieve };
     prices = { list: stripe.priceList };
     coupons = { list: stripe.couponList };
     checkout = { sessions: { create: stripe.checkoutCreate } };
@@ -25,6 +27,7 @@ describe("checkout e portal de cobrança", () => {
     vi.clearAllMocks();
     process.env.STRIPE_SECRET_KEY = "sk_test_local_123";
     delete process.env.STRIPE_LAUNCH_COUPON_ID;
+    stripe.accountRetrieve.mockResolvedValue({ id: "acct_test_checkout" });
     stripe.couponList.mockResolvedValue({ data: [] });
   });
 
@@ -44,6 +47,24 @@ describe("checkout e portal de cobrança", () => {
       success_url: "https://portal.example/app?billing=success",
       cancel_url: "https://portal.example/planos?billing=cancelled",
     }));
+  });
+
+  it("registra a conta e a chave de consulta sem expor a credencial", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    db.getSubscriptionForUser.mockResolvedValue(undefined);
+    stripe.priceList.mockResolvedValue({ data: [{ id: "price_monthly" }] });
+    stripe.checkoutCreate.mockResolvedValue({ url: "https://checkout.example/session" });
+
+    await createSubscriptionCheckout({ userId: 12, planCode: "mensal", origin: "https://portal.example" });
+
+    expect(info).toHaveBeenCalledWith("[Stripe] Resolução de preço", expect.objectContaining({
+      accountId: "acct_test_checkout",
+      planCode: "mensal",
+      lookupKey: "portal_tst_hub_monthly_brl",
+      found: true,
+    }));
+    expect(JSON.stringify(info.mock.calls)).not.toContain("sk_test_local_123");
+    info.mockRestore();
   });
 
   it("aplica o cupom de lançamento apenas ao checkout mensal quando encontrado", async () => {
