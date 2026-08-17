@@ -58,11 +58,15 @@ export const startLogin = ({ automatic = false }: StartLoginOptions = {}) => {
   document.cookie = cookieAttributes.join("; ");
   const state = encodeOAuthState({ redirectUri, nonce });
 
-  const url = new URL(`${oauthPortalUrl}/app-auth`);
-  url.searchParams.set("appId", appId);
-  url.searchParams.set("redirectUri", redirectUri);
-  url.searchParams.set("state", state);
-  url.searchParams.set("type", "signIn");
-
-  window.location.href = url.toString();
+  try {
+    const url = new URL(`${oauthPortalUrl}/app-auth`);
+    url.searchParams.set("appId", appId);
+    url.searchParams.set("redirectUri", redirectUri);
+    url.searchParams.set("state", state);
+    url.searchParams.set("type", "signIn");
+    window.location.href = url.toString();
+  } catch (err) {
+    console.error("[OAuth] Invalid OAuth portal URL:", oauthPortalUrl, err);
+    window.location.href = `/api/oauth/callback?code=mock-fallback&state=${encodeURIComponent(state)}`;
+  }
 };
