@@ -8,11 +8,12 @@ let dbInstance: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!dbInstance) {
-    if (!ENV.databaseUrl) {
-      throw new Error("DATABASE_URL não está configurada no ambiente.");
+    const dbUrl = ENV.databaseUrl || process.env.DATABASE_URL || "";
+    if (!dbUrl) {
+      throw new Error("DATABASE_URL não está configurada no ambiente do Render. Configure a variável DATABASE_URL no painel do Render.");
     }
     try {
-      dbInstance = drizzle(ENV.databaseUrl);
+      dbInstance = drizzle(dbUrl);
     } catch (error) {
       console.error("[Database] Falha ao conectar ao MySQL/TiDB:", error);
       throw new Error(`Falha ao conectar ao banco de dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
