@@ -21,9 +21,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const directLoginMutation = trpc.auth.directLogin.useMutation({
     onSuccess: () => {
       setIsSubmitting(false);
-      toast.success("Login efetuado com sucesso! Entrando no portal...");
+      toast.success("Login efetuado com sucesso!");
       utils.auth.me.invalidate();
-      window.location.assign("/app");
+      const pendingPlan = localStorage.getItem("tst_pending_plan");
+      if (pendingPlan) {
+        window.location.assign("/planos");
+      } else {
+        window.location.assign("/app");
+      }
     },
     onError: (err) => {
       setIsSubmitting(false);

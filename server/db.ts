@@ -1,16 +1,21 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { eq, desc } from "drizzle-orm";
 import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
-  if (!dbInstance && ENV.databaseUrl) {
+  if (!dbInstance) {
+    if (!ENV.databaseUrl) {
+      throw new Error("DATABASE_URL não está configurada no ambiente.");
+    }
     try {
       dbInstance = drizzle(ENV.databaseUrl);
     } catch (error) {
-      console.warn("[Database] Falha ao conectar", error);
+      console.error("[Database] Falha ao conectar ao MySQL/TiDB:", error);
+      throw new Error(`Falha ao conectar ao banco de dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   }
   return dbInstance;

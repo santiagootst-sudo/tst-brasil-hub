@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, Check, CircleHelp, Loader2, LockKeyhole, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -39,13 +40,25 @@ export default function Pricing() {
     onError: error => toast.error(error.message),
   });
 
-  const selectPlan = (code: PlanCode, enabled: boolean) => {
-    if (!isAuthenticated) {
-      setIsLoginModalOpen(true);
-      return;
+  useEffect(() => {
+    if (isAuthenticated) {
+      const pendingPlan = localStorage.getItem("tst_pending_plan") as PlanCode | null;
+      if (pendingPlan) {
+        localStorage.removeItem("tst_pending_plan");
+        toast.success("Autenticação concluída! Abrindo checkout do Stripe...");
+        checkout.mutate({ planCode: pendingPlan });
+      }
     }
+  }, [isAuthenticated]);
+
+  const selectPlan = (code: PlanCode, enabled: boolean) => {
     if (!enabled) {
       toast.info("Este ciclo ainda precisa ser habilitado no ambiente Stripe de teste.");
+      return;
+    }
+    if (!isAuthenticated) {
+      localStorage.setItem("tst_pending_plan", code);
+      setIsLoginModalOpen(true);
       return;
     }
     checkout.mutate({ planCode: code });
