@@ -13,12 +13,9 @@ export function BrandLockup({ compact = false, inverse = false, className = "", 
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`} {...props}>
-      <img
-        src={FAVICON_URL}
-        alt=""
-        aria-hidden="true"
-        className={`${compact ? "h-8 w-8 rounded-lg" : "h-10 w-10 rounded-xl"} object-contain`}
-      />
+      <div className={`grid place-content-center bg-gradient-to-br from-[#0c8c89] to-[#063b43] text-white shadow-md ${compact ? "h-8 w-8 rounded-lg text-xs" : "h-10 w-10 rounded-xl text-base"} font-black tracking-tighter`}>
+        TST
+      </div>
       <div className="leading-none">
         <p className={`${compact ? "text-base" : "text-lg"} font-extrabold tracking-[-0.04em] ${titleColor}`}>TST</p>
         <p className={`${compact ? "mt-0.5 text-[8px]" : "mt-1 text-[9px]"} font-bold uppercase tracking-[0.18em] ${subtitleColor}`}>Brasil Hub</p>
