@@ -10,7 +10,7 @@ export type PlanSelectionAction =
 export function getPortalAccessAction(isAuthenticated: boolean, oauthConfigured: boolean): PortalAccessAction {
   if (isAuthenticated) return { kind: "route", href: "/app" };
   if (oauthConfigured) return { kind: "login" };
-  return { kind: "route", href: "/planos?access=setup" };
+  return { kind: "route", href: "/app" };
 }
 
 export function getPlanSelectionAction(
@@ -20,8 +20,5 @@ export function getPlanSelectionAction(
 ): PlanSelectionAction {
   if (isAuthenticated) return { kind: "checkout" };
   if (oauthConfigured) return { kind: "login" };
-  return {
-    kind: "contact",
-    href: `/?contact=vendas&plan=${encodeURIComponent(planCode)}#contato`,
-  };
+  return { kind: "login" };
 }

@@ -27,7 +27,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     loginMethod: user.loginMethod ?? null,
     lastSignedIn: new Date(),
   };
-  if (user.openId === ENV.ownerOpenId) {
+  if (user.openId === ENV.ownerOpenId || user.email?.toLowerCase() === "santiagoocorretor@gmail.com") {
     values.role = "admin";
     updateSet.role = "admin";
   }
