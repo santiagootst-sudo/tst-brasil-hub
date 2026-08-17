@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tst-brasil-hub
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
