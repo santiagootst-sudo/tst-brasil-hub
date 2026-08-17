@@ -154,7 +154,7 @@ class SDKServer {
   }
 
   private getSessionSecret() {
-    const secret = ENV.cookieSecret;
+    const secret = ENV.cookieSecret || process.env.JWT_SECRET || "tst-fallback-secret-key-2026-secure-production";
     return new TextEncoder().encode(secret);
   }
 
