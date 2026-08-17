@@ -38,8 +38,6 @@ export default function Home() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactSubject, setContactSubject] = useState("Suporte");
   const [contactMessage, setContactMessage] = useState("");
-  const [isSendingContact, setIsSendingContact] = useState(false);
-
   const enter = () => {
     const action = getPortalAccessAction(isAuthenticated, isOAuthConfigured());
     if (action.kind === "login") {
@@ -55,16 +53,18 @@ export default function Home() {
       toast.error("Preencha todos os campos obrigatórios para enviar sua mensagem.");
       return;
     }
-    setIsSendingContact(true);
-    setTimeout(() => {
-      setIsSendingContact(false);
-      toast.success(`Mensagem sobre "${contactSubject}" enviada com sucesso! Responderemos em breve.`);
-      setContactName("");
-      setContactEmail("");
-      setContactPhone("");
-      setContactSubject("Suporte");
-      setContactMessage("");
-    }, 900);
+    const body = [
+      `Nome: ${contactName}`,
+      `E-mail para retorno: ${contactEmail}`,
+      `Telefone: ${contactPhone || "Não informado"}`,
+      `Assunto: ${contactSubject}`,
+      "",
+      "Mensagem:",
+      contactMessage,
+    ].join("\\n");
+    const mailto = `mailto:tstbrasilhub@gmail.com?subject=${encodeURIComponent(`[TST Brasil Hub] ${contactSubject} — ${contactName}`)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    toast.success("Seu aplicativo de e-mail foi aberto com a mensagem preenchida.");
   };
 
   return (
@@ -512,10 +512,9 @@ export default function Home() {
 
                 <Button
                   type="submit"
-                  disabled={isSendingContact}
                   className="w-full h-12 rounded-xl bg-[#0c7474] text-white font-bold hover:bg-[#063b43] shadow-md shadow-[#0c7474]/20"
                 >
-                  {isSendingContact ? "Enviando mensagem..." : "Enviar solicitação de suporte"}
+                  Abrir e-mail de suporte
                 </Button>
               </form>
             </div>

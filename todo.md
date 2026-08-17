@@ -598,3 +598,9 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 
 - [x] Corrigir os botões e links da landing page: Acessar plataforma, Acessar portal, cartões Prestador/Empresa e Explorar planos
 - [x] Validar os destinos dos CTAs da landing page em desktop e mobile no domínio de produção
+
+- [ ] Configurar variáveis OAuth e Stripe no Render para habilitar login e checkout reais em produção
+- [x] Implementar o procedimento de backend para envio real de mensagens do formulário de contato para o e-mail de suporte (`suporte@tstbrasilhub.com.br`) — substituído pelo fluxo mailto definido pelo usuário
+- [ ] Executar roteiro e homologação de teste externo de cadastro, login e assinatura com usuário convidado no domínio `tstbrasilhub.com.br`
+
+- [x] Substituir o envio dependente de Resend por um fluxo simples de e-mail para tstbrasilhub@gmail.com, com assunto e mensagem preenchidos automaticamente
