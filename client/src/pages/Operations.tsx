@@ -48,7 +48,7 @@ export default function Operations() {
   const search = useSearch();
   const requestedTab = new URLSearchParams(search).get("tab");
   const workspaceId = workspaceIdFromSearch(search) ?? 1;
-  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: workspaceId > 0, retry: false });
   const organization = trpc.portal.organization.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
   const operations = trpc.portal.operations.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
 
