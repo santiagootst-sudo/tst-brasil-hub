@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { startLogin, isOAuthConfigured } from "@/const";
+import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Shield, Sparkles, X, Mail } from "lucide-react";
 
@@ -25,6 +26,20 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     }
   };
 
+  const utils = trpc.useUtils();
+  const directLoginMutation = trpc.auth.directLogin.useMutation({
+    onSuccess: () => {
+      setIsSubmitting(false);
+      toast.success("Login efetuado com sucesso! Entrando no portal...");
+      utils.auth.me.invalidate();
+      window.location.assign("/app");
+    },
+    onError: (err) => {
+      setIsSubmitting(false);
+      toast.error(err.message || "Erro ao entrar.");
+    }
+  });
+
   const handleMasterLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput.trim()) {
@@ -32,20 +47,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       return;
     }
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      if (emailInput.trim().toLowerCase() === "santiagoocorretor@gmail.com") {
-        // Simular sessão mestre injetando token/cookie ou recarregando para o app
-        try {
-          window.sessionStorage.setItem("manus-master-bypass", "true");
-        } catch {}
-        toast.success("Login mestre reconhecido! Redirecionando para o painel administrativo...");
-        window.location.assign("/app");
-      } else {
-        toast.info("Enviamos um link de acesso seguro para o seu e-mail cadastrado.");
-        handleOAuthLogin();
-      }
-    }, 600);
+    directLoginMutation.mutate({ email: emailInput.trim() });
   };
 
   return (
