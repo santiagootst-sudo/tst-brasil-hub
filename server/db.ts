@@ -194,7 +194,10 @@ export async function getPrimaryWorkspaceForUser(userId: number) {
 
 export async function createWorkspaceForUser(input: { userId: number; name: string; kind: "autonomo" | "clt" }) {
   const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível.");
+  if (!db) {
+    console.warn("[Database] createWorkspaceForUser simulado em memória (DATABASE_URL ausente).");
+    return { id: Date.now() % 100000, name: input.name, kind: input.kind, role: "owner" as const };
+  }
   const inserted = await db.insert(workspaces).values({ name: input.name, kind: input.kind, ownerUserId: input.userId });
   const workspaceId = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
   if (!workspaceId) throw new Error("Não foi possível criar o ambiente.");

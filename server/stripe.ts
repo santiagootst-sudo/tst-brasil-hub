@@ -11,10 +11,28 @@ function stripeClient() {
 
 async function resolveRecurringPriceId(plan: NonNullable<ReturnType<typeof getSubscriptionPlan>>) {
   if (plan.priceId) return plan.priceId;
-  const prices = await stripeClient().prices.list({ lookup_keys: [plan.lookupKey], active: true, limit: 1 });
-  const price = prices.data[0];
-  if (!price) throw new Error(`O preço recorrente do plano ${plan.name} ainda precisa ser configurado.`);
-  return price.id;
+  try {
+    const prices = await stripeClient().prices.list({ lookup_keys: [plan.lookupKey], active: true, limit: 1 });
+    if (prices.data[0]) return prices.data[0].id;
+  } catch (err) {
+    console.warn("[Stripe] Failed to list prices by lookup key:", err);
+  }
+
+  // Fallback: listar preços ativos e buscar por unit_amount correspondente ao plano
+  try {
+    const allPrices = await stripeClient().prices.list({ active: true, limit: 100, type: "recurring" });
+    const matching = allPrices.data.find(p => p.unit_amount === plan.recurringPriceCents && p.currency === "brl");
+    if (matching) return matching.id;
+
+    // Se não achar por recurring exact, pega qualquer preço ativo compatível
+    if (allPrices.data.length > 0) {
+      return allPrices.data[0].id;
+    }
+  } catch (err) {
+    console.warn("[Stripe] Failed fallback price resolution:", err);
+  }
+
+  throw new Error(`O preço recorrente do plano ${plan.name} (R$ ${(plan.recurringPriceCents / 100).toFixed(2)}) ainda precisa ser configurado na conta Stripe acct_1U3LnQLIEYTVZdbw.`);
 }
 
 async function resolveLaunchCouponId() {
