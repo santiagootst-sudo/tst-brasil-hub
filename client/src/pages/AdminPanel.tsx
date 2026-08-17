@@ -80,6 +80,7 @@ export default function AdminPanel() {
   const activeCount = users.filter(item => item.accessStatus === "active" && !isExpired(item.accessExpiresAt)).length;
   const suspendedCount = users.filter(item => item.accessStatus === "suspended").length;
   const expiringCount = users.filter(item => item.accessStatus === "active" && item.accessExpiresAt && !isExpired(item.accessExpiresAt) && new Date(item.accessExpiresAt).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000).length;
+  const subscriptionsList = users.map(u => ({ ...u, subscription: (u as any).subscription })).filter(u => u.subscription);
 
   return (
     <DashboardLayout title="Gestão de acessos">
@@ -102,6 +103,42 @@ export default function AdminPanel() {
           <CardHeader className="gap-4 border-b border-[#edf3f1] px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-7"><div><CardTitle className="font-display text-xl text-[#102b32]">Usuários e ambientes</CardTitle><p className="mt-1 text-sm text-[#6b8185]">Renove por período, desligue o acesso ou reative uma conta em teste.</p></div><div className="flex flex-col gap-2 sm:flex-row"><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar nome, e-mail ou ID" className="h-10 w-full rounded-xl border-[#dcebe8] bg-[#fbfefd] sm:w-64" /><div className="flex rounded-xl border border-[#dcebe8] bg-[#fbfefd] p-1">{durationOptions.map(option => <button key={option} type="button" onClick={() => setDurationDays(option)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${durationDays === option ? "bg-[#0c8c89] text-white" : "text-[#668087] hover:bg-[#e8f6f1]"}`}>{option}d</button>)}</div></div></CardHeader>
           <CardContent className="p-0">
             {usersQuery.isLoading ? <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm font-semibold text-[#668087]"><ShieldCheck className="h-5 w-5 animate-pulse text-[#0c8c89]" />Carregando usuários reais...</div> : usersQuery.isError ? <div className="px-6 py-14 text-center text-sm text-[#c2410c]">Não foi possível carregar os usuários administrativos. Atualize a página e tente novamente.</div> : filteredUsers.length === 0 ? <div className="px-6 py-14 text-center"><UserRound className="mx-auto h-9 w-9 text-[#a3bbb5]" /><p className="mt-3 text-sm font-semibold text-[#315158]">Nenhum usuário encontrado.</p><p className="mt-1 text-xs text-[#799092]">O painel não cria dados de demonstração; ele mostra somente contas reais.</p></div> : <div className="divide-y divide-[#edf3f1]">{filteredUsers.map(item => { const busy = busyUserId === item.id; const suspended = item.accessStatus === "suspended"; const expired = isExpired(item.accessExpiresAt); return <div key={item.id} className="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-7"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm font-bold text-[#102b32]">{item.name || "Usuário sem nome"}</p><Badge className={suspended || expired ? "border-0 bg-[#fff0eb] text-[#b54825]" : "border-0 bg-[#e7f7ef] text-[#18734d]"}>{suspended ? "Desligado" : expired ? "Validade expirada" : "Ativo"}</Badge>{item.role === "admin" && <Badge className="border-0 bg-[#e8f1ff] text-[#2f5d9a]">Administrador</Badge>}</div><p className="mt-1 text-xs text-[#668087]">{item.email || "Sem e-mail informado"} · ID {item.id}</p><div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-[#5d7479]"><span>Validade: <strong className="text-[#315158]">{formatDate(item.accessExpiresAt)}</strong></span><span>Ambientes: <strong className="text-[#315158]">{item.workspaces.length ? item.workspaces.map(workspace => workspace.kind === "autonomo" ? "Autônomo" : "CLT").join(" + ") : "Nenhum"}</strong></span><span>Último login: <strong className="text-[#315158]">{formatDate(item.lastSignedIn)}</strong></span></div></div>{item.role !== "admin" && <div className="flex shrink-0 flex-wrap gap-2"><Button type="button" size="sm" disabled={busy} onClick={() => runAction(suspended || expired ? "reactivate" : "renew", item.id)} className="rounded-xl bg-[#0c8c89] text-white hover:bg-[#076c70]">{busy ? "Salvando..." : suspended || expired ? "Reativar" : `Renovar ${durationDays}d`}</Button><Button type="button" size="sm" variant="outline" disabled={busy || suspended} onClick={() => runAction("disable", item.id)} className="rounded-xl border-[#f0d9d1] text-[#b54825] hover:bg-[#fff6f2]">Desligar</Button></div>}</div>; })}</div>}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[1.75rem] border-[#deece9] shadow-[0_14px_40px_rgba(16,43,50,.06)]">
+          <CardHeader className="gap-2 border-b border-[#edf3f1] px-5 py-5 lg:px-7">
+            <CardTitle className="font-display text-xl text-[#102b32]">Gestão de Assinaturas (Stripe)</CardTitle>
+            <p className="mt-1 text-sm text-[#6b8185]">Visualize todos os planos ativos, ciclos de faturamento e status de pagamento dos usuários.</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {usersQuery.isLoading ? (
+              <div className="flex items-center justify-center gap-2 px-6 py-12 text-sm font-semibold text-[#668087]">Carregando assinaturas...</div>
+            ) : subscriptionsList.length === 0 ? (
+              <div className="px-6 py-12 text-center text-sm text-[#668087]">Nenhuma assinatura Stripe registrada até o momento. Os planos contratados aparecerão aqui automaticamente.</div>
+            ) : (
+              <div className="divide-y divide-[#edf3f1]">
+                {subscriptionsList.map(item => {
+                  const sub = item.subscription as any;
+                  return (
+                    <div key={item.id} className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-7">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-[#102b32]">{item.name || "Usuário"}</p>
+                          <Badge className="border-0 bg-[#e7f7ef] text-[#18734d] uppercase font-mono text-[10px]">{sub.planCode || "Plano"}</Badge>
+                          <Badge className="border-0 bg-[#e8f1ff] text-[#2f5d9a] text-[10px]">{sub.status || "Ativo"}</Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-[#668087]">{item.email} · Cliente ID: {sub.stripeCustomerId || "N/D"}</p>
+                      </div>
+                      <div className="text-right text-xs text-[#5d7479]">
+                        <p>Início: <strong className="text-[#315158]">{formatDate(sub.createdAt)}</strong></p>
+                        <p className="mt-0.5">Renovação: <strong className="text-[#315158]">{formatDate(sub.currentPeriodEnd)}</strong></p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 

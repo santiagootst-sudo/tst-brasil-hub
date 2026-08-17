@@ -68,7 +68,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl border border-[#deece9]">
+      <div className="relative w-full max-w-md rounded-3xl bg-white p-7 shadow-2xl border border-[#deece9] overflow-hidden">
+        {isSubmitting && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-xs transition-all animate-in fade-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute h-16 w-16 rounded-full border-4 border-[#0c7474]/20 border-t-[#0c7474] animate-spin"></div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0c7474] text-white shadow-md">
+                <Shield className="h-5 w-5 animate-pulse" />
+              </div>
+            </div>
+            <p className="mt-4 text-sm font-bold text-[#102b32] animate-pulse">Autenticando credenciais...</p>
+            <p className="mt-1 text-xs text-[#668087]">Configurando ambiente seguro SST</p>
+          </div>
+        )}
         <button 
           onClick={onClose}
           className="absolute right-5 top-5 rounded-full p-2 text-slate-400 hover:bg-slate-100 transition"
