@@ -18,6 +18,8 @@ const LOGIN_REDIRECT_MANUAL_LOCK_TTL = 3_000;
 
 type StartLoginOptions = { automatic?: boolean };
 
+export const isOAuthConfigured = () => Boolean(import.meta.env.VITE_OAUTH_PORTAL_URL && import.meta.env.VITE_APP_ID);
+
 export const startLogin = ({ automatic = false }: StartLoginOptions = {}) => {
   if (typeof window === "undefined") return;
 

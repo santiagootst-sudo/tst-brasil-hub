@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
+import { isOAuthConfigured, startLogin } from "@/const";
+import { getPortalAccessAction } from "@/lib/landingNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +31,6 @@ const steps = [
 ];
 
 export default function Home() {
-  const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
   const [selectedHub, setSelectedHub] = useState<"prestador" | "empresa">("prestador");
   const [contactName, setContactName] = useState("");
@@ -41,8 +41,12 @@ export default function Home() {
   const [isSendingContact, setIsSendingContact] = useState(false);
 
   const enter = () => {
-    if (isAuthenticated) setLocation("/app");
-    else startLogin();
+    const action = getPortalAccessAction(isAuthenticated, isOAuthConfigured());
+    if (action.kind === "login") {
+      startLogin();
+      return;
+    }
+    window.location.assign(action.href);
   };
 
   const handleContactSubmit = (event: React.FormEvent) => {
@@ -73,7 +77,7 @@ export default function Home() {
         <div className="hidden items-center gap-8 text-sm font-semibold text-[#405c63] md:flex">
           <a href="#beneficios" className="hover:text-[#0c7474]">Benefícios</a>
           <a href="#produto" className="hover:text-[#0c7474]">Ecossistema</a>
-          <Link href="/planos" className="hover:text-[#0c7474]">Planos</Link>
+          <a href="/planos" className="hover:text-[#0c7474]">Planos</a>
           <a href="#como-funciona" className="hover:text-[#0c7474]">Como Funciona</a>
           <a href="#faq" className="hover:text-[#0c7474]">FAQ</a>
           <a href="#contato" className="hover:text-[#0c7474]">Contato e Suporte</a>
@@ -111,9 +115,9 @@ export default function Home() {
               <Button onClick={enter} size="lg" className="h-14 rounded-2xl border border-[#8ff4e1]/45 bg-[#0c7474] px-8 text-base font-bold text-white shadow-xl shadow-black/25 transition-transform hover:-translate-y-0.5 hover:bg-[#118f89] hover:shadow-2xl hover:shadow-[#64e2d1]/20 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
                 Acessar Plataforma <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Link href="/planos" className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#a8f4e7]/65 bg-white/15 px-8 text-sm font-bold text-white shadow-lg shadow-black/10 backdrop-blur-md transition-transform hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-xl active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
+              <a href="/planos" className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#a8f4e7]/65 bg-white/15 px-8 text-sm font-bold text-white shadow-lg shadow-black/10 backdrop-blur-md transition-transform hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-xl active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
                 Explorar Planos
-              </Link>
+              </a>
             </div>
             <div className="hub-hero-item hub-hero-item--5 mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#bce3dc]">
               <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#48c7b8]" /> PGR e Documentos Legais</span>
