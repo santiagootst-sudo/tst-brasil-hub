@@ -58,6 +58,10 @@ export const startLogin = ({ automatic = false }: StartLoginOptions = {}) => {
   document.cookie = cookieAttributes.join("; ");
   const state = encodeOAuthState({ redirectUri, nonce });
 
+  if (!oauthPortalUrl || !appId) {
+    alert("O login por servidor externo (OAuth) não está configurado neste ambiente. Utilize o login por e-mail e senha diretamente no portal.");
+    return;
+  }
   try {
     const url = new URL(`${oauthPortalUrl}/app-auth`);
     url.searchParams.set("appId", appId);
@@ -67,6 +71,6 @@ export const startLogin = ({ automatic = false }: StartLoginOptions = {}) => {
     window.location.href = url.toString();
   } catch (err) {
     console.error("[OAuth] Invalid OAuth portal URL:", oauthPortalUrl, err);
-    window.location.href = `/api/oauth/callback?code=mock-fallback&state=${encodeURIComponent(state)}`;
+    alert("URL do servidor de autenticação inválida. Utilize o login por e-mail e senha.");
   }
 };
