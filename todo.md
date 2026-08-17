@@ -595,3 +595,6 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 
 - [x] Confirmar a emissão do certificado HTTPS e o acesso público de tstbrasilhub.com.br após a propagação dos registros DNS
 - [x] Corrigir o erro ERR_SSL_VERSION_OR_CIPHER_MISMATCH e confirmar a emissão do certificado HTTPS do domínio personalizado
+
+- [ ] Corrigir os botões e links da landing page: Acessar plataforma, Acessar portal, cartões Prestador/Empresa e Explorar planos
+- [ ] Validar os destinos dos CTAs da landing page em desktop e mobile no domínio de produção

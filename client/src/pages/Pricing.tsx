@@ -1,8 +1,9 @@
 import { ArrowRight, Check, CircleHelp, Loader2, LockKeyhole, Sparkles } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { startLogin } from "@/const";
+import { isOAuthConfigured, startLogin } from "@/const";
+import { getPlanSelectionAction } from "@/lib/landingNavigation";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 
@@ -28,6 +29,7 @@ const monthlyEquivalent: Record<PlanCode, string> = {
 
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
   const { data: plans, isLoading } = trpc.billing.plans.useQuery();
   const checkout = trpc.billing.checkout.useMutation({
     onSuccess: ({ url }) => {
@@ -38,8 +40,19 @@ export default function Pricing() {
   });
 
   const selectPlan = (code: PlanCode, enabled: boolean) => {
-    if (!isAuthenticated) return startLogin();
-    if (!enabled) return toast.info("Este ciclo ainda precisa ser habilitado no ambiente Stripe de teste.");
+    const action = getPlanSelectionAction(isAuthenticated, isOAuthConfigured(), code);
+    if (action.kind === "login") {
+      startLogin();
+      return;
+    }
+    if (action.kind === "contact") {
+      setLocation(action.href);
+      return;
+    }
+    if (!enabled) {
+      toast.info("Este ciclo ainda precisa ser habilitado no ambiente Stripe de teste.");
+      return;
+    }
     checkout.mutate({ planCode: code });
   };
 
