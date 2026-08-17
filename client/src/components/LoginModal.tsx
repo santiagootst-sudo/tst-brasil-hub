@@ -27,6 +27,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         if (data?.token) {
           document.cookie = `${COOKIE_NAME}=${data.token}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
           sessionStorage.setItem("manus-cookie", `${COOKIE_NAME}=${data.token}`);
+          localStorage.setItem("tst_auth_token", data.token);
         }
       } catch (e) {
         console.error("Failed to store session token", e);
