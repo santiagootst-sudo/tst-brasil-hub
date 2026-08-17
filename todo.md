@@ -366,6 +366,10 @@
 - [x] Atualizar suíte de testes, validar build e interface.
 
 - [x] Executar teste controlado do Gerador de PGR com dados fictícios, preencher etapas e exportar PDF para revisão.
+- [ ] Configurar a variável DATABASE_URL no serviço de produção do Render com a conexão TiDB segura.
+- [ ] Executar e comprovar as migrações do schema no banco conectado ao Render.
+- [ ] Validar persistência real de login, workspace e assinatura após reinicialização do serviço.
+- [x] Adicionar observabilidade segura para confirmar a conexão TiDB efetiva no processo Render sem expor segredos.
 
 - [x] Incluir capa personalizada, sumário automático, matriz de riscos e plano de ação no PDF gerado.
 - [x] Criar interface de seleção modular para o usuário escolher quais seções incluir na exportação do PGR.

@@ -1,26 +1,30 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
-  if (!dbInstance) {
-    const dbUrl = ENV.databaseUrl || process.env.DATABASE_URL || "";
-    if (!dbUrl) {
-      console.warn("[Database] AVISO CRÍTICO: DATABASE_URL ausente. Operando em modo de contingência em memória para evitar queda de login.");
-      // Retorna uma instância simulada ou null para não quebrar o login
-      return null;
-    }
-    try {
-      dbInstance = drizzle(dbUrl);
-    } catch (error) {
-      console.error("[Database] Falha ao conectar ao MySQL/TiDB:", error);
-      return null;
-    }
+  if (dbInstance) return dbInstance;
+
+  const dbUrl = ENV.databaseUrl || process.env.DATABASE_URL || "";
+  if (!dbUrl) {
+    console.warn("[Database] DATABASE_URL ausente. Operando em modo de contingência em memória para evitar queda de login.");
+    return null;
   }
+
+  try {
+    const candidate = drizzle(dbUrl);
+    await candidate.execute(sql`SELECT 1`);
+    dbInstance = candidate;
+    console.info("[Database] Conexão TiDB/MySQL confirmada.");
+  } catch {
+    console.error("[Database] Falha ao validar a conexão MySQL/TiDB. Verifique DATABASE_URL, credenciais, SSL e acesso de rede.");
+    return null;
+  }
+
   return dbInstance;
 }
 
