@@ -75,6 +75,31 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
     setLocation("/app");
   };
 
+  const logoutMutation = trpc.auth.logout.useMutation();
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      try {
+        await logoutMutation.mutateAsync();
+      } catch {}
+      try {
+        await logout();
+      } catch {}
+      try {
+        sessionStorage.removeItem("manus-cookie");
+        sessionStorage.removeItem("manus-master-bypass");
+      } catch {}
+      toast.success("Sessão encerrada com segurança.");
+      window.location.assign("/");
+    } catch {
+      window.location.assign("/");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     const name = profileName.trim();
     if (name.length < 2) {
@@ -94,20 +119,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
     }
   };
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      clearRememberedProfile(window.localStorage);
-      setProfileOpen(false);
-      toast.success("Sessão encerrada com segurança.");
-      setLocation("/");
-    } catch {
-      toast.error("Não foi possível encerrar a sessão. Tente novamente.");
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
+
 
   useEffect(() => {
     if (!switchingWorkspaceId || currentWorkspace?.id !== switchingWorkspaceId) return;

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { startLogin, isOAuthConfigured } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Shield, Sparkles, X, Mail } from "lucide-react";
+import { Shield, Sparkles, X, Mail, Loader2 } from "lucide-react";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -91,9 +91,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-[#0c7474] py-3 text-sm font-bold text-white shadow-lg shadow-[#0c7474]/20 hover:bg-[#063b43] transition"
+            className="w-full rounded-xl bg-[#0c7474] py-3 text-sm font-bold text-white shadow-lg shadow-[#0c7474]/20 hover:bg-[#063b43] transition flex items-center justify-center gap-2"
           >
-            {isSubmitting ? "Verificando credenciais..." : "Continuar para o Portal"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Autenticando e gerando sessão...</span>
+              </>
+            ) : (
+              "Continuar para o Portal"
+            )}
           </Button>
         </form>
 
