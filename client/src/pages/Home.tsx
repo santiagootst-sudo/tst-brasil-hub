@@ -23,6 +23,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LoginModal } from "@/components/LoginModal";
 
 const steps = [
   { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente para desbloquear o acesso aos ambientes especializados de gestão em segurança do trabalho." },
@@ -32,6 +33,7 @@ const steps = [
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedHub, setSelectedHub] = useState<"prestador" | "empresa">("prestador");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -39,12 +41,11 @@ export default function Home() {
   const [contactSubject, setContactSubject] = useState("Suporte");
   const [contactMessage, setContactMessage] = useState("");
   const enter = () => {
-    const action = getPortalAccessAction(isAuthenticated, isOAuthConfigured());
-    if (action.kind === "login") {
-      startLogin();
+    if (isAuthenticated) {
+      window.location.assign("/app");
       return;
     }
-    window.location.assign(action.href);
+    setIsLoginModalOpen(true);
   };
 
   const handleContactSubmit = (event: React.FormEvent) => {
@@ -86,6 +87,8 @@ export default function Home() {
           {loading ? "Carregando" : isAuthenticated ? "Acessar portal" : "Portal de Acesso"}
         </Button>
       </nav>
+
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
       {/* Hero Section */}
       <section className="hub-hero relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">

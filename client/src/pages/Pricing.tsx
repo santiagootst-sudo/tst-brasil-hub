@@ -6,6 +6,7 @@ import { isOAuthConfigured, startLogin } from "@/const";
 import { getPlanSelectionAction } from "@/lib/landingNavigation";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { LoginModal } from "@/components/LoginModal";
 
 type PlanCode = "mensal" | "trimestral" | "anual";
 
@@ -29,6 +30,7 @@ const monthlyEquivalent: Record<PlanCode, string> = {
 
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { data: plans, isLoading } = trpc.billing.plans.useQuery();
   const checkout = trpc.billing.checkout.useMutation({
@@ -40,13 +42,8 @@ export default function Pricing() {
   });
 
   const selectPlan = (code: PlanCode, enabled: boolean) => {
-    const action = getPlanSelectionAction(isAuthenticated, isOAuthConfigured(), code);
-    if (action.kind === "login") {
-      startLogin();
-      return;
-    }
-    if (action.kind === "contact") {
-      setLocation(action.href);
+    if (!isAuthenticated) {
+      setIsLoginModalOpen(true);
       return;
     }
     if (!enabled) {
@@ -61,9 +58,16 @@ export default function Pricing() {
   return (
     <main className="min-h-screen bg-[#f7fbfa] px-4 py-8 text-[#102b32] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <Link href="/" className="inline-flex items-center text-sm font-bold text-[#0c7474] transition hover:text-[#063b43]">
-          ← Portal TST Brasil
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center text-sm font-bold text-[#0c7474] transition hover:text-[#063b43]">
+            ← Portal TST Brasil
+          </Link>
+          <Button onClick={() => setIsLoginModalOpen(true)} variant="outline" className="rounded-full border-[#0c7474] text-[#0c7474] hover:bg-[#0c7474]/10 font-bold text-xs">
+            {isAuthenticated ? "Meu Painel" : "Entrar com e-mail"}
+          </Button>
+        </div>
+
+        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
         {cancelled && (
           <div className="mt-6 rounded-2xl border border-[#f4d4c4] bg-[#fff6f0] px-5 py-4 text-sm text-[#884c32]">
