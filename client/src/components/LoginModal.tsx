@@ -14,6 +14,7 @@ type LoginModalProps = {
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const utils = trpc.useUtils();
@@ -46,8 +47,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       toast.error("Informe seu e-mail de acesso.");
       return;
     }
+    if (!passwordInput.trim()) {
+      toast.error("Informe sua senha de acesso.");
+      return;
+    }
     setIsSubmitting(true);
-    directLoginMutation.mutate({ email: emailInput.trim() });
+    directLoginMutation.mutate({ email: emailInput.trim(), password: passwordInput.trim() });
   };
 
   return (
@@ -80,9 +85,26 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               <Input
                 id="login-email"
                 type="email"
-                placeholder="ex: santiagoocorretor@gmail.com"
+                placeholder="seu.email@empresa.com"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
+                className="rounded-xl border-[#bddbd5] pl-10 py-3 text-sm focus:border-[#0c7474] focus:ring-[#0c7474]"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider text-[#405c63]">
+              Senha de Acesso
+            </Label>
+            <div className="relative">
+              <Shield className="absolute left-3.5 top-3.5 h-4 w-4 text-[#668087]" />
+              <Input
+                id="login-password"
+                type="password"
+                placeholder="Digite sua senha"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
                 className="rounded-xl border-[#bddbd5] pl-10 py-3 text-sm focus:border-[#0c7474] focus:ring-[#0c7474]"
               />
             </div>

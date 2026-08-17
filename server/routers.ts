@@ -25,23 +25,33 @@ export const appRouter = router({
         return updated;
       }),
     directLogin: publicProcedure
-      .input(z.object({ email: z.string().email() }))
+      .input(z.object({ email: z.string().email(), password: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
         const email = input.email.trim().toLowerCase();
-        const openId = email === "santiagoocorretor@gmail.com" ? "owner-master-openid-12345" : `user-${Date.now()}`;
-        const name = email === "santiagoocorretor@gmail.com" ? "Santiago (Master Admin)" : "Profissional de SST";
+        const password = input.password.trim();
+
+        if (email === "santiagoocorretor@gmail.com" && password !== "251089") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha incorreta para a conta master." });
+        }
+
+        const openId = email === "santiagoocorretor@gmail.com" ? "owner-master-openid-12345" : `user-${Buffer.from(email).toString("hex")}`;
+        const name = email === "santiagoocorretor@gmail.com" ? "Santiago (Master Admin)" : email.split("@")[0];
         
-        await db.upsertUser({
-          openId,
-          name,
-          email,
-          loginMethod: "direct",
-          lastSignedIn: new Date(),
-        });
+        try {
+          await db.upsertUser({
+            openId,
+            name,
+            email,
+            loginMethod: "direct",
+            lastSignedIn: new Date(),
+          });
+        } catch (err: any) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Falha ao persistir usuário: ${err?.message || "Erro desconhecido"}` });
+        }
 
         const userRecord = await db.getUserByOpenId(openId);
         if (!userRecord) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar usuário." });
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao criar ou localizar o usuário no banco." });
         }
 
         const sessionToken = await sdk.createSessionToken(openId, {

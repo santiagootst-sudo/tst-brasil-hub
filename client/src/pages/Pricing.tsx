@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ArrowRight, Check, CircleHelp, Loader2, LockKeyhole, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
