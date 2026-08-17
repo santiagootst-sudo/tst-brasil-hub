@@ -1,9 +1,7 @@
 import { ArrowRight, Check, CircleHelp, Loader2, LockKeyhole, Sparkles } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { isOAuthConfigured, startLogin } from "@/const";
-import { getPlanSelectionAction } from "@/lib/landingNavigation";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { LoginModal } from "@/components/LoginModal";
@@ -31,7 +29,6 @@ const monthlyEquivalent: Record<PlanCode, string> = {
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [, setLocation] = useLocation();
   const { data: plans, isLoading } = trpc.billing.plans.useQuery();
   const checkout = trpc.billing.checkout.useMutation({
     onSuccess: ({ url }) => {

@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { isOAuthConfigured, startLogin } from "@/const";
-import { getPortalAccessAction } from "@/lib/landingNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
