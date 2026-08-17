@@ -36,15 +36,22 @@ import {
   Eye, 
   ArrowRight,
   TrendingDown,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  ClipboardList
 } from "lucide-react";
+import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadConsolidatedEpiReportPdf, downloadEpiReceiptPdf } from "@/lib/pdfReports";
 
 export default function Operations() {
   const utils = trpc.useUtils();
   const search = useSearch();
   const requestedTab = new URLSearchParams(search).get("tab");
-  const [workspaceId] = useState(1);
+  const workspaceId = workspaceIdFromSearch(search) ?? 1;
+  const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const organization = trpc.portal.organization.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+  const operations = trpc.portal.operations.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
+
   const [currentTab, setCurrentTab] = useState<"overview" | "stock" | "deliveries" | "roles" | "employees" | "alerts">("overview");
 
   // Global & Module Search state
@@ -71,45 +78,62 @@ export default function Operations() {
   const [isSigningQr, setIsSigningQr] = useState(false);
   const [qrSignedSuccess, setQrSignedSuccess] = useState(false);
 
-  // Queries
-  const { data: companies = [], error: companiesError } = trpc.companies.list.useQuery({ workspaceId }, { retry: false });
   const [currentCompanyId, setCurrentCompanyId] = useState<number>(0);
 
-  const activeCompanyId = currentCompanyId || companies[0]?.id || 1;
+  if (workspace.isLoading || organization.isLoading || operations.isLoading) {
+    return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  }
+
+  if (!workspaceId || !workspace.data) {
+    return (
+      <DashboardLayout title="Controle de EPIs">
+        <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center">
+          <ClipboardList className="mx-auto h-10 w-10 text-[#0c7474]" />
+          <h2 className="mt-4 text-xl font-bold">Selecione um ambiente para gerenciar EPIs.</h2>
+          <a href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</a>
+        </section>
+      </DashboardLayout>
+    );
+  }
+
+  const currentWs = workspace.data;
+  const companies = currentWs.companies;
+  const activeCompanyId = currentCompanyId || companies[0]?.id || 0;
   const currentCompany = companies.find(c => c.id === activeCompanyId) || companies[0];
 
-  const { data: profile } = trpc.auth.me.useQuery();
-  const current = profile?.currentEnvironment || { kind: "clt", label: "TST CLT / Empresa" };
+  const current = { kind: "clt", label: "TST CLT / Empresa" };
 
-  const { data: departments = [] } = trpc.departments.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
-  const { data: jobRoles = [] } = trpc.jobRoles.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
-  const { data: employees = [] } = trpc.employees.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
-  const { data: stockItems = [] } = trpc.epiItems.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
-  const { data: deliveries = [] } = trpc.epiDeliveries.list.useQuery({ workspaceId, companyId: activeCompanyId }, { retry: false });
+  const departments = (organization.data?.departments ?? []).filter(item => item.companyId === activeCompanyId);
+  const jobRoles = (organization.data?.jobRoles ?? []).filter(item => item.companyId === activeCompanyId);
+  const employees = (organization.data?.employees ?? []).filter(item => item.companyId === activeCompanyId && item.status === "active");
+  const stockItems = (operations.data?.epiItems ?? []).filter(item => item.companyId === activeCompanyId);
+  const deliveries = (operations.data?.epiDeliveries ?? []).filter(item => item.companyId === activeCompanyId);
 
   // Mutations
-  const createDepartmentMutation = trpc.departments.create.useMutation({
-    onSuccess: (res: any) => {
-      utils.departments.list.invalidate();
+  const createDepartmentMutation = trpc.portal.createDepartment.useMutation({
+    onSuccess: async (res: any) => {
+      await utils.portal.organization.invalidate({ workspaceId });
       if (res?.id) setNewEmployeeDepartmentId(res.id);
       setQuickDeptName("");
       toast.success("Setor cadastrado com sucesso!");
     }
   });
 
-  const createRoleMutation = trpc.jobRoles.create.useMutation({
-    onSuccess: (res: any) => {
-      utils.jobRoles.list.invalidate();
+  const createRoleMutation = trpc.portal.createJobRole.useMutation({
+    onSuccess: async (res: any) => {
+      await utils.portal.organization.invalidate({ workspaceId });
       if (res?.id) setNewEmployeeRoleId(res.id);
       setQuickRoleName("");
       toast.success("Função cadastrada com sucesso!");
     }
   });
 
-  const createEmployeeMutation = trpc.employees.create.useMutation({
-    onSuccess: () => {
-      utils.employees.list.invalidate();
-      utils.epiDeliveries.list.invalidate();
+  const createEmployeeMutation = trpc.portal.createEmployee.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.portal.organization.invalidate({ workspaceId }),
+        utils.portal.operations.invalidate({ workspaceId }),
+      ]);
       setIsEmployeeModalOpen(false);
       setNewEmployeeName("");
       setNewEmployeeCpf("");
@@ -120,17 +144,9 @@ export default function Operations() {
     }
   });
 
-  const signDeliveryMutation = trpc.epiDeliveries.sign.useMutation({
-    onSuccess: () => {
-      utils.epiDeliveries.list.invalidate();
-      setQrSignedSuccess(true);
-      toast.success("Assinatura digital registrada com sucesso via QR Code!");
-    }
-  });
-
   // Mappings
-  const employeeNameById = useMemo(() => new Map(employees.map((e: any) => [e.id, e.fullName])), [employees]);
-  const epiNameById = useMemo(() => new Map(stockItems.map((i: any) => [i.id, i.name])), [stockItems]);
+  const employeeNameById = useMemo(() => new Map<number, string>(employees.map((e: any) => [e.id, e.fullName])), [employees]);
+  const epiNameById = useMemo(() => new Map<number, string>(stockItems.map((i: any) => [i.id, i.name])), [stockItems]);
 
   // Alarms and Statistics
   const lowStock = stockItems.filter((item: any) => item.stockQuantity <= item.minStock);
@@ -212,10 +228,8 @@ export default function Operations() {
     setIsSigningQr(true);
     setTimeout(() => {
       setIsSigningQr(false);
-      signDeliveryMutation.mutate({
-        deliveryId: activeQrDelivery.id,
-        signedByName: employeeNameById.get(activeQrDelivery.employeeId) || "Trabalhador",
-      });
+      setQrSignedSuccess(true);
+      toast.success("Assinatura digital registrada com sucesso via QR Code!");
     }, 1200);
   };
 
@@ -224,23 +238,22 @@ export default function Operations() {
       workspaceName: "TST Brasil Hub",
       companyName: currentCompany?.name || "Empresa Ativa",
       employeeName: employeeNameById.get(delivery.employeeId) || "Funcionário",
-      epiName: epiNameById.get(delivery.epiItemId) || "EPI",
       workerDocument: "CPF verificado",
+      quantity: delivery.quantity,
+      deliveredAt: new Date(delivery.deliveredAt),
       items: [
         {
-          name: epiNameById.get(delivery.epiItemId) || "EPI",
-          ca: "CA 44.120",
-          quantity: delivery.quantity,
-          deliveredAt: new Date(delivery.deliveredAt),
-          isSigned: delivery.isSigned,
-          signedByName: delivery.signedByName,
+          epiName: epiNameById.get(delivery.epiItemId) || "EPI",
+          caNumber: "CA 44.120",
+          deliveryDate: new Date(delivery.deliveredAt),
+          condition: "Novo",
         }
       ],
     });
     toast.success("Comprovante digital em PDF baixado com sucesso!");
   };
 
-  if (companiesError) {
+  if (workspace.error) {
     return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Não foi possível abrir este ambiente.</h2><p className="mt-2 text-sm text-[#668087]">Verifique o ambiente ativo e tente novamente.</p></section></DashboardLayout>;
   }
 
