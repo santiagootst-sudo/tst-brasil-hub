@@ -149,18 +149,20 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </Button>
         </form>
 
-        <div className="mt-6 border-t border-[#e5efe8] pt-5 text-center">
-          <p className="text-xs text-[#668087]">
-            É profissional de SST ou empresa parceira?
-          </p>
-          <button
-            type="button"
-            onClick={handleOAuthLogin}
-            className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#0c7474] hover:underline"
-          >
-            <Sparkles className="h-3.5 w-3.5" /> Entrar via Servidor Seguro OAuth
-          </button>
-        </div>
+        {isOAuthConfigured() && (
+          <div className="mt-6 border-t border-[#e5efe8] pt-5 text-center">
+            <p className="text-xs text-[#668087]">
+              É profissional de SST ou empresa parceira?
+            </p>
+            <button
+              type="button"
+              onClick={handleOAuthLogin}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#0c7474] hover:underline"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Entrar via Servidor Seguro OAuth
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
