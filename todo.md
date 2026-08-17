@@ -587,4 +587,11 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Elaborar o guia prático de comandos SSH para configuração de VPS Linux (Locaweb), Node.js, PM2, Nginx e SSL.
 - [x] Validar DNS, certificado HTTPS e acesso ao domínio raiz após a propagação.
 
-- [ ] Diagnosticar e corrigir a indisponibilidade do domínio personalizado tstbrasilhub.com.br no Render/Registro.br
+- [x] Diagnosticar e corrigir a indisponibilidade do domínio personalizado tstbrasilhub.com.br no Render/Registro.br
+
+- [ ] Confirmar a emissão do certificado HTTPS e o acesso público de tstbrasilhub.com.br após a propagação dos registros DNS
+
+- [ ] Corrigir o erro ERR_SSL_VERSION_OR_CIPHER_MISMATCH e confirmar a emissão do certificado HTTPS do domínio personalizado
+
+- [x] Confirmar a emissão do certificado HTTPS e o acesso público de tstbrasilhub.com.br após a propagação dos registros DNS
+- [x] Corrigir o erro ERR_SSL_VERSION_OR_CIPHER_MISMATCH e confirmar a emissão do certificado HTTPS do domínio personalizado
