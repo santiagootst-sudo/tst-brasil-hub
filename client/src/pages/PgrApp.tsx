@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
+import { uploadCompanyLogo } from "@/lib/cloudinaryUpload";
 
 function initials(name: string) {
   return name
@@ -38,7 +39,9 @@ function initials(name: string) {
 
 export default function PgrApp() {
   const search = useSearch();
-  const workspaceId = workspaceIdFromSearch(search) ?? 0;
+  const requestedWorkspaceId = workspaceIdFromSearch(search);
+  const availableWorkspaces = trpc.portal.workspaces.useQuery();
+  const workspaceId = requestedWorkspaceId ?? availableWorkspaces.data?.[0]?.id ?? 0;
   const utils = trpc.useUtils();
   const workspace = trpc.portal.workspace.useQuery(
     { workspaceId },
@@ -65,6 +68,7 @@ export default function PgrApp() {
   const [aiSuggestions, setAiSuggestions] = useState<Array<{ gheName: string; description: string; suggestedHazards: string[]; suggestedMeasures: string[] }>>([]);
   const [attachmentTitle, setAttachmentTitle] = useState("");
   const [attachmentCategory, setAttachmentCategory] = useState<"photo" | "laudo" | "art" | "certificate" | "other">("photo");
+  const [uploadingLogoCompanyId, setUploadingLogoCompanyId] = useState<number | null>(null);
 
   const suggestGhes = trpc.portal.suggestGhes.useMutation({
     onSuccess: data => {
@@ -128,7 +132,7 @@ export default function PgrApp() {
     { enabled: Boolean(selectedProject && billing.data?.hasPaidAccess && isPgrFullscreen) },
   );
 
-  const loading = workspace.isLoading || billing.isLoading;
+  const loading = workspace.isLoading || billing.isLoading || availableWorkspaces.isLoading;
   if (loading) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
   }
@@ -258,16 +262,22 @@ export default function PgrApp() {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={e => {
+                              onChange={async e => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                  uploadLogo.mutate({ workspaceId, companyId: company.id, dataUrl: reader.result as string });
-                                };
-                                reader.readAsDataURL(file);
+                                setUploadingLogoCompanyId(company.id);
+                                try {
+                                  const uploaded = await uploadCompanyLogo(file);
+                                  uploadLogo.mutate({ workspaceId, companyId: company.id, remoteUrl: uploaded.url });
+                                } catch (error) {
+                                  toast.error(error instanceof Error ? error.message : "Não foi possível enviar o logo.");
+                                } finally {
+                                  setUploadingLogoCompanyId(null);
+                                  e.currentTarget.value = "";
+                                }
                               }}
                             />
+                            {uploadingLogoCompanyId === company.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                           </label>
                         )}
                       </div>

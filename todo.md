@@ -657,4 +657,9 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Implementar os dados e regras do módulo CIPA: uma comissão no contexto CLT e gestões segregadas por empresa no contexto Prestador.
 - [x] Criar a interface do processo eleitoral CIPA com cronograma, comissão eleitoral, candidaturas, apuração consolidada e composição.
 - [x] Gerar documentos CIPA parametrizados com o logotipo da empresa ativa e registrar o dossiê por gestão.
-- [ ] Cobrir o módulo CIPA com testes, revisar a interface, enviar ao GitHub e publicar no Render.
+- [x] Cobrir o módulo CIPA com testes, revisar a interface, enviar ao GitHub e publicar no Render.
+- [x] Corrigir a barra lateral móvel e tornar o sino de notificações acionável com o motivo de cada alerta.
+- [x] Corrigir o upload de logotipo sem dependência de credenciais de armazenamento Manus ausentes no Render.
+- [x] Corrigir a autorização e a abertura do Gerador de PGR para usuários com acesso válido.
+- [x] Redesenhar os documentos CIPA conforme os modelos enviados, removendo a marca TST Brasil Hub do cabeçalho.
+- [ ] Validar as correções em telefone e desktop, enviar ao GitHub e publicar no Render.

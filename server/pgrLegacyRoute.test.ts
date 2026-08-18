@@ -94,6 +94,19 @@ describe("rota protegida do PGR", () => {
     expect(html).toContain("#pgrContainer .main-content { min-width: 0");
   });
 
+  it("entrega o PGR para acesso manual ativo mesmo sem assinatura Stripe", async () => {
+    sdk.authenticateRequest.mockResolvedValue({ id: 12, role: "user" });
+    db.getWorkspaceForUser.mockResolvedValue({ id: 7, role: "owner" });
+    db.getSubscriptionForUser.mockResolvedValue(undefined);
+    db.getUserById.mockResolvedValue({ id: 12, role: "user", accessStatus: "active", accessExpiresAt: new Date("2027-01-01T00:00:00.000Z") });
+    storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
+    const response = createResponse();
+
+    await registerHandler()(createRequest(), response);
+
+    expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ "Content-Type": "text/html; charset=utf-8" }));
+  });
+
   it("entrega o PGR com ticket temporário quando o iframe não possui cookie de sessão", async () => {
     sdk.authenticateRequest.mockRejectedValue(new Error("iframe sem cookie"));
     pgrTicket.verifyPgrIframeTicket.mockResolvedValue({ userId: 12, workspaceId: 7, projectId: 3, userRole: "user" });

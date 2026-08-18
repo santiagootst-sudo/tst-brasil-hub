@@ -35,8 +35,9 @@ export const createEmployeeInput = workspaceIdInput.extend({
 
 export const uploadCompanyLogoInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
-  dataUrl: z.string().min(32).max(3_500_000),
-});
+  dataUrl: z.string().min(32).max(3_500_000).optional(),
+  remoteUrl: z.string().url().max(2048).optional(),
+}).refine(input => Boolean(input.dataUrl || input.remoteUrl), { message: "Envie a imagem do logo." });
 
 export const updateCompanyBrandingInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
@@ -322,7 +323,7 @@ export const companyCreatedSchema = z.object({
 export const companyLogoUpdatedSchema = z.object({
   id: z.number().int().positive(),
   workspaceId: z.number().int().positive(),
-  logoKey: z.string(),
+  logoKey: z.string().nullable(),
   logoUrl: z.string(),
 });
 

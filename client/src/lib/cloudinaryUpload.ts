@@ -9,6 +9,8 @@ export type UploadedContentAsset = {
   bytes: number;
 };
 
+export type UploadedCompanyLogo = Pick<UploadedContentAsset, "url" | "fileName" | "mimeType" | "bytes">;
+
 function isSupportedContentAsset(file: File, kind: "cover" | "pdf") {
   if (kind === "cover") return file.type.startsWith("image/");
   return file.type === "application/pdf" || file.name.toLocaleLowerCase().endsWith(".pdf");
@@ -42,4 +44,19 @@ export async function uploadContentAsset(file: File, kind: "cover" | "pdf"): Pro
     mimeType: file.type || (kind === "pdf" ? "application/pdf" : "image/*"),
     bytes: Number(body.bytes ?? file.size),
   };
+}
+
+export async function uploadCompanyLogo(file: File): Promise<UploadedCompanyLogo> {
+  const supported = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
+  if (!supported) throw new Error("Selecione um logo em PNG, JPEG ou WEBP.");
+  if (file.size > 2_500_000) throw new Error("O logo deve ter no máximo 2,5 MB.");
+
+  const payload = new FormData();
+  payload.append("file", file);
+  payload.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  payload.append("context", `alt=${file.name}|caption=Logo de empresa do TST Brasil Hub`);
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: payload });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || typeof body.secure_url !== "string") throw new Error(body?.error?.message || "Não foi possível enviar o logo da empresa.");
+  return { url: body.secure_url, fileName: file.name, mimeType: file.type, bytes: Number(body.bytes ?? file.size) };
 }

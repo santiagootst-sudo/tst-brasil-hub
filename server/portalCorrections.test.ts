@@ -1,0 +1,35 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+
+describe("correções operacionais do portal", () => {
+  it("mantém o menu móvel e alertas acionáveis no layout", () => {
+    const layout = readFileSync(new URL("../client/src/components/DashboardLayout.tsx", import.meta.url), "utf8");
+    expect(layout).toContain("Sheet open={mobileNavOpen}");
+    expect(layout).toContain("setMobileNavOpen(true)");
+    expect(layout).toContain("workspaceNotifications");
+    expect(layout).toContain("Alertas do ambiente ativo");
+  });
+
+  it("faz upload de logo por Cloudinary e persiste uma URL validada", () => {
+    const upload = readFileSync(new URL("../client/src/lib/cloudinaryUpload.ts", import.meta.url), "utf8");
+    const router = readFileSync(new URL("./routers/workspaceRouter.ts", import.meta.url), "utf8");
+    expect(upload).toContain("uploadCompanyLogo");
+    expect(upload).toContain("/image/upload");
+    expect(router).toContain('remote.hostname !== "res.cloudinary.com"');
+    expect(router).toContain("logoKey: null");
+  });
+
+  it("alinha o acesso manual aprovado do PGR no ticket e no gateway", () => {
+    const router = readFileSync(new URL("./routers/pgrRouter.ts", import.meta.url), "utf8");
+    const gateway = readFileSync(new URL("./pgrLegacyRoute.ts", import.meta.url), "utf8");
+    expect(router).toContain("accessExpiresAt: ctx.user.accessExpiresAt");
+    expect(gateway).toContain("getUserById(userId)");
+  });
+
+  it("preserva documentos CIPA sem cabeçalho de marca do portal", () => {
+    const cipa = readFileSync(new URL("../client/src/pages/CipaAssistant.tsx", import.meta.url), "utf8");
+    expect(cipa).toContain("IDENTIFICAÇÃO DA ELEIÇÃO");
+    expect(cipa).toContain("VIA 01 — COMPROVANTE DE INSCRIÇÃO");
+    expect(cipa).not.toContain("TST BRASIL HUB  ·  CIPA");
+  });
+});

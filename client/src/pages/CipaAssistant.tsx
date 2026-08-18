@@ -64,63 +64,76 @@ async function asDataUrl(url: string) {
 
 async function downloadCipaPdf(document: { title: string; content: string; companyLogoUrl: string | null }, company: { name: string; document: string | null }) {
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
-  const margin = 18;
-  let cursor = 26;
-  pdf.setFillColor(6, 59, 67);
-  pdf.rect(0, 0, 210, 17, "F");
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8);
-  pdf.text("TST BRASIL HUB  ·  CIPA", margin, 10.5);
+  const margin = 17;
+  let cursor = 18;
+  pdf.setTextColor(20, 20, 20);
   if (document.companyLogoUrl) {
     try {
       const logo = await asDataUrl(document.companyLogoUrl);
       const format = logo.includes("image/png") ? "PNG" : "JPEG";
-      pdf.addImage(logo, format, 171, 3.5, 21, 10, undefined, "FAST");
+      pdf.addImage(logo, format, margin, 10, 26, 14, undefined, "FAST");
     } catch {
-      // O documento continua válido mesmo quando a imagem remota não puder ser carregada no navegador.
+      // A ausência do arquivo não impede a emissão do documento institucional.
     }
   }
-  pdf.setTextColor(16, 43, 50);
-  pdf.setFontSize(15);
-  pdf.text(document.title, margin, cursor);
-  cursor += 8;
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8.5);
-  pdf.setTextColor(89, 111, 117);
-  pdf.text(`${company.name}${company.document ? ` · CNPJ ${company.document}` : ""}`, margin, cursor);
-  cursor += 8;
-  pdf.setDrawColor(220, 235, 232);
-  pdf.line(margin, cursor, 192, cursor);
-  cursor += 8;
-  pdf.setFillColor(244, 249, 247);
-  pdf.roundedRect(margin, cursor, 174, 9, 2, 2, "F");
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(7.3);
-  pdf.setTextColor(12, 116, 116);
-  pdf.text("DOCUMENTO DE TRABALHO · REVISÃO TÉCNICA E ASSINATURAS NECESSÁRIAS", margin + 5, cursor + 5.8);
-  cursor += 17;
+  pdf.setFontSize(9.5);
+  pdf.text(company.name.toUpperCase(), 193, 15, { align: "right" });
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(9.6);
-  pdf.setTextColor(39, 54, 59);
-  const lines = pdf.splitTextToSize(document.content, 174) as string[];
-  for (const line of lines) {
+  pdf.setFontSize(8);
+  if (company.document) pdf.text(`CNPJ: ${company.document}`, 193, 20, { align: "right" });
+  cursor = 32;
+  pdf.setDrawColor(55, 55, 55);
+  pdf.line(margin, cursor - 4, 193, cursor - 4);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  const titleLines = pdf.splitTextToSize(document.title.toUpperCase(), 166) as string[];
+  pdf.text(titleLines, 105, cursor, { align: "center" });
+  cursor += titleLines.length * 6 + 5;
+  pdf.setFontSize(7.7);
+  pdf.setTextColor(60, 60, 60);
+  pdf.text("COMISSÃO INTERNA DE PREVENÇÃO DE ACIDENTES E DE ASSÉDIO — CIPA", 105, cursor, { align: "center" });
+  cursor += 8;
+  pdf.setDrawColor(80, 80, 80);
+  pdf.rect(margin, cursor, 176, 12);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(7.2);
+  pdf.setTextColor(25, 25, 25);
+  pdf.text("IDENTIFICAÇÃO", margin + 4, cursor + 4.3);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(`Organização: ${company.name}     Data: ____/____/______     Local: ____________________________________`, margin + 4, cursor + 8.7);
+  cursor += 19;
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9.1);
+  pdf.setTextColor(25, 25, 25);
+  const paragraphs = document.content.split("\n").filter(Boolean);
+  for (const paragraph of paragraphs) {
+    const isHeading = paragraph.length < 85 && paragraph === paragraph.toUpperCase() && /[A-ZÁÉÍÓÚÇ]/.test(paragraph);
+    const lines = pdf.splitTextToSize(paragraph, 176) as string[];
     if (cursor > 276) {
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(89, 111, 117);
-      pdf.text("TST Brasil Hub · Módulo CIPA", margin, 288);
       pdf.addPage();
-      cursor = 24;
+      cursor = 20;
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9.6);
-      pdf.setTextColor(39, 54, 59);
+      pdf.setFontSize(9.1);
+      pdf.setTextColor(25, 25, 25);
     }
-    pdf.text(line, margin, cursor);
-    cursor += 4.8;
+    if (isHeading) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8.2);
+      pdf.text(lines, margin, cursor);
+      cursor += lines.length * 4.3 + 2;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9.1);
+    } else {
+      pdf.text(lines, margin, cursor, { maxWidth: 176, align: "justify" });
+      cursor += lines.length * 4.7 + 2.3;
+    }
   }
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(89, 111, 117);
-  pdf.text("Gerado no Módulo CIPA · validar dados, enquadramento e assinaturas antes do uso formal.", margin, 288);
+  pdf.setDrawColor(80, 80, 80);
+  pdf.line(margin, 284, 193, 284);
+  pdf.setFontSize(7);
+  pdf.setTextColor(70, 70, 70);
+  pdf.text("Documento CIPA — conferir dados, assinaturas e enquadramento antes do uso formal.", margin, 289);
   pdf.save(`cipa-${safeFileName(company.name)}-${safeFileName(document.title)}.pdf`);
 }
 
@@ -128,19 +141,17 @@ function documentContent(type: DocumentType, data: {
   companyName: string; cnpj: string | null; city: string | null; unionName: string | null; workplace: string | null; termLabel: string;
   enrollmentStartsAt: Date | null; electionAt: Date | null; possessionAt: Date | null; candidates: Array<{ name: string; votes: number }>;
 }) {
-  const company = `${data.companyName}${data.cnpj ? ` — CNPJ ${data.cnpj}` : ""}`;
   const candidateLines = data.candidates.length ? data.candidates.map((candidate, index) => `${index + 1}. ${candidate.name}${type === "election_minutes" ? ` — ${candidate.votes} voto(s)` : ""}`).join("\n") : "Nenhum candidato registrado até o momento.";
-  const heading = `${data.companyName}\n${data.cnpj ? `CNPJ ${data.cnpj}\n` : ""}\n`;
-  const sign = `\n\n${data.city || "Cidade/UF"}, ${new Date().toLocaleDateString("pt-BR")}.\n\n__________________________________\nResponsável pelo processo CIPA`;
+  const sign = `\n${data.city || "Cidade/UF"}, ____ de __________________ de ______.\n\n__________________________________\nNOME — Responsável pelo processo CIPA`;
   const values: Record<DocumentType, string> = {
-    election_committee: `${heading}ATA DE CONSTITUIÇÃO DA COMISSÃO ELEITORAL DA CIPA\n\nPara a gestão ${data.termLabel}, fica constituída a Comissão Eleitoral responsável por organizar e acompanhar as inscrições, a votação, a apuração e a documentação do processo. A comissão deverá zelar pela publicidade dos atos, pela confidencialidade do voto e pela precisão dos registros.${sign}`,
-    union_notice: `${heading}COMUNICAÇÃO DE INÍCIO DO PROCESSO ELEITORAL DA CIPA\n\nÀ ${data.unionName || "entidade sindical da categoria preponderante"}, comunicamos o início do processo eleitoral da CIPA referente à gestão ${data.termLabel}. O período de inscrições inicia em ${formatDate(data.enrollmentStartsAt)} e a votação está prevista para ${formatDate(data.electionAt)}.${sign}`,
-    notice: `${heading}EDITAL DE CONVOCAÇÃO PARA ELEIÇÃO DA CIPA\n\nA organização convoca os empregados do estabelecimento ${data.workplace || "informado"} para participarem do processo eleitoral da CIPA, gestão ${data.termLabel}.\n\nInscrições: a partir de ${formatDate(data.enrollmentStartsAt)}.\nVotação: ${formatDate(data.electionAt)}.\nLocal: ${data.workplace || "a definir"}.\n\nO processo observará voto secreto e a divulgação da relação dos inscritos.${sign}`,
-    registration: `${heading}FICHA DE INSCRIÇÃO DE CANDIDATO — CIPA\n\nGestão: ${data.termLabel}\n\nNome completo: _______________________________________________\nSetor: ________________________________________________________\nFunção: _______________________________________________________\nData de admissão: ____/____/________\nData da inscrição: ____/____/________\n\nAssinatura do candidato: ______________________________________\n\nProtocolo de recebimento: _____________________________________`,
-    ballot: `${heading}CÉDULA DE VOTAÇÃO — ELEIÇÃO CIPA\n\nGestão: ${data.termLabel}\nData da votação: ${formatDate(data.electionAt)}\n\nAssinale o(s) candidato(s) escolhido(s), conforme orientação da Comissão Eleitoral.\n\n${candidateLines}\n\nEsta cédula deve ser utilizada de forma a preservar o sigilo do voto.`,
-    election_minutes: `${heading}ATA DE ELEIÇÃO E APURAÇÃO DA CIPA\n\nGestão: ${data.termLabel}\nData da votação: ${formatDate(data.electionAt)}\n\nApós o encerramento da votação, a Comissão Eleitoral procedeu à apuração e registrou os candidatos em ordem de votos:\n\n${candidateLines}\n\nOs resultados devem ser conferidos, homologados e assinados pelos responsáveis antes da posse.${sign}`,
-    possession_minutes: `${heading}ATA DE INSTALAÇÃO E POSSE DA CIPA\n\nAos ${formatDate(data.possessionAt)}, foram instalados e empossados os integrantes da CIPA da gestão ${data.termLabel}. A comissão deverá executar seu plano de trabalho, realizar reuniões ordinárias e registrar suas deliberações em ata.${sign}`,
-    work_plan: `${heading}PLANO DE TRABALHO DA CIPA\n\nGestão: ${data.termLabel}\n\n1. Acompanhar a identificação de perigos e as medidas de prevenção.\n2. Realizar inspeções e registrar oportunidades de melhoria.\n3. Promover ações de prevenção, incluindo SIPAT.\n4. Acompanhar ocorrências, acidentes e recomendações preventivas.\n5. Incluir prevenção e combate ao assédio e à violência nas atividades da CIPA.\n\nCada ação deverá ser detalhada em reunião, com responsável, prazo e evidências de conclusão.${sign}`,
+    election_committee: `IDENTIFICAÇÃO DA REUNIÃO\nGestão: ${data.termLabel}. Local: ${data.workplace || "________________________________"}.\nAos ____ dias do mês de __________________ de ______, às ____h____, reuniram-se os representantes da CIPA para constituir a Comissão Eleitoral responsável pela organização e pelo acompanhamento do processo eleitoral.\nCOMPOSIÇÃO DA COMISSÃO ELEITORAL\nNOME                                      SETOR / CARGO                                      FUNÇÃO NA COMISSÃO\n________________________________________________________________________________\n________________________________________________________________________________\nPAUTA E RESPONSABILIDADES\nOrganizar o cronograma, as inscrições, a divulgação do edital, a votação e a apuração. Assegurar inscrição individual, liberdade de candidatura, comprovante de inscrição e voto secreto. Registrar os atos do processo e apoiar a comunicação ao sindicato, quando aplicável.${sign}`,
+    union_notice: `DESTINATÁRIO\nÀ ${data.unionName || "NOME DO SINDICATO / SUBSEDE"}, A/C: __________________________________.\nAssunto: Comunicação do início do processo eleitoral da Comissão Interna de Prevenção de Acidentes e de Assédio — CIPA.\nA organização comunica formalmente o início do processo eleitoral para escolha dos representantes dos empregados na CIPA, gestão ${data.termLabel}, nos termos da NR-05.\nCRONOGRAMA INFORMADO\nInício da inscrição: ${formatDate(data.enrollmentStartsAt)}. Período mínimo: 15 dias corridos. Previsão da eleição: ${formatDate(data.electionAt)}.\nSolicitamos a confirmação do recebimento desta comunicação.${sign}`,
+    notice: `PARTICIPAÇÃO DOS FUNCIONÁRIOS\nFicam convocados os empregados do estabelecimento ${data.workplace || "________________________________"} para participar do processo eleitoral destinado à escolha dos representantes dos empregados na CIPA, gestão ${data.termLabel}.\nCRONOGRAMA DA ELEIÇÃO\nData: ${formatDate(data.electionAt)}. Horário: ____h____ às ____h____. Local: ${data.workplace || "________________________________"}.\nPROCESSO DE INSCRIÇÃO E VOTAÇÃO\nPeríodo de inscrição: de ${formatDate(data.enrollmentStartsAt)} a ____/____/______. A inscrição é individual e gratuita, com fornecimento de comprovante. A votação ocorrerá em dia normal de trabalho, com voto secreto e condições de participação dos empregados.${sign}`,
+    registration: `VIA 01 — COMPROVANTE DE INSCRIÇÃO\nNome completo do candidato: __________________________________________________________\nFunção / cargo: ___________________________________     Matrícula: ____________________\nÁrea / setor: _______________________________________     Data da inscrição: ____/____/______\nDeclaro meu interesse em participar, como candidato, da eleição dos representantes dos empregados na CIPA, conforme o edital de convocação e a NR-05 vigente.\n\n______________________________                    ______________________________\nAssinatura do candidato                                      Recebimento — Comissão Eleitoral / RH / SST\n\nComprovante de inscrição nº: ____________     Recebido por: ____________________________\nPeríodo de inscrição: de ${formatDate(data.enrollmentStartsAt)} a ____/____/______. Prazo mínimo: 15 dias corridos.\n\nVIA 02 — COMPROVANTE DE INSCRIÇÃO\nNome completo do candidato: __________________________________________________________\nFunção / cargo: ___________________________________     Matrícula: ____________________\nÁrea / setor: _______________________________________     Data da inscrição: ____/____/______\n\n______________________________                    ______________________________\nAssinatura do candidato                                      Recebimento — Comissão Eleitoral / RH / SST`,
+    ballot: `GESTÃO ${data.termLabel}\nMARQUE UM X EM APENAS UMA OPÇÃO\n${candidateLines}\n☐   VOTO NULO\nVoto secreto. Não assine nem identifique esta cédula.\n\nCÉDULA DE VOTO — VIA DE CONTROLE\nGESTÃO ${data.termLabel}\nMARQUE UM X EM APENAS UMA OPÇÃO\n${candidateLines}\n☐   VOTO NULO\nVoto secreto. Não assine nem identifique esta cédula.`,
+    election_minutes: `IDENTIFICAÇÃO DA ELEIÇÃO\nGestão: ${data.termLabel}. Data da votação: ${formatDate(data.electionAt)}. Local: ${data.workplace || "________________________________"}.\nAos ____ dias do mês de __________________ de ______, às ____h____, reuniram-se os integrantes da Comissão Eleitoral para registrar a realização da eleição dos representantes dos empregados na CIPA, conforme a NR-05 vigente.\nRESULTADO DA APURAÇÃO\nCANDIDATOS — MEMBROS TITULARES E SUPLENTES\n${candidateLines}\nCANDIDATOS VOTADOS NÃO ELEITOS\nOs candidatos não eleitos são relacionados em ordem decrescente de votos para fins de registro e eventual nomeação posterior em caso de vacância. Em caso de empate, será aplicado o critério do maior tempo de serviço no estabelecimento.${sign}\n\n______________________________     ______________________________\nNOME — Presidente da Mesa                         NOME — Secretário(a) da Mesa`,
+    possession_minutes: `IDENTIFICAÇÃO\nGestão: ${data.termLabel}. Data da posse: ${formatDate(data.possessionAt)}. Horário: ____h____. Local: ${data.workplace || "________________________________"}.\nAos ____ dias do mês de __________________ de ______, reuniram-se os representantes da organização e dos empregados para a instalação e posse da CIPA, em conformidade com a NR-05.\nREPRESENTANTES DA ORGANIZAÇÃO — DESIGNADOS\nNOME                                      CONDIÇÃO\n________________________________________________________________________________\nREPRESENTANTES DOS EMPREGADOS — ELEITOS\nNOME                                      CONDIÇÃO\n________________________________________________________________________________\nCOMPOSIÇÃO DA DIREÇÃO DA CIPA\nPresidente: ______________________________________. Vice-Presidente: ______________________________________.\nSecretário(a): _____________________________________. Substituto(a): ________________________________________.\nO mandato dos membros eleitos terá duração de 1 (um) ano, permitida uma reeleição. Os membros declaram ciência de suas atribuições e responsabilidades.${sign}`,
+    work_plan: `GESTÃO ${data.termLabel}\nAÇÃO                                      RESPONSÁVEL                                      PRAZO\nAcompanhar perigos e medidas de prevenção          ______________________________          ____/____/______\nRealizar inspeções e registrar oportunidades        ______________________________          ____/____/______\nPromover ações preventivas e SIPAT                   ______________________________          ____/____/______\nAcompanhar ocorrências e recomendações              ______________________________          ____/____/______\nIncluir prevenção ao assédio e à violência          ______________________________          ____/____/______\nO plano de trabalho deverá ser acompanhado nas reuniões da CIPA, com responsáveis, prazos e evidências de conclusão.${sign}`,
   };
   return values[type];
 }

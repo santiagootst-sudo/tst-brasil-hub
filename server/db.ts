@@ -341,7 +341,7 @@ export async function getCompanyForWorkspace(companyId: number, workspaceId: num
     .limit(1))[0];
 }
 
-export async function updateCompanyLogoForWorkspace(input: { companyId: number; workspaceId: number; logoKey: string; logoUrl: string }) {
+export async function updateCompanyLogoForWorkspace(input: { companyId: number; workspaceId: number; logoKey: string | null; logoUrl: string }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   await db

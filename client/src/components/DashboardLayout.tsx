@@ -9,11 +9,12 @@ import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -23,6 +24,13 @@ type DashboardLayoutProps = {
 type ProfilePreferences = {
   notificationsEnabled: boolean;
   reducedMotion: boolean;
+};
+
+type WorkspaceNotification = {
+  id: string;
+  title: string;
+  description: string;
+  path: string;
 };
 
 const PROFILE_PREFERENCES_KEY = "tst-brasil-hub-profile-preferences";
@@ -45,16 +53,19 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
   const [location, setLocation] = useLocation();
   const search = useSearch();
   const collapsed = false;
-  const workspaceId = workspaceIdFromSearch(search);
+  const requestedWorkspaceId = workspaceIdFromSearch(search);
+  const developmentWorkspaces = trpc.portal.workspaces.useQuery();
+  const workspaceId = requestedWorkspaceId ?? developmentWorkspaces.data?.[0]?.id ?? 0;
   const workspace = trpc.portal.workspace.useQuery(
-    { workspaceId: workspaceId ?? 0 },
+    { workspaceId },
     { enabled: Boolean(workspaceId && workspaceId > 0) },
   );
-  const developmentWorkspaces = trpc.portal.workspaces.useQuery();
   const currentWorkspace = workspace.data;
   const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<number | null>(null);
   const [switchingToastId, setSwitchingToastId] = useState<string | number | undefined>(undefined);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profilePreferences, setProfilePreferences] = useState<ProfilePreferences>({ notificationsEnabled: true, reducedMotion: false });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -137,6 +148,12 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
   };
   const isAutonomo = currentWorkspace?.kind === "autonomo";
   const isClt = currentWorkspace?.kind === "clt";
+  const workspaceNotifications: WorkspaceNotification[] = !currentWorkspace
+    ? [{ id: "workspace", title: "Selecione um ambiente", description: "Abra o contexto de trabalho para ver dados e tarefas vinculadas.", path: "/app" }]
+    : [
+      ...(currentWorkspace.companies.length === 0 ? [{ id: "company", title: "Cadastre a empresa", description: "A estrutura, os documentos, a CIPA e o PGR dependem de uma empresa ativa.", path: "/app/pgr" }] : []),
+      ...(currentWorkspace.companies.length > 0 && currentWorkspace.pgrProjects.length === 0 ? [{ id: "pgr", title: "Nenhum PGR criado", description: "Crie o primeiro PGR pelo card da empresa para iniciar o gerador.", path: "/app/pgr" }] : []),
+    ];
   const menuSections = isAutonomo ? [
     { label: "Principal", items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
@@ -232,10 +249,28 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
         </div>
       </aside>
 
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className={`w-[86vw] max-w-sm gap-0 border-0 p-0 text-[#d9eeea] ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
+          <SheetHeader className="border-b border-white/10 px-5 py-5 text-left">
+            <BrandLockup inverse aria-label="TST Brasil Hub" />
+            <SheetTitle className="sr-only">Navegação do portal</SheetTitle>
+            <SheetDescription className="sr-only">Escolha um módulo para o ambiente ativo.</SheetDescription>
+          </SheetHeader>
+          <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-5">
+            {user?.role === "admin" && <section><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">Administração</p><Link onClick={() => setMobileNavOpen(false)} href="/admin" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${location === "/admin" ? "bg-[#77cdb2]/18 text-white" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><UsersRound className="h-4 w-4" /><span>Gestão de acessos</span></Link></section>}
+            {menuSections.map(section => <section key={section.label}><p className="mb-1 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8abfb5]">{section.label}</p>{section.items.map(({ label, hint, icon: Icon, path }) => {
+              const active = path === "/app" ? location === "/app" || location === "/app/visao" : location === path;
+              return <Link key={path} onClick={() => setMobileNavOpen(false)} href={pathWithWorkspace(path)} title={hint ?? label} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${active ? "bg-[#77cdb2]/18 text-white" : "text-[#c4e2dc] hover:bg-white/8 hover:text-white"}`}><Icon className="h-4 w-4" /><span>{label}</span></Link>;
+            })}</section>)}
+          </nav>
+          <div className="m-3 rounded-2xl border border-white/10 bg-white/5 p-4"><p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Ambiente ativo</p><p className="mt-1 text-sm font-semibold text-white">{currentWorkspace?.name ?? "Nenhum ambiente selecionado"}</p><button type="button" onClick={() => { setMobileNavOpen(false); goToProfilePicker(); }} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[#8edec7]"><ArrowLeftRight className="h-3.5 w-3.5" />Trocar perfil</button></div>
+        </SheetContent>
+      </Sheet>
+
       <div className="lg:pl-72">
         <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-[#deece9] bg-white/90 px-5 backdrop-blur lg:px-9">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Abrir menu">
+            <Button type="button" variant="ghost" size="icon" onClick={() => setMobileNavOpen(true)} className="lg:hidden" aria-label="Abrir menu">
               <Menu className="h-5 w-5" />
             </Button>
             <div>
@@ -244,10 +279,16 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button variant="ghost" size="icon" aria-label="Notificações" className="relative text-[#49636a]">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e98766] ring-2 ring-white" />
-            </Button>
+            <div className="relative">
+              <Button type="button" variant="ghost" size="icon" onClick={() => setNotificationsOpen(current => !current)} aria-expanded={notificationsOpen} aria-label="Abrir notificações" className="relative text-[#49636a]">
+                <Bell className="h-5 w-5" />
+                {workspaceNotifications.length > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#e98766] ring-2 ring-white" />}
+              </Button>
+              {notificationsOpen && <div className="absolute right-0 top-12 z-40 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#dcebe8] bg-white p-2 shadow-xl">
+                <div className="flex items-center justify-between px-3 py-2"><div><p className="text-sm font-bold text-[#102b32]">Notificações</p><p className="text-[11px] text-[#668087]">Alertas do ambiente ativo</p></div><BellRing className="h-4 w-4 text-[#0c7474]" /></div>
+                {workspaceNotifications.length ? <div className="space-y-1">{workspaceNotifications.map(notification => <button type="button" key={notification.id} onClick={() => { setNotificationsOpen(false); setLocation(pathWithWorkspace(notification.path)); }} className="w-full rounded-xl px-3 py-3 text-left transition hover:bg-[#edf8f5]"><p className="text-sm font-bold text-[#17383e]">{notification.title}</p><p className="mt-1 text-xs leading-5 text-[#668087]">{notification.description}</p></button>)}</div> : <div className="rounded-xl bg-[#f3faf8] px-3 py-4 text-center"><CheckCircle2 className="mx-auto h-5 w-5 text-[#0c7474]" /><p className="mt-2 text-xs font-semibold text-[#49636a]">Nenhum alerta pendente neste ambiente.</p></div>}
+              </div>}
+            </div>
             <Button type="button" variant="ghost" onClick={() => void handleLogout()} disabled={isLoggingOut} title="Encerrar sessão" className="gap-2 rounded-xl px-2.5 text-[#c2410c] hover:bg-[#fff5f2] hover:text-[#9a3412]">
               {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
               <span className="hidden text-xs font-bold sm:inline">{isLoggingOut ? "Saindo..." : "Sair"}</span>

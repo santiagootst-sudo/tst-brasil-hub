@@ -31,7 +31,17 @@ export const workspaceRouter = router({
     const company = await portalDb.getCompanyForWorkspace(input.companyId, input.workspaceId);
     if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
 
-    const parsed = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(input.dataUrl);
+    if (input.remoteUrl) {
+      const remote = new URL(input.remoteUrl);
+      if (remote.protocol !== "https:" || remote.hostname !== "res.cloudinary.com" || !remote.pathname.startsWith("/er2184wh/")) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "O logo deve ser enviado pelo armazenamento seguro configurado." });
+      }
+      const updated = await portalDb.updateCompanyLogoForWorkspace({ companyId: input.companyId, workspaceId: input.workspaceId, logoKey: null, logoUrl: input.remoteUrl });
+      if (!updated?.logoUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível salvar o logo da empresa." });
+      return { id: updated.id, workspaceId: updated.workspaceId, logoKey: updated.logoKey ?? null, logoUrl: updated.logoUrl };
+    }
+
+    const parsed = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(input.dataUrl ?? "");
     if (!parsed) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem PNG, JPEG ou WEBP válida." });
     const contentType = parsed[1];
     const buffer = Buffer.from(parsed[2], "base64");
@@ -39,7 +49,7 @@ export const workspaceRouter = router({
     const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
     const stored = await storagePut(`company-logos/workspace-${input.workspaceId}/company-${input.companyId}/logo-${Date.now()}.${extension}`, buffer, contentType);
     const updated = await portalDb.updateCompanyLogoForWorkspace({ companyId: input.companyId, workspaceId: input.workspaceId, logoKey: stored.key, logoUrl: stored.url });
-    if (!updated?.logoKey || !updated.logoUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível salvar o logo da empresa." });
+    if (!updated?.logoUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível salvar o logo da empresa." });
     return { id: updated.id, workspaceId: updated.workspaceId, logoKey: updated.logoKey, logoUrl: updated.logoUrl };
   }),
   updateCompanyBranding: protectedProcedure.input(updateCompanyBrandingInput).output(companyBrandingUpdatedSchema).mutation(async ({ ctx, input }) => {

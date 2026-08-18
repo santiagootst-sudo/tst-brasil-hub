@@ -26,7 +26,7 @@ export const pgrRouter = router({
       ]);
       if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
       if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto PGR não encontrado neste ambiente." });
-      if (!canUsePaidApps({ userRole: ctx.user.role, subscriptionStatus: subscription?.status })) {
+      if (!canUsePaidApps({ userRole: ctx.user.role, accessStatus: ctx.user.accessStatus, accessExpiresAt: ctx.user.accessExpiresAt, subscriptionStatus: subscription?.status })) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Uma assinatura ativa é necessária para usar o PGR Pro." });
       }
       const ticket = await createPgrIframeTicket({
@@ -45,7 +45,7 @@ export const pgrRouter = router({
     ]);
     if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
     if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto PGR não encontrado." });
-    if (!canUsePaidApps({ userRole: ctx.user.role, subscriptionStatus: subscription?.status })) {
+    if (!canUsePaidApps({ userRole: ctx.user.role, accessStatus: ctx.user.accessStatus, accessExpiresAt: ctx.user.accessExpiresAt, subscriptionStatus: subscription?.status })) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Assinatura ativa necessária." });
     }
 
