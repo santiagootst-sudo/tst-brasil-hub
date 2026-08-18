@@ -632,3 +632,8 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Criar painel administrativo de gestão de acessos com cadastro manual de novos usuários.
 - [x] Permitir gerar ou redefinir senha, definir prazo, bloquear, reativar e visualizar o status de cada acesso.
 - [x] Integrar o painel de acessos à navegação exclusiva do administrador mestre.
+- [x] Adicionar filtro rápido para contas que vencem nos próximos 7 dias.
+- [x] Oferecer prazos de ativação de 30, 60 e 90 dias, além de 12 meses, ao criar ou renovar acessos.
+- [x] Incluir envio das credenciais geradas pelo WhatsApp do usuário cadastrado.
+- [x] Identificar contas de teste e remover somente os registros confirmados pelo administrador.
+- [x] Aplicar a restrição única de openId no banco para impedir a recriação de usuários duplicados a cada login.
