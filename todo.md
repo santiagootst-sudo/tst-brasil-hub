@@ -665,4 +665,4 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Validar as correções em telefone e desktop, enviar ao GitHub e publicar no Render.
 - [x] Rastrear e corrigir a autorização do iframe PGR em produção até confirmar a abertura com a conta mestre.
 - [x] Comparar os modelos CIPA reenviados com os documentos atuais e reproduzir fielmente sua estrutura, redação, tabelas e campos no portal.
-- [ ] Validar a geração documental CIPA pelos modelos aprovados, enviar ao GitHub e publicar no Render.
+- [x] Validar a geração documental CIPA pelos modelos aprovados, enviar ao GitHub e publicar no Render.
