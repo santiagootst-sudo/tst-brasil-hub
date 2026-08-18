@@ -13,6 +13,7 @@ const db = vi.hoisted(() => ({
   getCompanyForWorkspace: vi.fn(),
   getPgrProjectForWorkspace: vi.fn(),
   getSubscriptionForUser: vi.fn(),
+  getUserById: vi.fn(),
   getWorkspaceForUser: vi.fn(),
   listDevelopmentWorkspacesForUser: vi.fn(),
   listCertificatesForWorkspace: vi.fn(),
@@ -60,7 +61,10 @@ function createContext(userOverrides: Partial<NonNullable<TrpcContext["user"]>> 
 }
 
 describe("portal protected flows", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.getUserById.mockResolvedValue({ id: 12, role: "user", accessStatus: "pending", accessExpiresAt: null });
+  });
 
   it("expõe um ambiente Autônomo e um CLT na fase de criação", async () => {
     const workspaces = [

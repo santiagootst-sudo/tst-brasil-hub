@@ -22,7 +22,8 @@ describe("correções operacionais do portal", () => {
   it("alinha o acesso manual aprovado do PGR no ticket e no gateway", () => {
     const router = readFileSync(new URL("./routers/pgrRouter.ts", import.meta.url), "utf8");
     const gateway = readFileSync(new URL("./pgrLegacyRoute.ts", import.meta.url), "utf8");
-    expect(router).toContain("accessExpiresAt: ctx.user.accessExpiresAt");
+    expect(router).toContain("accessExpiresAt: accessUser?.accessExpiresAt");
+    expect(router).toContain("portalDb.getUserById(ctx.user.id)");
     expect(gateway).toContain("getUserById(userId)");
   });
 

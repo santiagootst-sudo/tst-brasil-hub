@@ -19,14 +19,15 @@ export const pgrRouter = router({
     .input(z.object({ workspaceId: z.number().int().positive(), projectId: z.number().int().positive() }))
     .output(z.object({ url: z.string() }))
     .query(async ({ ctx, input }) => {
-      const [workspace, subscription, project] = await Promise.all([
+      const [workspace, subscription, project, accessUser] = await Promise.all([
         portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id),
         portalDb.getSubscriptionForUser(ctx.user.id),
         portalDb.getPgrProjectForWorkspace(input.projectId, input.workspaceId),
+        portalDb.getUserById(ctx.user.id),
       ]);
       if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
       if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto PGR não encontrado neste ambiente." });
-      if (!canUsePaidApps({ userRole: ctx.user.role, accessStatus: ctx.user.accessStatus, accessExpiresAt: ctx.user.accessExpiresAt, subscriptionStatus: subscription?.status })) {
+      if (!canUsePaidApps({ userRole: accessUser?.role ?? ctx.user.role, accessStatus: accessUser?.accessStatus, accessExpiresAt: accessUser?.accessExpiresAt, subscriptionStatus: subscription?.status })) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Uma assinatura ativa é necessária para usar o PGR Pro." });
       }
       const ticket = await createPgrIframeTicket({
@@ -38,14 +39,15 @@ export const pgrRouter = router({
       return { url: `/api/apps/pgr/${input.workspaceId}?ticket=${encodeURIComponent(ticket)}` };
     }),
   suggestGhes: protectedProcedure.input(suggestPgrGhesInput).output(suggestPgrGhesOutput).mutation(async ({ ctx, input }) => {
-    const [workspace, subscription, project] = await Promise.all([
+    const [workspace, subscription, project, accessUser] = await Promise.all([
       portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id),
       portalDb.getSubscriptionForUser(ctx.user.id),
       portalDb.getPgrProjectForWorkspace(input.projectId, input.workspaceId),
+      portalDb.getUserById(ctx.user.id),
     ]);
     if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
     if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto PGR não encontrado." });
-    if (!canUsePaidApps({ userRole: ctx.user.role, accessStatus: ctx.user.accessStatus, accessExpiresAt: ctx.user.accessExpiresAt, subscriptionStatus: subscription?.status })) {
+    if (!canUsePaidApps({ userRole: accessUser?.role ?? ctx.user.role, accessStatus: accessUser?.accessStatus, accessExpiresAt: accessUser?.accessExpiresAt, subscriptionStatus: subscription?.status })) {
       throw new TRPCError({ code: "FORBIDDEN", message: "Assinatura ativa necessária." });
     }
 
