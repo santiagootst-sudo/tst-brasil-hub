@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { legacyPublicAssetUrls } from "@shared/publicAssets";
 import { ENV } from "./env";
 
 export function registerStorageProxy(app: Express) {
@@ -6,6 +7,13 @@ export function registerStorageProxy(app: Express) {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {
       res.status(400).send("Missing storage key");
+      return;
+    }
+
+    const publicAssetUrl = legacyPublicAssetUrls[key];
+    if (publicAssetUrl) {
+      res.set("Cache-Control", "public, max-age=31536000, immutable");
+      res.redirect(302, publicAssetUrl);
       return;
     }
 

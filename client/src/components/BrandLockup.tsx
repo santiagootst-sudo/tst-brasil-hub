@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from "react";
+import { publicAssetUrls } from "@shared/publicAssets";
 
-const OFFICIAL_LOGO_URL = "/manus-storage/tst-brasil-hub-logo-otimizado_50d81e90.png";
+const OFFICIAL_LOGO_URL = publicAssetUrls.logo;
 
 type BrandLockupProps = HTMLAttributes<HTMLDivElement> & {
   compact?: boolean;

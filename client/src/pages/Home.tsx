@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandLockup } from "@/components/BrandLockup";
+import { publicAssetUrls } from "@shared/publicAssets";
 import {
   ArrowRight,
   BadgeCheck,
@@ -97,7 +98,7 @@ export default function Home() {
         <div
           aria-hidden="true"
           className="hub-hero-bg absolute inset-0 -z-20 bg-cover bg-[position:68%_center] sm:bg-center"
-          style={{ backgroundImage: "url('/manus-storage/tst-hub-hero-seguranca_e69cb11f.jpg')" }}
+          style={{ backgroundImage: `url('${publicAssetUrls.hero}')` }}
         />
         <div aria-hidden="true" className="hub-hero-overlay absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(3,34,39,.94)_0%,rgba(5,65,70,.78)_42%,rgba(12,116,116,.58)_100%)]" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[#0c7474]/20 backdrop-blur-[1px]" />
