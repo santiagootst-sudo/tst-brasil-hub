@@ -90,6 +90,44 @@ export async function approveAccessRequest(input: { requestId: number; adminUser
   return { request: (await db.select().from(accessRequests).where(eq(accessRequests.id, input.requestId)).limit(1))[0]!, expiresAt };
 }
 
+export async function createManualAccess(input: { fullName: string; email: string; phone?: string | null; companyName?: string | null; jobTitle?: string | null; adminUserId: number; durationDays: number; temporaryPassword: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const email = input.email.trim().toLowerCase();
+  const expiresAt = new Date(Date.now() + input.durationDays * 86_400_000);
+  const values = {
+    fullName: input.fullName.trim(),
+    phone: input.phone?.trim() || null,
+    companyName: input.companyName?.trim() || null,
+    jobTitle: input.jobTitle?.trim() || null,
+    status: "approved" as const,
+    credentialHash: hashCredential(input.temporaryPassword),
+    accessExpiresAt: expiresAt,
+    approvedByUserId: input.adminUserId,
+    approvedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const existing = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  if (existing) {
+    await db.update(accessRequests).set(values).where(eq(accessRequests.id, existing.id));
+  } else {
+    await db.insert(accessRequests).values({ email, ...values });
+  }
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0]!;
+  return { request, expiresAt };
+}
+
+export async function resetAccessCredential(input: { email: string; adminUserId: number; durationDays: number; temporaryPassword: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const email = input.email.trim().toLowerCase();
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  if (!request || request.status !== "approved") throw new Error("A conta ainda não possui acesso liberado.");
+  const expiresAt = new Date(Date.now() + input.durationDays * 86_400_000);
+  await db.update(accessRequests).set({ credentialHash: hashCredential(input.temporaryPassword), accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: new Date(), updatedAt: new Date() }).where(eq(accessRequests.id, request.id));
+  return { request: (await db.select().from(accessRequests).where(eq(accessRequests.id, request.id)).limit(1))[0]!, expiresAt };
+}
+
 export async function authenticateApprovedAccess(emailInput: string, password: string) {
   const db = await getDb();
   if (!db) return undefined;

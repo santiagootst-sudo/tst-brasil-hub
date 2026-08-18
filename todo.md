@@ -629,3 +629,6 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Encaminhar cada escolha de plano ao WhatsApp de atendimento com mensagem pré-preenchida contendo o plano selecionado.
 - [x] Garantir que o botão Acessar Plataforma abra o formulário de e-mail e senha para visitantes não autenticados.
 - [x] Exibir os cards de planos e valores diretamente na página inicial, com acesso comercial pelo WhatsApp.
+- [x] Criar painel administrativo de gestão de acessos com cadastro manual de novos usuários.
+- [x] Permitir gerar ou redefinir senha, definir prazo, bloquear, reativar e visualizar o status de cada acesso.
+- [x] Integrar o painel de acessos à navegação exclusiva do administrador mestre.
