@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import { eq, desc, sql } from "drizzle-orm";
-import { actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -42,11 +43,60 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     loginMethod: user.loginMethod ?? null,
     lastSignedIn: new Date(),
   };
+  if (user.accessStatus) updateSet.accessStatus = user.accessStatus;
+  if (user.accessExpiresAt !== undefined) updateSet.accessExpiresAt = user.accessExpiresAt;
   if (user.openId === ENV.ownerOpenId || user.email?.toLowerCase() === "santiagoocorretor@gmail.com") {
     values.role = "admin";
     updateSet.role = "admin";
   }
   await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+}
+
+function hashCredential(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
+}
+
+function verifyCredential(password: string, stored: string) {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const expected = Buffer.from(hash, "hex");
+  const received = Buffer.from(scryptSync(password, salt, 64).toString("hex"), "hex");
+  return expected.length === received.length && timingSafeEqual(expected, received);
+}
+
+export async function createAccessRequest(input: { fullName: string; email: string; phone?: string | null; companyName?: string | null; jobTitle?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível. Tente novamente em alguns instantes.");
+  const email = input.email.trim().toLowerCase();
+  const existing = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  if (existing) return existing;
+  await db.insert(accessRequests).values({ fullName: input.fullName.trim(), email, phone: input.phone?.trim() || null, companyName: input.companyName?.trim() || null, jobTitle: input.jobTitle?.trim() || null });
+  return (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0]!;
+}
+
+export async function listAccessRequestsForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(accessRequests).orderBy(desc(accessRequests.createdAt), desc(accessRequests.id));
+}
+
+export async function approveAccessRequest(input: { requestId: number; adminUserId: number; durationDays: number; temporaryPassword: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.id, input.requestId)).limit(1))[0];
+  if (!request) throw new Error("Solicitação não encontrada.");
+  const expiresAt = new Date(Date.now() + input.durationDays * 86_400_000);
+  await db.update(accessRequests).set({ status: "approved", credentialHash: hashCredential(input.temporaryPassword), accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: new Date(), updatedAt: new Date() }).where(eq(accessRequests.id, input.requestId));
+  return { request: (await db.select().from(accessRequests).where(eq(accessRequests.id, input.requestId)).limit(1))[0]!, expiresAt };
+}
+
+export async function authenticateApprovedAccess(emailInput: string, password: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, emailInput.trim().toLowerCase())).limit(1))[0];
+  if (!request || request.status !== "approved" || !request.credentialHash || (request.accessExpiresAt && request.accessExpiresAt.getTime() <= Date.now())) return undefined;
+  return verifyCredential(password, request.credentialHash) ? request : undefined;
 }
 
 export async function getUserByOpenId(openId: string) {

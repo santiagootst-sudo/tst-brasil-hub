@@ -619,4 +619,9 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [ ] Corrigir a resolução de preços Stripe em produção com identificadores explícitos por ciclo e retestar os três checkouts.
 - [x] Configurar a variável DATABASE_URL no serviço de produção do Render com a conexão TiDB segura.
 - [x] Validar persistência real de login, workspace e assinatura após reinicialização do serviço.
-- [x] Configurar no Stripe os preços recorrentes ativos dos planos mensal, trimestral e anual e validar os três checkouts.
+- [ ] Configurar no Stripe os preços recorrentes ativos dos planos mensal, trimestral e anual e validar os três checkouts.
+- [ ] Alinhar o modo da chave Stripe em produção aos preços configurados (teste ou real) e confirmar a criação de sessão para cada ciclo.
+- [ ] Adicionar seleção explícita do modo Stripe no servidor para evitar combinações entre chave real e preços de teste.
+- [x] Criar fluxo público de solicitação de acesso sem dependência de checkout Stripe.
+- [x] Criar painel do administrador para gerar e liberar credenciais temporárias ou permanentes para solicitantes.
+- [x] Ajustar o login para validar credenciais liberadas pelo administrador e bloquear acessos não aprovados.

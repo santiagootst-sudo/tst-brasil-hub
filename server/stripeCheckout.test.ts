@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({ getSubscriptionForUser: vi.fn(), upsertSubscription: vi.fn() }));
 const stripe = vi.hoisted(() => ({
+  constructedWith: vi.fn(),
   accountRetrieve: vi.fn(),
   priceList: vi.fn(),
   couponList: vi.fn(),
@@ -12,6 +13,9 @@ const stripe = vi.hoisted(() => ({
 vi.mock("./db", () => db);
 vi.mock("stripe", () => ({
   default: class StripeMock {
+    constructor(key: string) {
+      stripe.constructedWith(key);
+    }
     accounts = { retrieve: stripe.accountRetrieve };
     prices = { list: stripe.priceList };
     coupons = { list: stripe.couponList };
@@ -26,6 +30,8 @@ describe("checkout e portal de cobrança", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.STRIPE_SECRET_KEY = "sk_test_local_123";
+    delete process.env.STRIPE_MODE;
+    delete process.env.STRIPE_TEST_SECRET_KEY;
     delete process.env.STRIPE_LAUNCH_COUPON_ID;
     stripe.accountRetrieve.mockResolvedValue({ id: "acct_test_checkout" });
     stripe.couponList.mockResolvedValue({ data: [] });
@@ -55,6 +61,18 @@ describe("checkout e portal de cobrança", () => {
       sessionId: "cs_monthly",
     }));
     info.mockRestore();
+  });
+
+  it("prioriza a chave segregada de teste quando STRIPE_MODE=test", async () => {
+    process.env.STRIPE_MODE = "test";
+    process.env.STRIPE_TEST_SECRET_KEY = "sk_test_segregated_456";
+    db.getSubscriptionForUser.mockResolvedValue(undefined);
+    stripe.priceList.mockResolvedValue({ data: [{ id: "price_monthly" }] });
+    stripe.checkoutCreate.mockResolvedValue({ id: "cs_test_mode", url: "https://checkout.example/test-mode" });
+
+    await createSubscriptionCheckout({ userId: 16, planCode: "mensal", origin: "https://portal.example" });
+
+    expect(stripe.constructedWith).toHaveBeenCalledWith("sk_test_segregated_456");
   });
 
   it("registra a falha de checkout sem expor a credencial Stripe", async () => {

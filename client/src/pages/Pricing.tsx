@@ -31,13 +31,7 @@ export default function Pricing() {
   const { isAuthenticated } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { data: plans, isLoading } = trpc.billing.plans.useQuery();
-  const checkout = trpc.billing.checkout.useMutation({
-    onSuccess: ({ url }) => {
-      window.open(url, "_blank", "noopener");
-      toast.success("Abrimos o checkout seguro em uma nova aba.");
-    },
-    onError: error => toast.error(error.message),
-  });
+  const checkout = trpc.billing.checkout.useMutation();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -51,10 +45,9 @@ export default function Pricing() {
   }, [isAuthenticated]);
 
   const selectPlan = (code: PlanCode, enabled: boolean) => {
-    if (!enabled) {
-      toast.info("Este ciclo ainda precisa ser habilitado no ambiente Stripe de teste.");
-      return;
-    }
+    void enabled;
+    window.location.assign("/solicitar-acesso");
+    return;
     if (!isAuthenticated) {
       localStorage.setItem("tst_pending_plan", code);
       setIsLoginModalOpen(true);

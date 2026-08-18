@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
 const db = vi.hoisted(() => ({
+  approveAccessRequest: vi.fn(),
   getUserById: vi.fn(),
+  listAccessRequestsForAdmin: vi.fn(),
   listAdminAccessAudits: vi.fn(),
   listUsersForAdmin: vi.fn(),
   updateUserAccess: vi.fn(),
@@ -42,6 +44,15 @@ describe("adminRouter", () => {
 
     await expect(adminRouter.createCaller(context()).users()).resolves.toEqual([regularUser]);
     await expect(adminRouter.createCaller(context()).audits()).resolves.toEqual([]);
+  });
+
+  it("gera acesso para uma solicitação pendente somente como administrador", async () => {
+    const request = { id: 31, email: "ana@empresa.com", fullName: "Ana Segurança", status: "requested" };
+    db.approveAccessRequest.mockResolvedValue({ request, expiresAt: new Date("2026-09-11T00:00:00.000Z") });
+    const result = await adminRouter.createCaller(context()).grantAccess({ requestId: 31, durationDays: 30 });
+    expect(db.approveAccessRequest).toHaveBeenCalledWith(expect.objectContaining({ requestId: 31, adminUserId: 1, durationDays: 30, temporaryPassword: expect.stringMatching(/^TST-/) }));
+    expect(result.request).toEqual(request);
+    await expect(adminRouter.createCaller(context(regularUser)).grantAccess({ requestId: 31, durationDays: 30 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("renova acesso e calcula a validade a partir do momento atual", async () => {

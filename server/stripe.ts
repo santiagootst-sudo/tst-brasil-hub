@@ -4,8 +4,15 @@ import { getSubscriptionForUser, upsertSubscription } from "./db";
 import { getSubscriptionPlan, type PlanCode } from "./products";
 
 function stripeClient() {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const mode = process.env.STRIPE_MODE?.trim().toLowerCase();
+  const key = mode === "test" ? process.env.STRIPE_TEST_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY : process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("A chave de pagamentos não está configurada.");
+  if (mode === "test" && !key.startsWith("sk_test_")) {
+    throw new Error("STRIPE_MODE=test exige uma chave Stripe de teste (sk_test_). Revise as variáveis do Render.");
+  }
+  if (mode === "live" && !key.startsWith("sk_live_")) {
+    throw new Error("STRIPE_MODE=live exige uma chave Stripe de produção (sk_live_). Revise as variáveis do Render.");
+  }
   return new Stripe(key);
 }
 

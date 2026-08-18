@@ -10,6 +10,7 @@ import { z } from "zod";
 import { billingRouter } from "./routers/billingRouter";
 import { adminRouter } from "./routers/adminRouter";
 import { portalRouter } from "./routers/portalRouter";
+import { accessRouter } from "./routers/accessRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -36,15 +37,21 @@ export const appRouter = router({
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha incorreta para a conta master." });
         }
 
+        const approvedRequest = email === "santiagoocorretor@gmail.com" ? undefined : await db.authenticateApprovedAccess(email, password);
+        if (email !== "santiagoocorretor@gmail.com" && !approvedRequest) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso não liberado. Solicite suas credenciais ao administrador do TST Brasil Hub." });
+        }
+
         const openId = email === "santiagoocorretor@gmail.com" ? "owner-master-openid-12345" : `user-${Buffer.from(email).toString("hex")}`;
-        const name = email === "santiagoocorretor@gmail.com" ? "Santiago (Master Admin)" : email.split("@")[0];
+        const name = email === "santiagoocorretor@gmail.com" ? "Santiago (Master Admin)" : approvedRequest!.fullName;
         
         try {
           await db.upsertUser({
             openId,
             name,
             email,
-            loginMethod: "direct",
+          loginMethod: "direct",
+          ...(approvedRequest ? { accessStatus: "active" as const, accessExpiresAt: approvedRequest.accessExpiresAt } : {}),
             lastSignedIn: new Date(),
           });
         } catch (err: any) {
@@ -68,6 +75,7 @@ export const appRouter = router({
       }),
   }),
   portal: portalRouter,
+  access: accessRouter,
   billing: billingRouter,
   admin: adminRouter,
 });

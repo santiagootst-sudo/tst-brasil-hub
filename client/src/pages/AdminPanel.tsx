@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ShieldCheck, UserCheck, UserMinus, UserRound, UsersRound } from "lucide-react";
+import { Copy, KeyRound, ShieldCheck, UserCheck, UserMinus, UserRound, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -26,6 +26,7 @@ export default function AdminPanel() {
   const utils = trpc.useUtils();
   const usersQuery = trpc.admin.users.useQuery(undefined, { enabled: isAdmin });
   const auditsQuery = trpc.admin.audits.useQuery(undefined, { enabled: isAdmin });
+  const requestsQuery = trpc.admin.accessRequests.useQuery(undefined, { enabled: isAdmin });
   const [search, setSearch] = useState("");
   const [durationDays, setDurationDays] = useState(30);
   const [busyUserId, setBusyUserId] = useState<number | null>(null);
@@ -53,6 +54,14 @@ export default function AdminPanel() {
     },
     onError: error => toast.error(error.message),
     onSettled: () => setBusyUserId(null),
+  });
+  const grantAccess = trpc.admin.grantAccess.useMutation({
+    onSuccess: async data => {
+      try { await navigator.clipboard.writeText(`E-mail: ${data.request.email}\nSenha: ${data.temporaryPassword}`); } catch { /* clipboard is optional */ }
+      toast.success(`Credenciais geradas para ${data.request.email}. A senha foi copiada quando possível.`);
+      await Promise.all([utils.admin.accessRequests.invalidate(), utils.admin.users.invalidate()]);
+    },
+    onError: error => toast.error(error.message),
   });
 
   const filteredUsers = useMemo(() => {
@@ -98,6 +107,8 @@ export default function AdminPanel() {
           <MetricCard icon={<UserCheck className="h-5 w-5" />} label="Acessos ativos" value={activeCount} detail={expiringCount ? `${expiringCount} vencem em até 7 dias` : "Sem vencimentos próximos"} />
           <MetricCard icon={<UserMinus className="h-5 w-5" />} label="Desligados" value={suspendedCount} detail="Bloqueados no middleware protegido" />
         </section>
+
+        <Card className="rounded-[1.75rem] border-[#deece9] shadow-[0_14px_40px_rgba(16,43,50,.06)]"><CardHeader className="border-b border-[#edf3f1] px-5 py-5 lg:px-7"><CardTitle className="flex items-center gap-2 font-display text-xl text-[#102b32]"><KeyRound className="h-5 w-5 text-[#0c8c89]" />Solicitações de acesso</CardTitle><p className="mt-1 text-sm text-[#6b8185]">Aprove um pedido para gerar uma senha aleatória e liberar o login pelo prazo selecionado acima.</p></CardHeader><CardContent className="p-0">{requestsQuery.isLoading ? <div className="px-6 py-10 text-sm text-[#668087]">Carregando solicitações...</div> : !(requestsQuery.data?.length) ? <div className="px-6 py-10 text-center text-sm text-[#668087]">Ainda não há solicitações de acesso.</div> : <div className="divide-y divide-[#edf3f1]">{requestsQuery.data.map(request => <div key={request.id} className="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-7"><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-bold text-[#102b32]">{request.fullName}</p><Badge className={request.status === "approved" ? "border-0 bg-[#e7f7ef] text-[#18734d]" : "border-0 bg-[#fff5df] text-[#996a12]"}>{request.status === "approved" ? "Liberado" : "Aguardando aprovação"}</Badge></div><p className="mt-1 text-xs text-[#668087]">{request.email}{request.phone ? ` · ${request.phone}` : ""}</p><p className="mt-1 text-xs text-[#5d7479]">{request.companyName || "Empresa não informada"}{request.jobTitle ? ` · ${request.jobTitle}` : ""}</p></div>{request.status === "requested" ? <Button size="sm" disabled={grantAccess.isPending} onClick={() => grantAccess.mutate({ requestId: request.id, durationDays })} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Copy className="mr-2 h-4 w-4" />Gerar acesso {durationDays}d</Button> : <span className="text-xs text-[#668087]">Validade: {formatDate(request.accessExpiresAt)}</span>}</div>)}</div>}</CardContent></Card>
 
         <Card className="rounded-[1.75rem] border-[#deece9] shadow-[0_14px_40px_rgba(16,43,50,.06)]">
           <CardHeader className="gap-4 border-b border-[#edf3f1] px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-7"><div><CardTitle className="font-display text-xl text-[#102b32]">Usuários e ambientes</CardTitle><p className="mt-1 text-sm text-[#6b8185]">Renove por período, desligue o acesso ou reative uma conta em teste.</p></div><div className="flex flex-col gap-2 sm:flex-row"><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar nome, e-mail ou ID" className="h-10 w-full rounded-xl border-[#dcebe8] bg-[#fbfefd] sm:w-64" /><div className="flex rounded-xl border border-[#dcebe8] bg-[#fbfefd] p-1">{durationOptions.map(option => <button key={option} type="button" onClick={() => setDurationDays(option)} className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${durationDays === option ? "bg-[#0c8c89] text-white" : "text-[#668087] hover:bg-[#e8f6f1]"}`}>{option}d</button>)}</div></div></CardHeader>

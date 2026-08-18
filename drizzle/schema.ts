@@ -14,6 +14,22 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const accessRequests = mysqlTable("access_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  fullName: varchar("fullName", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  phone: varchar("phone", { length: 32 }),
+  companyName: varchar("companyName", { length: 255 }),
+  jobTitle: varchar("jobTitle", { length: 160 }),
+  status: mysqlEnum("status", ["requested", "approved", "rejected"]).default("requested").notNull(),
+  credentialHash: varchar("credentialHash", { length: 255 }),
+  accessExpiresAt: timestamp("accessExpiresAt"),
+  approvedByUserId: int("approvedByUserId"),
+  approvedAt: timestamp("approvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("access_requests_status_idx").on(table.status, table.createdAt)]);
+
 export const workspaces = mysqlTable("workspaces", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
