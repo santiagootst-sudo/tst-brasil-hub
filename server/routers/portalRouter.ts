@@ -9,6 +9,7 @@ import { pgrRouter } from "./pgrRouter";
 import { supportRouter } from "./supportRouter";
 import { workspaceRouter } from "./workspaceRouter";
 import { psychosocialRouter } from "./psychosocialRouter";
+import { cipaRouter } from "./cipaRouter";
 
 export const portalRouter = router({
   ...workspaceRouter._def.record,
@@ -21,4 +22,5 @@ export const portalRouter = router({
   ...planningRouter._def.record,
   ...supportRouter._def.record,
   ...psychosocialRouter._def.record,
+  ...cipaRouter._def.record,
 });

@@ -651,3 +651,10 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Definir o armazenamento local do dispositivo como cache opcional, sem substituir a Biblioteca Interna corporativa persistente.
 - [x] Permitir que técnicos salvem documentos autorizados para leitura offline, com atualização e remoção do cache local.
 - [x] Reestruturar a apresentação dos preços e benefícios nos cards de planos para destacar economia e recomendação de compra.
+- [x] Analisar os modelos enviados e definir a estrutura funcional do módulo CIPA.
+- [x] Ajustar a arquitetura da CIPA para uma gestão no contexto CLT e múltiplas CIPAs por empresa no contexto Prestador.
+- [x] Aplicar automaticamente o logotipo da empresa ativa nos documentos CIPA gerados pelo portal.
+- [x] Implementar os dados e regras do módulo CIPA: uma comissão no contexto CLT e gestões segregadas por empresa no contexto Prestador.
+- [x] Criar a interface do processo eleitoral CIPA com cronograma, comissão eleitoral, candidaturas, apuração consolidada e composição.
+- [x] Gerar documentos CIPA parametrizados com o logotipo da empresa ativa e registrar o dossiê por gestão.
+- [ ] Cobrir o módulo CIPA com testes, revisar a interface, enviar ao GitHub e publicar no Render.

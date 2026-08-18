@@ -186,6 +186,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
   ] : [{ label: "Aplicativos", items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/app" },
       { label: "Gerador de PGR", icon: ShieldCheck, path: "/app/pgr" },
+      { label: "CIPA", icon: ClipboardCheck, path: "/app/cipa" },
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Estrutura e equipe", hint: "Organize setores, funções e pessoas do ambiente para apoiar a operação de SST.", icon: UsersRound, path: "/app/estrutura" },
       { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },

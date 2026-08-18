@@ -5,9 +5,13 @@ describe("composição de routers do portal", () => {
   it("mantém todos os procedimentos de domínio no namespace plano portal", () => {
     expect(Object.keys(portalRouter._def.record).sort()).toEqual([
       "certificates",
+      "cipaSnapshot",
       "commercial",
       "createActionItem",
       "createCertificate",
+      "createCipaCommission",
+      "createCipaDocument",
+      "createCipaMember",
       "createClientEngagement",
       "createClientVisit",
       "createCompany",
@@ -39,6 +43,7 @@ describe("composição de routers do portal", () => {
       "suggestGhes",
       "supportTickets",
       "trainings",
+      "updateCipaMemberElection",
       "updateClientVisitStatus",
       "updateCompanyBranding",
       "uploadAttachment",

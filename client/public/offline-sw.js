@@ -1,4 +1,4 @@
-const SHELL_CACHE = "tst-library-shell-v1";
+const SHELL_CACHE = "tst-library-shell-v2";
 const SHELL_FALLBACK = "/";
 
 self.addEventListener("install", event => {
@@ -16,6 +16,9 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+
+  // Módulos de desenvolvimento são mutáveis e não devem entrar no cache offline.
+  if (url.pathname.startsWith("/src/") || url.pathname.startsWith("/@vite/") || url.pathname.startsWith("/node_modules/") || url.pathname.startsWith("/__manus__/")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(

@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -497,6 +497,96 @@ export async function createTrainingForWorkspace(input: {
     scheduledAt: input.scheduledAt ?? null,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export async function listCipaCommissionsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cipaCommissions).where(eq(cipaCommissions.workspaceId, workspaceId)).orderBy(desc(cipaCommissions.updatedAt));
+}
+
+export async function listCipaTermsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cipaTerms).where(eq(cipaTerms.workspaceId, workspaceId)).orderBy(desc(cipaTerms.updatedAt));
+}
+
+export async function listCipaMembersForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cipaMembers).where(eq(cipaMembers.workspaceId, workspaceId)).orderBy(desc(cipaMembers.voteCount), desc(cipaMembers.updatedAt));
+}
+
+export async function listCipaDocumentsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cipaDocuments).where(eq(cipaDocuments.workspaceId, workspaceId)).orderBy(desc(cipaDocuments.createdAt));
+}
+
+export async function getCipaCommissionForWorkspace(commissionId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(cipaCommissions).where(and(eq(cipaCommissions.id, commissionId), eq(cipaCommissions.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function getCipaTermForWorkspace(termId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(cipaTerms).where(and(eq(cipaTerms.id, termId), eq(cipaTerms.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function getCipaMemberForWorkspace(memberId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(cipaMembers).where(and(eq(cipaMembers.id, memberId), eq(cipaMembers.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function createCipaCommissionForWorkspace(input: {
+  workspaceId: number; companyId: number; riskLevel: number; employeeCount: number; city?: string | null; workplace?: string | null; unionName?: string | null;
+  termLabel: string; enrollmentStartsAt?: Date | null; electionAt?: Date | null; possessionAt?: Date | null; endsAt?: Date | null; createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const commissionInsert = await db.insert(cipaCommissions).values({
+    workspaceId: input.workspaceId, companyId: input.companyId, riskLevel: input.riskLevel, employeeCount: input.employeeCount,
+    city: input.city ?? null, workplace: input.workplace ?? null, unionName: input.unionName ?? null, createdByUserId: input.createdByUserId,
+  });
+  const commissionId = Number((commissionInsert as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  const termInsert = await db.insert(cipaTerms).values({
+    commissionId, workspaceId: input.workspaceId, label: input.termLabel, enrollmentStartsAt: input.enrollmentStartsAt ?? null,
+    electionAt: input.electionAt ?? null, possessionAt: input.possessionAt ?? null, endsAt: input.endsAt ?? null,
+  });
+  const termId = Number((termInsert as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  const commission = (await db.select().from(cipaCommissions).where(eq(cipaCommissions.id, commissionId)).limit(1))[0];
+  const term = (await db.select().from(cipaTerms).where(eq(cipaTerms.id, termId)).limit(1))[0];
+  return { commission, term };
+}
+
+export async function createCipaMemberForWorkspace(input: {
+  workspaceId: number; commissionId: number; termId: number; employeeId: number;
+  role: "election_committee" | "candidate" | "employer_representative" | "employee_representative";
+  condition: "titular" | "suplente" | "not_applicable"; notes?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(cipaMembers).values({ ...input, notes: input.notes ?? null });
+  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  return (await db.select().from(cipaMembers).where(eq(cipaMembers.id, id)).limit(1))[0];
+}
+
+export async function updateCipaMemberElectionForWorkspace(input: { memberId: number; workspaceId: number; voteCount: number; status: "active" | "withdrawn" | "elected" | "not_elected"; condition: "titular" | "suplente" | "not_applicable" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(cipaMembers).set({ voteCount: input.voteCount, status: input.status, condition: input.condition, updatedAt: new Date() }).where(and(eq(cipaMembers.id, input.memberId), eq(cipaMembers.workspaceId, input.workspaceId)));
+  return getCipaMemberForWorkspace(input.memberId, input.workspaceId);
+}
+
+export async function createCipaDocumentForWorkspace(input: { workspaceId: number; commissionId: number; termId: number; type: "election_committee" | "union_notice" | "notice" | "registration" | "ballot" | "election_minutes" | "possession_minutes" | "work_plan"; title: string; content: string; companyLogoUrl?: string | null; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(cipaDocuments).values({ ...input, companyLogoUrl: input.companyLogoUrl ?? null });
+  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  return (await db.select().from(cipaDocuments).where(eq(cipaDocuments.id, id)).limit(1))[0];
 }
 
 export async function listMaterialsForWorkspace(workspaceId: number) {

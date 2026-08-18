@@ -2,557 +2,283 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { jsPDF } from "jspdf";
 import {
-  ArrowRight,
-  Award,
+  BadgeCheck,
+  Building2,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Check,
   CheckCircle2,
-  ClipboardCheck,
-  Download,
-  FileCheck2,
-  FileSpreadsheet,
+  ChevronRight,
+  FileDown,
   FileText,
-  History,
-  HelpCircle,
-  ImageUp,
-  Info,
+  Gavel,
   Loader2,
   Plus,
-  RotateCcw,
-  Trash2,
-  Upload,
   ShieldCheck,
-  Sparkles,
   UsersRound,
-  X,
+  Vote,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
-import {
-  buildCipaDocuments,
-  emptyCipaForm,
-  formatDate,
-  suggestCipaComposition,
-  validateCipaForm,
-  type CipaDocument,
-  type CipaFormData,
-} from "@/lib/cipaAssistant";
-import { buildEmployeeElectionDocuments, createMonthlyMeetings, employeesToCsvTemplate, parseCipaEmployeeFile, type CipaEmployee } from "@/lib/cipaImport";
-import { buildMeetingMinutesContent, meetingsToIcs, type CipaMeetingItem } from "@/lib/cipaCalendar";
+import { toast } from "sonner";
 
-const steps = [
-  { label: "Empresa", icon: ShieldCheck },
-  { label: "Dimensionamento", icon: UsersRound },
-  { label: "Eleição", icon: ClipboardCheck },
-  { label: "Capacitação", icon: Award },
-  { label: "Reuniões", icon: CalendarDays },
-  { label: "Documentos", icon: FileCheck2 },
+type DocumentType = "election_committee" | "union_notice" | "notice" | "registration" | "ballot" | "election_minutes" | "possession_minutes" | "work_plan";
+
+const documentCatalog: Array<{ type: DocumentType; title: string; description: string }> = [
+  { type: "election_committee", title: "Ata da Comissão Eleitoral", description: "Formaliza os responsáveis pelo processo." },
+  { type: "union_notice", title: "Comunicação ao sindicato", description: "Registra o início do processo eleitoral." },
+  { type: "notice", title: "Edital de convocação", description: "Divulga inscrições, votação e apuração." },
+  { type: "registration", title: "Ficha de inscrição", description: "Gera o formulário individual de candidatura." },
+  { type: "ballot", title: "Cédula de votação", description: "Lista os candidatos para a votação física secreta." },
+  { type: "election_minutes", title: "Ata de eleição e apuração", description: "Consolida resultados e ordem dos candidatos." },
+  { type: "possession_minutes", title: "Ata de instalação e posse", description: "Formaliza a composição e o mandato." },
+  { type: "work_plan", title: "Plano de trabalho CIPA", description: "Organiza ações preventivas e acompanhamento anual." },
 ];
 
-type CipaMeeting = {
-  id: string;
-  date: string;
-  time: string;
-  title: string;
-  status: "agendada" | "realizada" | "cancelada";
-  notes: string;
-  attachments?: { id: string; name: string; type: "foto" | "documento"; url: string }[];
-};
-
-function meetingsStorageKey(workspaceId: number) {
-  return `tst-brasil-hub-cipa-meetings-${workspaceId}`;
+function dateInput(value?: Date | null) {
+  return value ? new Date(value).toISOString().slice(0, 10) : "";
 }
 
-function employeesStorageKey(workspaceId: number) {
-  return `tst-brasil-hub-cipa-employees-${workspaceId}`;
+function formatDate(value?: Date | null) {
+  return value ? new Date(value).toLocaleDateString("pt-BR") : "A definir";
 }
 
-function parseMonth(value: string) {
-  const [year, month] = value.split("-").map(Number);
-  return new Date(year, (month || 1) - 1, 1);
+function safeFileName(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/gi, "-").replace(/(^-|-$)/g, "").toLowerCase();
 }
 
-function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function monthLabel(value: string) {
-  return parseMonth(value).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-}
-
-function calendarDays(value: string) {
-  const month = parseMonth(value);
-  const firstWeekday = month.getDay();
-  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  return Array.from({ length: Math.ceil((firstWeekday + daysInMonth) / 7) * 7 }, (_, index) => {
-    const day = index - firstWeekday + 1;
-    return day > 0 && day <= daysInMonth ? new Date(month.getFullYear(), month.getMonth(), day) : null;
+async function asDataUrl(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Logo indisponível");
+  const blob = await response.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler o logo"));
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsDataURL(blob);
   });
 }
 
-
-type CipaHistoryEntry = CipaDocument & {
-  companyName: string;
-  createdAt: string;
-  logoDataUrl: string | null;
-};
-
-function historyStorageKey(workspaceId: number) {
-  return `tst-brasil-hub-cipa-history-${workspaceId}`;
-}
-
-function logoStorageKey(workspaceId: number) {
-  return `tst-brasil-hub-cipa-logo-${workspaceId}`;
-}
-
-const demoForm: CipaFormData = {
-  empresa: "",
-  cnpj: "",
-  grauRisco: 3,
-  empregados: 0,
-  endereco: "",
-  sindicato: "",
-  cidade: "",
-  dataInicioInscricao: "",
-  dataVotacao: "",
-  localVotacao: "",
-  dataPosse: "",
-  dataCurso1: "",
-  dataCurso2: "",
-  dataCurso3: "",
-  presidenteCE: "",
-  secretarioCE: "",
-  escrutinadorCE: "",
-  representanteLegal: "",
-  titularesEmpregador: 0,
-  suplentesEmpregador: 0,
-  titularesEmpregados: 0,
-  suplentesEmpregados: 0,
-};
-
-function Field({ label, hint, tooltip, children, className = "" }: { label: string; hint?: string; tooltip?: string; children: React.ReactNode; className?: string }) {
-  return (
-    <label className={`block text-sm font-semibold text-[#315158] ${className}`}>
-      <span className="flex items-center gap-2">{label}{hint && <span className="text-[11px] font-normal text-[#83a09a]">{hint}</span>}{tooltip && <Tooltip><TooltipTrigger asChild><button type="button" aria-label={`Orientação sobre ${label}`} className="inline-grid h-5 w-5 place-items-center rounded-full text-[#0c7474] transition hover:bg-[#e8f6f1]"><HelpCircle className="h-3.5 w-3.5" /></button></TooltipTrigger><TooltipContent side="top" className="max-w-xs rounded-xl border-[#b9dcd2] bg-[#063b43] p-3 text-xs leading-5 text-white shadow-xl">{tooltip}</TooltipContent></Tooltip>}</span>
-      <span className="mt-2 block">{children}</span>
-    </label>
-  );
-}
-
-function SectionCard({ icon: Icon, eyebrow, title, children, className = "" }: { icon: typeof ShieldCheck; eyebrow: string; title: string; children: React.ReactNode; className?: string }) {
-  return (
-    <section className={`rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-[0_14px_45px_rgba(16,43,50,.055)] lg:p-6 ${className}`}>
-      <div className="mb-5 flex items-start gap-3 border-b border-[#edf4f1] pb-4">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><Icon className="h-5 w-5" /></div>
-        <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">{eyebrow}</p><h2 className="mt-1 text-lg font-bold tracking-tight text-[#102b32]">{title}</h2></div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function downloadPdf(document: CipaDocument | CipaHistoryEntry, companyName: string, companyLogo: string | null = null) {
+async function downloadCipaPdf(document: { title: string; content: string; companyLogoUrl: string | null }, company: { name: string; document: string | null }) {
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const margin = 18;
-  const maxWidth = 174;
-  let cursor = 28;
-  const lines = pdf.splitTextToSize(document.content, maxWidth) as string[];
+  let cursor = 26;
   pdf.setFillColor(6, 59, 67);
-  pdf.rect(0, 0, 210, 16, "F");
+  pdf.rect(0, 0, 210, 17, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.text("TST BRASIL HUB  ·  ASSISTANT CIPA", margin, 10);
-  if (companyLogo) {
+  pdf.setFontSize(8);
+  pdf.text("TST BRASIL HUB  ·  CIPA", margin, 10.5);
+  if (document.companyLogoUrl) {
     try {
-      const imageFormat = companyLogo.startsWith("data:image/png") ? "PNG" : "JPEG";
-      pdf.addImage(companyLogo, imageFormat, 174, 3.5, 18, 9, undefined, "FAST");
+      const logo = await asDataUrl(document.companyLogoUrl);
+      const format = logo.includes("image/png") ? "PNG" : "JPEG";
+      pdf.addImage(logo, format, 171, 3.5, 21, 10, undefined, "FAST");
     } catch {
-      // A área reservada permanece no cabeçalho quando a imagem não puder ser incorporada.
+      // O documento continua válido mesmo quando a imagem remota não puder ser carregada no navegador.
     }
-  } else {
-    pdf.setDrawColor(142, 222, 199);
-    pdf.roundedRect(174, 3.5, 18, 9, 1.5, 1.5);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(5.5);
-    pdf.setTextColor(157, 231, 208);
-    pdf.text("LOGO", 183, 9, { align: "center" });
   }
   pdf.setTextColor(16, 43, 50);
-  pdf.setFont("helvetica", "bold");
   pdf.setFontSize(15);
   pdf.text(document.title, margin, cursor);
-  cursor += 9;
+  cursor += 8;
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
-  pdf.setTextColor(102, 128, 135);
-  pdf.text(`Empresa: ${companyName || "não informada"} · Identidade visual TST Brasil Hub`, margin, cursor);
-  cursor += 10;
+  pdf.setFontSize(8.5);
+  pdf.setTextColor(89, 111, 117);
+  pdf.text(`${company.name}${company.document ? ` · CNPJ ${company.document}` : ""}`, margin, cursor);
+  cursor += 8;
   pdf.setDrawColor(220, 235, 232);
   pdf.line(margin, cursor, 192, cursor);
   cursor += 8;
-  pdf.setFillColor(232, 246, 241);
+  pdf.setFillColor(244, 249, 247);
   pdf.roundedRect(margin, cursor, 174, 9, 2, 2, "F");
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(7.5);
+  pdf.setFontSize(7.3);
   pdf.setTextColor(12, 116, 116);
-  pdf.text("DOCUMENTO DE TRABALHO · REVISÃO TÉCNICA OBRIGATÓRIA", margin + 5, cursor + 5.8);
-  cursor += 16;
-  pdf.setTextColor(40, 54, 59);
+  pdf.text("DOCUMENTO DE TRABALHO · REVISÃO TÉCNICA E ASSINATURAS NECESSÁRIAS", margin + 5, cursor + 5.8);
+  cursor += 17;
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(9.5);
-  lines.forEach((line) => {
+  pdf.setFontSize(9.6);
+  pdf.setTextColor(39, 54, 59);
+  const lines = pdf.splitTextToSize(document.content, 174) as string[];
+  for (const line of lines) {
     if (cursor > 276) {
-      pdf.setFontSize(8);
-      pdf.setTextColor(102, 128, 135);
-      pdf.text("TST Brasil Hub · Assistant CIPA", margin, 288);
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(89, 111, 117);
+      pdf.text("TST Brasil Hub · Módulo CIPA", margin, 288);
       pdf.addPage();
       cursor = 24;
-      pdf.setTextColor(40, 54, 59);
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9.5);
+      pdf.setFontSize(9.6);
+      pdf.setTextColor(39, 54, 59);
     }
     pdf.text(line, margin, cursor);
-    cursor += 4.7;
-  });
-  pdf.setFontSize(8);
-  pdf.setTextColor(102, 128, 135);
-  pdf.text("Documento gerado no Assistant CIPA · revisar enquadramento legal, datas e assinaturas antes da emissão.", margin, 288);
-  const safeName = companyName.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "empresa";
-  pdf.save(`assistant-cipa-${safeName}-${document.id}.pdf`);
+    cursor += 4.8;
+  }
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(89, 111, 117);
+  pdf.text("Gerado no Módulo CIPA · validar dados, enquadramento e assinaturas antes do uso formal.", margin, 288);
+  pdf.save(`cipa-${safeFileName(company.name)}-${safeFileName(document.title)}.pdf`);
+}
+
+function documentContent(type: DocumentType, data: {
+  companyName: string; cnpj: string | null; city: string | null; unionName: string | null; workplace: string | null; termLabel: string;
+  enrollmentStartsAt: Date | null; electionAt: Date | null; possessionAt: Date | null; candidates: Array<{ name: string; votes: number }>;
+}) {
+  const company = `${data.companyName}${data.cnpj ? ` — CNPJ ${data.cnpj}` : ""}`;
+  const candidateLines = data.candidates.length ? data.candidates.map((candidate, index) => `${index + 1}. ${candidate.name}${type === "election_minutes" ? ` — ${candidate.votes} voto(s)` : ""}`).join("\n") : "Nenhum candidato registrado até o momento.";
+  const heading = `${data.companyName}\n${data.cnpj ? `CNPJ ${data.cnpj}\n` : ""}\n`;
+  const sign = `\n\n${data.city || "Cidade/UF"}, ${new Date().toLocaleDateString("pt-BR")}.\n\n__________________________________\nResponsável pelo processo CIPA`;
+  const values: Record<DocumentType, string> = {
+    election_committee: `${heading}ATA DE CONSTITUIÇÃO DA COMISSÃO ELEITORAL DA CIPA\n\nPara a gestão ${data.termLabel}, fica constituída a Comissão Eleitoral responsável por organizar e acompanhar as inscrições, a votação, a apuração e a documentação do processo. A comissão deverá zelar pela publicidade dos atos, pela confidencialidade do voto e pela precisão dos registros.${sign}`,
+    union_notice: `${heading}COMUNICAÇÃO DE INÍCIO DO PROCESSO ELEITORAL DA CIPA\n\nÀ ${data.unionName || "entidade sindical da categoria preponderante"}, comunicamos o início do processo eleitoral da CIPA referente à gestão ${data.termLabel}. O período de inscrições inicia em ${formatDate(data.enrollmentStartsAt)} e a votação está prevista para ${formatDate(data.electionAt)}.${sign}`,
+    notice: `${heading}EDITAL DE CONVOCAÇÃO PARA ELEIÇÃO DA CIPA\n\nA organização convoca os empregados do estabelecimento ${data.workplace || "informado"} para participarem do processo eleitoral da CIPA, gestão ${data.termLabel}.\n\nInscrições: a partir de ${formatDate(data.enrollmentStartsAt)}.\nVotação: ${formatDate(data.electionAt)}.\nLocal: ${data.workplace || "a definir"}.\n\nO processo observará voto secreto e a divulgação da relação dos inscritos.${sign}`,
+    registration: `${heading}FICHA DE INSCRIÇÃO DE CANDIDATO — CIPA\n\nGestão: ${data.termLabel}\n\nNome completo: _______________________________________________\nSetor: ________________________________________________________\nFunção: _______________________________________________________\nData de admissão: ____/____/________\nData da inscrição: ____/____/________\n\nAssinatura do candidato: ______________________________________\n\nProtocolo de recebimento: _____________________________________`,
+    ballot: `${heading}CÉDULA DE VOTAÇÃO — ELEIÇÃO CIPA\n\nGestão: ${data.termLabel}\nData da votação: ${formatDate(data.electionAt)}\n\nAssinale o(s) candidato(s) escolhido(s), conforme orientação da Comissão Eleitoral.\n\n${candidateLines}\n\nEsta cédula deve ser utilizada de forma a preservar o sigilo do voto.`,
+    election_minutes: `${heading}ATA DE ELEIÇÃO E APURAÇÃO DA CIPA\n\nGestão: ${data.termLabel}\nData da votação: ${formatDate(data.electionAt)}\n\nApós o encerramento da votação, a Comissão Eleitoral procedeu à apuração e registrou os candidatos em ordem de votos:\n\n${candidateLines}\n\nOs resultados devem ser conferidos, homologados e assinados pelos responsáveis antes da posse.${sign}`,
+    possession_minutes: `${heading}ATA DE INSTALAÇÃO E POSSE DA CIPA\n\nAos ${formatDate(data.possessionAt)}, foram instalados e empossados os integrantes da CIPA da gestão ${data.termLabel}. A comissão deverá executar seu plano de trabalho, realizar reuniões ordinárias e registrar suas deliberações em ata.${sign}`,
+    work_plan: `${heading}PLANO DE TRABALHO DA CIPA\n\nGestão: ${data.termLabel}\n\n1. Acompanhar a identificação de perigos e as medidas de prevenção.\n2. Realizar inspeções e registrar oportunidades de melhoria.\n3. Promover ações de prevenção, incluindo SIPAT.\n4. Acompanhar ocorrências, acidentes e recomendações preventivas.\n5. Incluir prevenção e combate ao assédio e à violência nas atividades da CIPA.\n\nCada ação deverá ser detalhada em reunião, com responsável, prazo e evidências de conclusão.${sign}`,
+  };
+  return values[type];
+}
+
+function SectionTitle({ icon: Icon, eyebrow, title, description }: { icon: typeof ShieldCheck; eyebrow: string; title: string; description: string }) {
+  return <div className="flex gap-3 border-b border-[#e8f0ee] pb-4"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#e8f6f1] text-[#0c7474]"><Icon className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">{eyebrow}</p><h2 className="mt-0.5 text-lg font-bold tracking-tight text-[#102b32]">{title}</h2><p className="mt-1 text-sm leading-5 text-[#668087]">{description}</p></div></div>;
 }
 
 export default function CipaAssistant() {
   const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
-  const search = useSearch();
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const workspaces = trpc.portal.workspaces.useQuery(undefined, { enabled: Boolean(user) });
   const requestedWorkspaceId = workspaceIdFromSearch(search);
-  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? workspaces.data?.[0] ?? null : workspaces.data?.[0] ?? null;
-  const [form, setForm] = useState<CipaFormData>(emptyCipaForm);
-  const [generatedDocuments, setGeneratedDocuments] = useState<CipaDocument[]>([]);
-  const [historyDocuments, setHistoryDocuments] = useState<CipaHistoryEntry[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<CipaDocument | CipaHistoryEntry | null>(null);
-  const [activeStep, setActiveStep] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
-  const [meetings, setMeetings] = useState<CipaMeeting[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(() => monthKey(new Date()));
-  const [selectedMeetingDate, setSelectedMeetingDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [meetingTime, setMeetingTime] = useState("09:00");
-  const [meetingNotes, setMeetingNotes] = useState("");
-  const [employees, setEmployees] = useState<CipaEmployee[]>([]);
-  const [isImportingEmployees, setIsImportingEmployees] = useState(false);
-
-  const composition = useMemo(() => suggestCipaComposition(form.grauRisco, form.empregados), [form.grauRisco, form.empregados]);
-  const totalMembers = form.titularesEmpregador + form.suplentesEmpregador + form.titularesEmpregados + form.suplentesEmpregados;
-  const completion = useMemo(() => {
-    const required = [form.empresa, form.cnpj, form.cidade, form.dataInicioInscricao, form.dataVotacao, form.localVotacao, form.representanteLegal];
-    return Math.round((required.filter(Boolean).length / required.length) * 100);
-  }, [form]);
-
-  useEffect(() => {
-    if (!activeWorkspace) return;
-    try {
-      const storedHistory = window.localStorage.getItem(historyStorageKey(activeWorkspace.id));
-      const storedLogo = window.localStorage.getItem(logoStorageKey(activeWorkspace.id));
-      const storedMeetings = window.localStorage.getItem(meetingsStorageKey(activeWorkspace.id));
-      const storedEmployees = window.localStorage.getItem(employeesStorageKey(activeWorkspace.id));
-      setHistoryDocuments(storedHistory ? JSON.parse(storedHistory) as CipaHistoryEntry[] : []);
-      setLogoDataUrl(storedLogo || null);
-      setMeetings(storedMeetings ? JSON.parse(storedMeetings) as CipaMeeting[] : []);
-      setEmployees(storedEmployees ? JSON.parse(storedEmployees) as CipaEmployee[] : []);
-    } catch {
-      setHistoryDocuments([]);
-      setLogoDataUrl(null);
-    }
-  }, [activeWorkspace?.id]);
+  const activeWorkspace = requestedWorkspaceId ? workspaces.data?.find(workspace => workspace.id === requestedWorkspaceId) ?? workspaces.data?.[0] : workspaces.data?.[0];
+  const snapshot = trpc.portal.cipaSnapshot.useQuery({ workspaceId: activeWorkspace?.id ?? 0 }, { enabled: Boolean(activeWorkspace?.id) });
+  const utils = trpc.useUtils();
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+  const [selectedCommissionId, setSelectedCommissionId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "election" | "members" | "documents">("overview");
+  const [showCreate, setShowCreate] = useState(false);
+  const [companyId, setCompanyId] = useState("");
+  const [riskLevel, setRiskLevel] = useState("3");
+  const [employeeCount, setEmployeeCount] = useState("0");
+  const [city, setCity] = useState("");
+  const [workplace, setWorkplace] = useState("");
+  const [unionName, setUnionName] = useState("");
+  const [termLabel, setTermLabel] = useState(`${new Date().getFullYear()}/${new Date().getFullYear() + 1}`);
+  const [enrollmentStartsAt, setEnrollmentStartsAt] = useState("");
+  const [electionAt, setElectionAt] = useState("");
+  const [possessionAt, setPossessionAt] = useState("");
+  const [candidateEmployeeId, setCandidateEmployeeId] = useState("");
+  const [committeeEmployeeId, setCommitteeEmployeeId] = useState("");
+  const [memberEmployeeId, setMemberEmployeeId] = useState("");
+  const [memberRole, setMemberRole] = useState<"employer_representative" | "employee_representative">("employer_representative");
+  const [memberCondition, setMemberCondition] = useState<"titular" | "suplente">("titular");
+  const [voteDrafts, setVoteDrafts] = useState<Record<number, string>>({});
 
   useEffect(() => {
+    if (!snapshot.data?.companies.length) return;
+    const next = activeWorkspace?.kind === "clt" ? snapshot.data.companies[0]?.id : selectedCompanyId ?? snapshot.data.companies[0]?.id;
+    setSelectedCompanyId(next ?? null);
+  }, [activeWorkspace?.kind, selectedCompanyId, snapshot.data?.companies]);
+
+  const selectedCompany = snapshot.data?.companies.find(company => company.id === selectedCompanyId) ?? null;
+  const commissionsForCompany = snapshot.data?.commissions.filter(item => item.companyId === selectedCompanyId) ?? [];
+  const selectedCommission = commissionsForCompany.find(item => item.id === selectedCommissionId) ?? commissionsForCompany[0] ?? null;
+  const selectedTerm = selectedCommission ? snapshot.data?.terms.filter(term => term.commissionId === selectedCommission.id).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0] ?? null : null;
+  const commissionEmployees = snapshot.data?.employees.filter(employee => employee.companyId === selectedCompanyId && employee.status === "active") ?? [];
+  const members = selectedTerm ? snapshot.data?.members.filter(member => member.termId === selectedTerm.id) ?? [] : [];
+  const candidates = members.filter(member => member.role === "candidate");
+  const committee = members.filter(member => member.role === "election_committee");
+  const installedMembers = members.filter(member => member.role === "employer_representative" || member.role === "employee_representative");
+  const documents = selectedTerm ? snapshot.data?.documents.filter(document => document.termId === selectedTerm.id) ?? [] : [];
+  const employeeName = (employeeId: number) => snapshot.data?.employees.find(employee => employee.id === employeeId)?.fullName ?? "Funcionário não localizado";
+
+  const createCommission = trpc.portal.createCipaCommission.useMutation({
+    onSuccess: async () => { await utils.portal.cipaSnapshot.invalidate(); setShowCreate(false); setActiveTab("overview"); toast.success("Gestão CIPA criada e vinculada à empresa."); },
+    onError: error => toast.error(error.message),
+  });
+  const createMember = trpc.portal.createCipaMember.useMutation({
+    onSuccess: async () => { await utils.portal.cipaSnapshot.invalidate(); setCandidateEmployeeId(""); setCommitteeEmployeeId(""); setMemberEmployeeId(""); toast.success("Registro incluído na gestão CIPA."); },
+    onError: error => toast.error(error.message),
+  });
+  const updateElection = trpc.portal.updateCipaMemberElection.useMutation({ onSuccess: () => utils.portal.cipaSnapshot.invalidate(), onError: error => toast.error(error.message) });
+  const createDocument = trpc.portal.createCipaDocument.useMutation({ onError: error => toast.error(error.message) });
+
+  const resetCompanyForm = (nextCompanyId: string) => {
+    setCompanyId(nextCompanyId);
+    const count = snapshot.data?.employees.filter(employee => employee.companyId === Number(nextCompanyId) && employee.status === "active").length ?? 0;
+    setEmployeeCount(String(count));
+  };
+
+  const handleCreate = () => {
+    if (!activeWorkspace || !companyId) return toast.error("Selecione a empresa para a CIPA.");
+    createCommission.mutate({
+      workspaceId: activeWorkspace.id, companyId: Number(companyId), riskLevel: Number(riskLevel), employeeCount: Number(employeeCount),
+      city: city || null, workplace: workplace || null, unionName: unionName || null, termLabel,
+      enrollmentStartsAt: enrollmentStartsAt ? new Date(`${enrollmentStartsAt}T12:00:00`) : null,
+      electionAt: electionAt ? new Date(`${electionAt}T12:00:00`) : null,
+      possessionAt: possessionAt ? new Date(`${possessionAt}T12:00:00`) : null,
+      endsAt: possessionAt ? new Date(new Date(`${possessionAt}T12:00:00`).setFullYear(new Date(`${possessionAt}T12:00:00`).getFullYear() + 1)) : null,
+    });
+  };
+
+  const addMember = (employeeId: string, role: "election_committee" | "candidate" | "employer_representative" | "employee_representative", condition: "titular" | "suplente" | "not_applicable" = "not_applicable") => {
+    if (!activeWorkspace || !selectedCommission || !selectedTerm || !employeeId) return toast.error("Selecione um funcionário e uma gestão CIPA.");
+    createMember.mutate({ workspaceId: activeWorkspace.id, commissionId: selectedCommission.id, termId: selectedTerm.id, employeeId: Number(employeeId), role, condition });
+  };
+
+  const saveCandidateResult = (candidate: typeof candidates[number], status: "elected" | "not_elected", condition: "titular" | "suplente" | "not_applicable") => {
     if (!activeWorkspace) return;
+    updateElection.mutate({ workspaceId: activeWorkspace.id, memberId: candidate.id, voteCount: Number(voteDrafts[candidate.id] ?? candidate.voteCount), status, condition });
+  };
+
+  const generateDocument = async (type: DocumentType) => {
+    if (!activeWorkspace || !selectedCommission || !selectedTerm || !selectedCompany) return;
+    const catalog = documentCatalog.find(item => item.type === type);
+    if (!catalog) return;
+    const content = documentContent(type, {
+      companyName: selectedCompany.name, cnpj: selectedCompany.document, city: selectedCommission.city, unionName: selectedCommission.unionName,
+      workplace: selectedCommission.workplace, termLabel: selectedTerm.label, enrollmentStartsAt: selectedTerm.enrollmentStartsAt,
+      electionAt: selectedTerm.electionAt, possessionAt: selectedTerm.possessionAt,
+      candidates: candidates.map(candidate => ({ name: employeeName(candidate.employeeId), votes: candidate.voteCount })),
+    });
     try {
-      window.localStorage.setItem(historyStorageKey(activeWorkspace.id), JSON.stringify(historyDocuments.slice(0, 80)));
-      window.localStorage.setItem(meetingsStorageKey(activeWorkspace.id), JSON.stringify(meetings));
-      window.localStorage.setItem(employeesStorageKey(activeWorkspace.id), JSON.stringify(employees));
-    } catch {
-      toast.error("Não foi possível atualizar os dados locais deste navegador.");
-    }
-  }, [activeWorkspace?.id, employees, historyDocuments, meetings]);
-
-  const update = <K extends keyof CipaFormData>(key: K, value: CipaFormData[K]) => setForm(current => ({ ...current, [key]: value }));
-
-  const handleLogoUpload = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecione uma imagem válida para a logo da empresa.");
-      return;
-    }
-    if (file.size > 2_500_000) {
-      toast.error("A logo deve ter no máximo 2,5 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : null;
-      setLogoDataUrl(result);
-      if (activeWorkspace && result) window.localStorage.setItem(logoStorageKey(activeWorkspace.id), result);
-      toast.success("Logo da empresa aplicada aos próximos PDFs.");
-    };
-    reader.readAsDataURL(file);
+      const created = await createDocument.mutateAsync({ workspaceId: activeWorkspace.id, commissionId: selectedCommission.id, termId: selectedTerm.id, type, title: catalog.title, content });
+      await utils.portal.cipaSnapshot.invalidate();
+      await downloadCipaPdf(created, selectedCompany);
+      toast.success("Documento registrado no dossiê e preparado em PDF.");
+    } catch { /* o estado de erro do mutation já informa o usuário */ }
   };
 
-  const removeLogo = () => {
-    setLogoDataUrl(null);
-    if (activeWorkspace) window.localStorage.removeItem(logoStorageKey(activeWorkspace.id));
-    toast.success("Logo removida da identidade dos PDFs.");
-  };
+  if (loading || workspaces.isLoading || snapshot.isLoading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-7 w-7 animate-spin text-[#0c7474]" /></div>;
+  if (!activeWorkspace) return <DashboardLayout title="CIPA"><div className="mx-auto max-w-xl rounded-3xl border border-[#dcebe8] bg-white p-10 text-center shadow-sm"><ShieldCheck className="mx-auto h-10 w-10 text-[#0c7474]" /><h2 className="mt-4 text-2xl font-bold text-[#102b32]">Crie um ambiente para iniciar a CIPA.</h2><p className="mt-2 text-sm leading-6 text-[#668087]">A gestão eleitoral e documental precisa ficar vinculada ao ambiente correto.</p><Button onClick={() => setLocation("/app")} className="mt-6 rounded-xl bg-[#0c7474] text-white">Voltar ao dashboard</Button></div></DashboardLayout>;
 
-  const addMonthlyMeetings = () => {
-    if (!selectedMeetingDate) {
-      toast.error("Informe a data da primeira reunião.");
-      return;
-    }
-    const newMeetings = createMonthlyMeetings(selectedMeetingDate).map(meeting => ({ ...meeting, time: meetingTime, notes: meetingNotes || meeting.notes }));
-    setMeetings(current => [...newMeetings, ...current.filter(existing => !newMeetings.some(next => next.id === existing.id))].sort((a, b) => a.date.localeCompare(b.date)));
-    setSelectedMonth(selectedMeetingDate.slice(0, 7));
-    toast.success("Calendário mensal da CIPA atualizado com 12 reuniões.");
-  };
+  const modeLabel = activeWorkspace.kind === "clt" ? "Ambiente CLT · uma CIPA" : "Prestador · CIPAs por empresa";
+  return <DashboardLayout title="CIPA"><div className="mx-auto max-w-7xl space-y-6">
+    <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(120deg,#063b43_0%,#0c7474_53%,#174d71_100%)] p-6 text-white shadow-[0_20px_60px_rgba(6,59,67,.22)] lg:p-8">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full bg-[#8edec7]/20 blur-3xl" />
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"><div><div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#a8efd8]"><ShieldCheck className="h-4 w-4" /> Gestão documental e eleitoral</div><h1 className="mt-3 max-w-3xl font-display text-3xl font-bold tracking-tight lg:text-4xl">CIPA organizada, rastreável e por empresa.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Conduza o ciclo eleitoral, a composição e o dossiê da CIPA sem misturar os dados das empresas atendidas.</p><span className="mt-5 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90">{modeLabel}</span></div><div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-md"><p className="text-xs font-bold uppercase tracking-[.14em] text-white/65">Dossiê da empresa</p><div className="mt-2 flex items-center gap-3">{selectedCompany?.logoUrl ? <img src={selectedCompany.logoUrl} alt={`Logo ${selectedCompany.name}`} className="h-10 w-16 rounded-lg bg-white object-contain p-1" /> : <Building2 className="h-9 w-9 text-[#a8efd8]" />}<div><p className="text-sm font-bold">{selectedCompany?.name ?? "Selecione uma empresa"}</p><p className="mt-0.5 text-xs text-white/60">Logo aplicado aos documentos emitidos</p></div></div></div></div>
+    </section>
 
-  const updateMeetingStatus = (meetingId: string, status: CipaMeeting["status"]) => {
-    setMeetings(current => current.map(meeting => meeting.id === meetingId ? { ...meeting, status } : meeting));
-  };
+    <div className="flex flex-col gap-3 rounded-2xl border border-[#dcebe8] bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#edf8f5] text-[#0c7474]"><Building2 className="h-5 w-5" /></div><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#83a09a]">Empresa ativa</p>{activeWorkspace.kind === "autonomo" ? <select value={selectedCompanyId ?? ""} onChange={event => { setSelectedCompanyId(Number(event.target.value)); setSelectedCommissionId(null); }} className="mt-0.5 max-w-xs bg-transparent text-sm font-bold text-[#102b32] outline-none">{snapshot.data?.companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select> : <p className="truncate text-sm font-bold text-[#102b32]">{selectedCompany?.name ?? "Cadastre a empresa em Estrutura"}</p>}</div></div><div className="flex items-center gap-2"><span className="rounded-full bg-[#f2f8f6] px-3 py-1.5 text-xs font-semibold text-[#51706e]">{commissionsForCompany.length} CIPA(s) registrada(s)</span><Button onClick={() => { setShowCreate(true); resetCompanyForm(String(selectedCompanyId ?? "")); }} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Plus className="mr-2 h-4 w-4" />Nova gestão</Button></div></div>
 
-  const addMeetingAttachment = (meetingId: string, file: File | undefined, type: "foto" | "documento") => {
-    if (!file) return;
-    if (file.size > 3_000_000) {
-      toast.error("O anexo deve ter no máximo 3 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      if (!result) return;
-      setMeetings(current => current.map(meeting => {
-        if (meeting.id !== meetingId) return meeting;
-        const currentAttachments = meeting.attachments || [];
-        return {
-          ...meeting,
-          attachments: [...currentAttachments, { id: crypto.randomUUID(), name: file.name, type, url: result }],
-        };
-      }));
-      toast.success(`${type === "foto" ? "Foto de inspeção" : "Documento"} anexado à reunião.`);
-    };
-    reader.readAsDataURL(file);
-  };
+    {showCreate && <section className="rounded-[1.75rem] border border-[#a9dbcf] bg-[linear-gradient(120deg,#effaf6_0%,#ffffff_55%)] p-5 shadow-sm lg:p-6"><SectionTitle icon={Plus} eyebrow="Nova gestão" title="Configurar a CIPA e o primeiro mandato" description={activeWorkspace.kind === "clt" ? "O ambiente CLT mantém uma única CIPA e preserva os mandatos no histórico." : "No ambiente Prestador, a gestão fica isolada pela empresa cliente selecionada."} /><div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3"><label className="text-sm font-semibold text-[#315158]">Empresa<select value={companyId} onChange={event => resetCompanyForm(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium outline-none">{snapshot.data?.companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label><label className="text-sm font-semibold text-[#315158]">Grau de risco<select value={riskLevel} onChange={event => setRiskLevel(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium outline-none"><option value="1">Grau 1</option><option value="2">Grau 2</option><option value="3">Grau 3</option><option value="4">Grau 4</option></select></label><label className="text-sm font-semibold text-[#315158]">Empregados do estabelecimento<Input type="number" min="0" value={employeeCount} onChange={event => setEmployeeCount(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" /></label><label className="text-sm font-semibold text-[#315158]">Mandato / gestão<Input value={termLabel} onChange={event => setTermLabel(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" placeholder="2026/2027" /></label><label className="text-sm font-semibold text-[#315158]">Cidade / UF<Input value={city} onChange={event => setCity(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" placeholder="Porto Alegre/RS" /></label><label className="text-sm font-semibold text-[#315158]">Local de votação<Input value={workplace} onChange={event => setWorkplace(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" placeholder="Unidade, refeitório, auditório" /></label><label className="text-sm font-semibold text-[#315158] md:col-span-2">Sindicato da categoria <span className="font-normal text-[#83a09a]">(se aplicável)</span><Input value={unionName} onChange={event => setUnionName(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" /></label><label className="text-sm font-semibold text-[#315158]">Início das inscrições<Input type="date" value={enrollmentStartsAt} onChange={event => setEnrollmentStartsAt(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" /></label><label className="text-sm font-semibold text-[#315158]">Data da votação<Input type="date" value={electionAt} onChange={event => setElectionAt(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" /></label><label className="text-sm font-semibold text-[#315158]">Data da posse<Input type="date" value={possessionAt} onChange={event => setPossessionAt(event.target.value)} className="mt-2 h-11 rounded-xl border-[#cfe3de]" /></label></div><div className="mt-5 flex flex-wrap justify-end gap-3"><Button variant="ghost" onClick={() => setShowCreate(false)}>Cancelar</Button><Button disabled={createCommission.isPending} onClick={handleCreate} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">{createCommission.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Criar gestão CIPA</Button></div></section>}
 
-  const removeMeetingAttachment = (meetingId: string, attachmentId: string) => {
-    setMeetings(current => current.map(meeting => meeting.id === meetingId ? { ...meeting, attachments: (meeting.attachments || []).filter(item => item.id !== attachmentId) } : meeting));
-    toast.success("Anexo removido.");
-  };
+    {!selectedCompany ? <section className="rounded-[1.75rem] border border-dashed border-[#c9ded8] bg-white p-10 text-center"><Building2 className="mx-auto h-10 w-10 text-[#0c7474]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Cadastre a empresa antes de iniciar.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#668087]">A CIPA é sempre vinculada à empresa e seus documentos usam o logotipo cadastrado no respectivo ambiente.</p><Button onClick={() => setLocation(`/app/estrutura?workspace=${activeWorkspace.id}`)} variant="outline" className="mt-5 rounded-xl border-[#b9dcd2] text-[#0c7474]">Abrir Estrutura da empresa <ChevronRight className="ml-2 h-4 w-4" /></Button></section> : !selectedCommission || !selectedTerm ? <section className="rounded-[1.75rem] border border-dashed border-[#c9ded8] bg-white p-10 text-center"><ShieldCheck className="mx-auto h-11 w-11 text-[#0c7474]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Nenhuma gestão CIPA para {selectedCompany.name}.</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#668087]">Crie a gestão para registrar o cronograma eleitoral, os integrantes e os documentos desta empresa.</p><Button onClick={() => { setShowCreate(true); resetCompanyForm(String(selectedCompany.id)); }} className="mt-5 rounded-xl bg-[#0c7474] text-white"><Plus className="mr-2 h-4 w-4" />Criar gestão</Button></section> : <>
+      {commissionsForCompany.length > 1 && <div className="flex flex-wrap gap-2">{commissionsForCompany.map(commission => <button key={commission.id} onClick={() => setSelectedCommissionId(commission.id)} className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${selectedCommission.id === commission.id ? "bg-[#0c7474] text-white" : "bg-[#edf6f3] text-[#51706e] hover:bg-[#dceee8]"}`}>CIPA #{commission.id}</button>)}</div>}
+      <nav className="flex overflow-x-auto rounded-2xl border border-[#dcebe8] bg-white p-1.5 shadow-sm" aria-label="Navegação da gestão CIPA">{([ ["overview", "Visão da gestão", ShieldCheck], ["election", "Processo eleitoral", Vote], ["members", "Composição", UsersRound], ["documents", "Documentos", FileText] ] as const).map(([key, label, Icon]) => <button key={key} onClick={() => setActiveTab(key)} className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition ${activeTab === key ? "bg-[#e8f6f1] text-[#0c7474] shadow-sm" : "text-[#668087] hover:bg-[#f6fbf9]"}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>
 
-  const downloadMeetingMinutes = (meeting: CipaMeeting) => {
-    let content = buildMeetingMinutesContent(meeting, form.empresa);
-    const attachments = meeting.attachments || [];
-    if (attachments.length) {
-      const notesLines = [
-        "",
-        "5. ANEXOS, FOTOS DE INSPEÇÃO E REGISTROS COMPLEMENTARES",
-        ...attachments.map(att => `- [${att.type.toUpperCase()}] ${att.name} (Registrado e arquivado no acervo digital do TST Brasil Hub)`),
-      ];
-      content += "\n" + notesLines.join("\n");
-    }
-    const meetingDoc = {
-      id: `ata-${meeting.id}`,
-      title: `Ata de Reunião CIPA · ${meeting.date}`,
-      category: "gestao" as const,
-      description: `Ata gerada automaticamente para a reunião de ${meeting.date} com ${attachments.length} anexo(s).`,
-      content,
-    };
-    downloadDocument(meetingDoc);
-    toast.success("Ata de reunião gerada em PDF com os anexos incluídos.");
-  };
+      {activeTab === "overview" && <div className="grid gap-5 lg:grid-cols-[1.3fr_.7fr]"><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm lg:p-6"><SectionTitle icon={ShieldCheck} eyebrow="Gestão ativa" title={`CIPA · ${selectedTerm.label}`} description="Acompanhamento da empresa, do ciclo eleitoral e do dossiê documental." /><div className="mt-6 grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-[#f5faf8] p-4"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#83a09a]">Empresa</p><p className="mt-1 font-bold text-[#17383e]">{selectedCompany.name}</p><p className="mt-1 text-xs text-[#668087]">{selectedCompany.document || "CNPJ não informado"}</p></div><div className="rounded-2xl bg-[#f5faf8] p-4"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#83a09a]">Dimensionamento informado</p><p className="mt-1 font-bold text-[#17383e]">Grau {selectedCommission.riskLevel} · {selectedCommission.employeeCount} empregados</p><p className="mt-1 text-xs text-[#668087]">Validar conforme o Quadro I da NR-05.</p></div><div className="rounded-2xl bg-[#f5faf8] p-4"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#83a09a]">Votação</p><p className="mt-1 font-bold text-[#17383e]">{formatDate(selectedTerm.electionAt)}</p><p className="mt-1 text-xs text-[#668087]">Inscrições desde {formatDate(selectedTerm.enrollmentStartsAt)}</p></div><div className="rounded-2xl bg-[#f5faf8] p-4"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#83a09a]">Posse</p><p className="mt-1 font-bold text-[#17383e]">{formatDate(selectedTerm.possessionAt)}</p><p className="mt-1 text-xs text-[#668087]">Mandato até {formatDate(selectedTerm.endsAt)}</p></div></div></section><section className="rounded-[1.75rem] bg-[#083f47] p-5 text-white shadow-[0_14px_45px_rgba(6,59,67,.18)]"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#a8efd8]">Próxima ação</p><h2 className="mt-3 text-xl font-bold leading-tight">Complete a comissão e publique o edital.</h2><p className="mt-3 text-sm leading-6 text-white/70">O dossiê é gerado com a identidade visual de {selectedCompany.name} e fica disponível apenas neste ambiente.</p><Button onClick={() => setActiveTab("election")} className="mt-5 rounded-xl bg-[#a8efd8] text-[#053d43] hover:bg-white">Abrir processo eleitoral <ChevronRight className="ml-2 h-4 w-4" /></Button><div className="mt-6 border-t border-white/10 pt-4 text-xs text-white/60">{candidates.length} candidato(s) · {installedMembers.length} membro(s) composto(s) · {documents.length} documento(s)</div></section></div>}
 
-  const exportMeetingsIcs = () => {
-    if (!meetings.length) {
-      toast.error("Nenhuma reunião agendada no calendário para exportar.");
-      return;
-    }
-    const icsContent = meetingsToIcs(meetings, form.empresa);
-    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "calendario-cipa-reunioes.ics";
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("Calendário exportado para .ics (compatível com Google e Outlook).");
-  };
+      {activeTab === "election" && <div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm"><SectionTitle icon={Gavel} eyebrow="Comissão eleitoral" title="Responsáveis pelo processo" description="Selecione os integrantes registrados entre os funcionários da empresa." /><div className="mt-5 flex gap-2"><select value={committeeEmployeeId} onChange={event => setCommitteeEmployeeId(event.target.value)} className="h-11 min-w-0 flex-1 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm outline-none"><option value="">Selecionar funcionário</option>{commissionEmployees.map(employee => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}</select><Button disabled={createMember.isPending} onClick={() => addMember(committeeEmployeeId, "election_committee")} className="rounded-xl bg-[#0c7474] text-white">Adicionar</Button></div><div className="mt-5 space-y-2">{committee.length ? committee.map(item => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-[#e6f0ee] p-3"><span className="grid h-8 w-8 place-items-center rounded-lg bg-[#e8f6f1] text-[#0c7474]"><Gavel className="h-4 w-4" /></span><p className="text-sm font-bold text-[#315158]">{employeeName(item.employeeId)}</p></div>) : <p className="rounded-xl bg-[#f8fbfa] p-4 text-sm text-[#668087]">Ainda não há comissão eleitoral registrada.</p>}</div></section><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm"><SectionTitle icon={Vote} eyebrow="Candidaturas e apuração" title="Representação dos empregados" description="Registre candidaturas e, após a votação, inclua o resultado consolidado sem armazenar voto individual." /><div className="mt-5 flex gap-2"><select value={candidateEmployeeId} onChange={event => setCandidateEmployeeId(event.target.value)} className="h-11 min-w-0 flex-1 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm outline-none"><option value="">Selecionar candidato</option>{commissionEmployees.map(employee => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}</select><Button disabled={createMember.isPending} onClick={() => addMember(candidateEmployeeId, "candidate")} className="rounded-xl bg-[#0c7474] text-white">Inscrever</Button></div><div className="mt-5 space-y-3">{candidates.length ? candidates.map(candidate => <div key={candidate.id} className="rounded-2xl border border-[#e4efec] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold text-[#17383e]">{employeeName(candidate.employeeId)}</p><p className="mt-1 text-xs text-[#668087]">Status: {candidate.status === "elected" ? "Eleito" : candidate.status === "not_elected" ? "Não eleito" : "Candidatura ativa"}</p></div><div className="flex flex-wrap items-center gap-2"><Input type="number" min="0" value={voteDrafts[candidate.id] ?? String(candidate.voteCount)} onChange={event => setVoteDrafts(current => ({ ...current, [candidate.id]: event.target.value }))} className="h-9 w-20 rounded-lg border-[#cfe3de] text-sm" aria-label={`Votos de ${employeeName(candidate.employeeId)}`} /><Button size="sm" variant="outline" onClick={() => saveCandidateResult(candidate, "elected", "titular")} className="rounded-lg border-[#9fd3c4] text-[#0c7474]">Titular</Button><Button size="sm" variant="outline" onClick={() => saveCandidateResult(candidate, "elected", "suplente")} className="rounded-lg border-[#9fd3c4] text-[#0c7474]">Suplente</Button><Button size="sm" variant="ghost" onClick={() => saveCandidateResult(candidate, "not_elected", "not_applicable")} className="rounded-lg text-[#668087]">Não eleito</Button></div></div></div>) : <p className="rounded-xl bg-[#f8fbfa] p-4 text-sm text-[#668087]">Inscreva os candidatos para disponibilizá-los na cédula e na ata de apuração.</p>}</div></section></div>}
 
-  const handleEmployeeImport = async (file: File | undefined) => {
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".csv") && !file.name.toLowerCase().endsWith(".txt")) {
-      toast.error("Use uma planilha CSV ou TXT exportada do Excel/Google Sheets.");
-      return;
-    }
-    setIsImportingEmployees(true);
-    try {
-      const content = await file.text();
-      const imported = parseCipaEmployeeFile(content);
-      setEmployees(imported);
-      toast.success(`${imported.length} funcionário(s) importado(s) para votação e candidatos.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível ler a planilha.");
-    } finally {
-      setIsImportingEmployees(false);
-    }
-  };
+      {activeTab === "members" && <div className="grid gap-5 xl:grid-cols-[.75fr_1.25fr]"><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm"><SectionTitle icon={UsersRound} eyebrow="Composição" title="Designados e representantes" description="Inclua os membros do empregador e consolide os representantes eleitos." /><div className="mt-5 space-y-3"><select value={memberEmployeeId} onChange={event => setMemberEmployeeId(event.target.value)} className="h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm outline-none"><option value="">Selecionar funcionário</option>{commissionEmployees.map(employee => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}</select><div className="grid grid-cols-2 gap-3"><select value={memberRole} onChange={event => setMemberRole(event.target.value as typeof memberRole)} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm outline-none"><option value="employer_representative">Representante do empregador</option><option value="employee_representative">Representante dos empregados</option></select><select value={memberCondition} onChange={event => setMemberCondition(event.target.value as typeof memberCondition)} className="h-11 rounded-xl border border-[#cfe3de] bg-white px-3 text-sm outline-none"><option value="titular">Titular</option><option value="suplente">Suplente</option></select></div><Button disabled={createMember.isPending} onClick={() => addMember(memberEmployeeId, memberRole, memberCondition)} className="w-full rounded-xl bg-[#0c7474] text-white">Adicionar à composição</Button></div></section><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm"><SectionTitle icon={BadgeCheck} eyebrow="Quadro atual" title="Integrantes da gestão" description="A composição combina designados, eleitos e suplentes registrados no processo." /><div className="mt-5 grid gap-3 md:grid-cols-2">{installedMembers.length ? installedMembers.map(member => <div key={member.id} className="rounded-2xl border border-[#e4efec] bg-[#fbfefd] p-4"><p className="font-bold text-[#17383e]">{employeeName(member.employeeId)}</p><p className="mt-2 text-xs font-semibold text-[#0c7474]">{member.role === "employer_representative" ? "Empregador" : "Empregados"} · {member.condition}</p></div>) : <p className="md:col-span-2 rounded-xl bg-[#f8fbfa] p-4 text-sm text-[#668087]">Registre os representantes do empregador e formalize os eleitos após a apuração.</p>}</div></section></div>}
 
-  const downloadEmployeesTemplate = () => {
-    const blob = new Blob([employeesToCsvTemplate()], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "modelo-funcionarios-cipa.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("Modelo de planilha baixado.");
-  };
-
-  const toggleEmployeeFlag = (employeeId: string, key: "eligibleToVote" | "candidate") => {
-    setEmployees(current => current.map(employee => employee.id === employeeId ? { ...employee, [key]: !employee[key] } : employee));
-  };
-
-  const applyComposition = () => {
-    update("titularesEmpregador", composition.titularesEmpregador);
-    update("suplentesEmpregador", composition.suplentesEmpregador);
-    update("titularesEmpregados", composition.titularesEmpregados);
-    update("suplentesEmpregados", composition.suplentesEmpregados);
-    toast.success("Sugestão aplicada ao dimensionamento. Revise o Quadro I da NR-05 antes de emitir.");
-  };
-
-  const generateDocuments = async () => {
-    const errors = validateCipaForm(form);
-    if (errors.length) {
-      toast.error(errors[0]);
-      setActiveStep(0);
-      return;
-    }
-    setIsGenerating(true);
-    await new Promise(resolve => window.setTimeout(resolve, 420));
-    const documents = [...buildCipaDocuments(form), ...(employees.length ? buildEmployeeElectionDocuments(employees) : [])];
-    const generatedAt = new Date().toISOString();
-    const historyEntries = documents.map(document => ({
-      ...document,
-      companyName: form.empresa,
-      createdAt: generatedAt,
-      logoDataUrl,
-    }));
-    setGeneratedDocuments(documents);
-    setHistoryDocuments(current => [...historyEntries, ...current].slice(0, 80));
-    setIsGenerating(false);
-    setActiveStep(5);
-    toast.success("Pacote de documentos preparado e adicionado ao histórico.");
-  };
-
-  const loadExample = () => {
-    setForm({ ...demoForm, empresa: "Exemplo não persistido — substitua pelos dados reais", cidade: "Cidade/UF", grauRisco: 3, empregados: 20 });
-    toast.info("Estrutura de demonstração carregada somente nesta sessão. Nada foi salvo no ambiente.");
-  };
-
-  const downloadDocument = (document: CipaDocument | CipaHistoryEntry) => {
-    const historical = "companyName" in document;
-    downloadPdf(document, historical ? document.companyName : form.empresa, historical ? document.logoDataUrl : logoDataUrl);
-  };
-
-  const clearForm = () => {
-    setForm(emptyCipaForm);
-    setGeneratedDocuments([]);
-    setSelectedDocument(null);
-    setActiveStep(0);
-    toast.success("Formulário limpo. O histórico permanece disponível neste ambiente.");
-  };
-
-  const clearHistory = () => {
-    setHistoryDocuments([]);
-    toast.success("Histórico local de documentos limpo.");
-  };
-
-  const selectedCompanyName = selectedDocument && "companyName" in selectedDocument ? selectedDocument.companyName : form.empresa;
-  const selectedLogo = selectedDocument && "logoDataUrl" in selectedDocument ? selectedDocument.logoDataUrl : logoDataUrl;
-  const visibleMeetings = useMemo(() => meetings.filter(meeting => meeting.date.startsWith(selectedMonth)), [meetings, selectedMonth]);
-  const visibleCalendarDays = useMemo(() => calendarDays(selectedMonth), [selectedMonth]);
-  const moveMonth = (offset: number) => {
-    const next = parseMonth(selectedMonth);
-    next.setMonth(next.getMonth() + offset);
-    setSelectedMonth(monthKey(next));
-  };
-
-  if (loading || workspaces.isLoading) return <div className="grid min-h-screen place-items-center"><Loader2 className="h-6 w-6 animate-spin text-[#0c7474]" /></div>;
-  if (!activeWorkspace) return <DashboardLayout title="Assistant CIPA"><div className="mx-auto max-w-xl rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-[#0c7474]" /><h2 className="mt-4 text-2xl font-bold text-[#102b32]">Crie um ambiente antes de usar o Assistant CIPA.</h2><p className="mt-2 text-sm leading-6 text-[#668087]">O processo eleitoral e os documentos da CIPA precisam ficar vinculados ao ambiente e à empresa corretos.</p><Button onClick={() => setLocation("/app")} className="mt-6 rounded-xl bg-[#0c7474] text-white">Voltar ao dashboard</Button></div></DashboardLayout>;
-
-  return (
-    <DashboardLayout title="Assistant CIPA">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(120deg,#063b43_0%,#0c7474_48%,#123f69_100%)] p-6 text-white shadow-[0_20px_60px_rgba(6,59,67,.22)] lg:p-8">
-          <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-[#8edec7]/20 blur-3xl" /><div className="pointer-events-none absolute bottom-[-7rem] left-1/3 h-64 w-64 rounded-full bg-[#b9defc]/15 blur-3xl" />
-          <div className="relative grid gap-8 lg:grid-cols-[1fr_330px] lg:items-end">
-            <div><div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[.16em] text-[#9de7d0]"><Sparkles className="h-4 w-4" /> Assistente operacional de CIPA</div><h2 className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight tracking-tight lg:text-4xl">Do enquadramento ao documento, com clareza para o TST.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-white/75">Organize o processo eleitoral, valide uma composição inicial, estruture a capacitação e prepare documentos editáveis para revisão técnica. O Assistant CIPA funciona nos ambientes Prestador de Serviço e Empresa.</p><div className="mt-6 flex flex-wrap items-center gap-3"><span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">Ambiente: {activeWorkspace.name}</span><span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85">TST {activeWorkspace.kind === "autonomo" ? "Prestador de Serviço" : "Empresa"}</span></div></div>
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur-md"><div className="flex items-center justify-between"><span className="text-xs font-bold uppercase tracking-[.14em] text-white/65">Preenchimento</span><span className="text-2xl font-bold text-[#9de7d0]">{completion}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-[#8edec7] transition-all duration-500" style={{ width: `${completion}%` }} /></div><p className="mt-3 text-xs leading-5 text-white/65">Você pode salvar os dados no acervo somente após validar o conteúdo. Nesta etapa, o pacote permanece como rascunho da sessão.</p></div>
-          </div>
-        </section>
-
-        <div className="grid gap-5 lg:grid-cols-[210px_1fr] lg:items-start">
-          <aside className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-3 shadow-sm lg:sticky lg:top-28">
-            <p className="px-3 pb-2 pt-1 text-[10px] font-bold uppercase tracking-[.16em] text-[#83a09a]">Fluxo guiado</p>
-            <nav className="space-y-1" aria-label="Etapas do Assistant CIPA">{steps.map((step, index) => { const Icon = step.icon; const active = activeStep === index; const done = index < activeStep || (index === 5 && generatedDocuments.length > 0); return <button key={step.label} type="button" onClick={() => setActiveStep(index)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${active ? "bg-[#e8f6f1] text-[#0c7474] shadow-sm" : "text-[#668087] hover:bg-[#f5faf8] hover:text-[#315158]"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs ${done ? "bg-[#0c7474] text-white" : active ? "bg-white text-[#0c7474]" : "bg-[#f0f6f4] text-[#83a09a]"}`}>{done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span><span>{step.label}</span></button>; })}</nav>
-            <div className="mt-4 border-t border-[#edf4f1] pt-4"><button type="button" onClick={loadExample} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold text-[#0c7474] transition hover:bg-[#f2faf6]"><Info className="h-4 w-4" /> Carregar estrutura de exemplo</button><button type="button" onClick={clearForm} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold text-[#b85c36] transition hover:bg-[#fff7f2]"><RotateCcw className="h-4 w-4" /> Limpar sessão</button></div>
-          </aside>
-
-          <main className="min-w-0 space-y-5">
-            {activeStep === 0 && <div className="space-y-5"><SectionCard icon={ShieldCheck} eyebrow="Etapa 01 · identificação" title="Dados da empresa e do processo"><div className="grid gap-4 md:grid-cols-2"><Field label="Nome da empresa *" className="md:col-span-2"><Input value={form.empresa} onChange={event => update("empresa", event.target.value)} placeholder="Razão social da empresa" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="CNPJ *"><Input value={form.cnpj} onChange={event => update("cnpj", event.target.value)} placeholder="00.000.000/0000-00" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Grau de risco *" hint="1 a 4" tooltip="O grau de risco é definido pela atividade econômica e pelo enquadramento oficial da empresa. Use a classificação aplicável ao estabelecimento e confirme a base legal antes de aceitar a sugestão de composição."><select value={form.grauRisco} onChange={event => update("grauRisco", Number(event.target.value))} className="h-11 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm font-medium text-[#315158] outline-none"><option value={1}>Grau 1 · baixo</option><option value={2}>Grau 2 · moderado</option><option value={3}>Grau 3 · elevado</option><option value={4}>Grau 4 · muito elevado</option></select></Field><Field label="Número de empregados *" tooltip="Informe o total de empregados do estabelecimento que será analisado. A faixa de empregados influencia o dimensionamento inicial apresentado pelo assistente; confira o quadro normativo vigente."><Input type="number" min={0} value={form.empregados || ""} onChange={event => update("empregados", Number(event.target.value) || 0)} placeholder="Ex.: 85" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Endereço completo" className="md:col-span-2"><Input value={form.endereco} onChange={event => update("endereco", event.target.value)} placeholder="Rua, número, bairro, cidade/UF" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Sindicato da categoria" hint="se aplicável"><Input value={form.sindicato} onChange={event => update("sindicato", event.target.value)} placeholder="Nome do sindicato" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Cidade/UF para assinatura *"><Input value={form.cidade} onChange={event => update("cidade", event.target.value)} placeholder="São Paulo/SP" className="h-11 rounded-xl border-[#cfe3de]" /></Field></div></SectionCard><section className="rounded-[1.75rem] border border-[#dcebe8] bg-[linear-gradient(120deg,#f7fcfa_0%,#ffffff_60%,#fff8ed_100%)] p-5 shadow-sm"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#fff0e9] text-[#b85c36]"><ImageUp className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#b85c36]">Identidade do documento</p><h3 className="mt-1 text-base font-bold text-[#102b32]">Logo da empresa nos PDFs</h3><p className="mt-1 text-xs leading-5 text-[#668087]">A imagem será usada no cabeçalho dos próximos documentos e também ficará disponível para re-download no histórico deste navegador.</p></div></div><div className="flex items-center gap-3"><div className="grid h-14 w-20 place-items-center overflow-hidden rounded-xl border border-[#dcebe8] bg-white">{logoDataUrl ? <img src={logoDataUrl} alt="Prévia da logo da empresa" className="max-h-11 max-w-[4.5rem] object-contain" /> : <span className="text-[10px] font-bold uppercase tracking-wide text-[#9ab0aa]">Logo</span>}</div><label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#b9dcd2] bg-white px-3 py-2 text-xs font-bold text-[#0c7474] transition hover:bg-[#e8f6f1]"><Upload className="h-3.5 w-3.5" /> {logoDataUrl ? "Trocar logo" : "Enviar logo"}<input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={event => handleLogoUpload(event.target.files?.[0])} /></label>{logoDataUrl && <Button type="button" variant="ghost" size="icon" onClick={removeLogo} className="h-9 w-9 rounded-xl text-[#b85c36] hover:bg-[#fff0e9]" aria-label="Remover logo"><Trash2 className="h-4 w-4" /></Button>}</div></div></section><div className="flex justify-end"><Button type="button" onClick={() => setActiveStep(1)} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Continuar para dimensionamento <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
-
-            {activeStep === 1 && <div className="space-y-5"><SectionCard icon={UsersRound} eyebrow="Etapa 02 · composição" title="Dimensionamento inicial da CIPA"><div className={`rounded-2xl border p-4 ${composition.obrigatoria ? "border-[#b9e3d7] bg-[#f1fbf6]" : "border-[#f0ddad] bg-[#fffaf0]"}`}><div className="flex items-start gap-3"><div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${composition.obrigatoria ? "bg-[#d6f2e5] text-[#0c7474]" : "bg-[#ffedbd] text-[#9a6d0b]"}`}>{composition.obrigatoria ? <CheckCircle2 className="h-5 w-5" /> : <Info className="h-5 w-5" />}</div><div><p className={`text-sm font-bold ${composition.obrigatoria ? "text-[#0c7474]" : "text-[#9a6d0b]"}`}>{composition.obrigatoria ? "Empresa enquadrada para constituição da CIPA" : "Revisão de enquadramento necessária"}</p><p className="mt-1 text-xs leading-5 text-[#668087]">{composition.mensagem}</p></div></div></div><div className="mt-5 grid gap-3 md:grid-cols-4">{([ ["titularesEmpregador", "Titulares · empregador"], ["suplentesEmpregador", "Suplentes · empregador"], ["titularesEmpregados", "Titulares · empregados"], ["suplentesEmpregados", "Suplentes · empregados"]] as const).map(([key, label]) => <Field key={key} label={label}><Input type="number" min={0} value={form[key] || ""} onChange={event => update(key, Number(event.target.value) || 0)} className="h-11 rounded-xl border-[#cfe3de]" /></Field>)}</div><div className="mt-5 flex flex-col justify-between gap-3 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4 sm:flex-row sm:items-center"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#83a09a]">Sugestão do assistente</p><p className="mt-1 text-sm font-bold text-[#102b32]">{totalMembers} membro(s) informado(s) · {form.titularesEmpregador + form.titularesEmpregados} titular(es)</p><p className="mt-1 text-xs text-[#668087]">A sugestão é um ponto de partida e não substitui a validação do enquadramento legal.</p></div><Button type="button" onClick={applyComposition} variant="outline" className="rounded-xl border-[#b9dcd2] text-[#0c7474] hover:bg-[#e8f6f1]">Aplicar sugestão</Button></div></SectionCard><div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setActiveStep(0)}>Voltar</Button><Button type="button" onClick={() => setActiveStep(2)} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Configurar eleição <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
-
-            {activeStep === 2 && <div className="space-y-5"><SectionCard icon={ClipboardCheck} eyebrow="Etapa 03 · processo eleitoral" title="Calendário e Comissão Eleitoral"><div className="grid gap-4 md:grid-cols-2"><Field label="Início das inscrições *"><Input type="date" value={form.dataInicioInscricao} onChange={event => update("dataInicioInscricao", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Data da votação *"><Input type="date" value={form.dataVotacao} onChange={event => update("dataVotacao", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Local da votação" className="md:col-span-2"><Input value={form.localVotacao} onChange={event => update("localVotacao", event.target.value)} placeholder="Refeitório, auditório ou plataforma definida" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Presidente da Comissão Eleitoral"><Input value={form.presidenteCE} onChange={event => update("presidenteCE", event.target.value)} placeholder="Nome completo" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Secretário(a) da Comissão Eleitoral"><Input value={form.secretarioCE} onChange={event => update("secretarioCE", event.target.value)} placeholder="Nome completo" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Escrutinador(a)"><Input value={form.escrutinadorCE} onChange={event => update("escrutinadorCE", event.target.value)} placeholder="Nome completo" className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="Representante legal"><Input value={form.representanteLegal} onChange={event => update("representanteLegal", event.target.value)} placeholder="Diretor(a) ou responsável legal" className="h-11 rounded-xl border-[#cfe3de]" /></Field></div></SectionCard><div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setActiveStep(1)}>Voltar</Button><Button type="button" onClick={() => setActiveStep(3)} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Planejar capacitação <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
-
-            {activeStep === 3 && <div className="space-y-5"><SectionCard icon={Award} eyebrow="Etapa 04 · capacitação" title="Datas do curso e responsabilidade técnica"><div className="rounded-2xl border border-[#dcebe8] bg-[#f7fcfa] p-4"><div className="flex gap-3"><CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-[#0c7474]" /><p className="text-xs leading-5 text-[#668087]">Defina as datas planejadas para a capacitação dos membros. O conteúdo programático deve ser revisado pelo responsável técnico e ajustado ao ambiente de trabalho.</p></div></div><div className="mt-5 grid gap-4 md:grid-cols-3"><Field label="1º dia do curso"><Input type="date" value={form.dataCurso1} onChange={event => update("dataCurso1", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="2º dia do curso"><Input type="date" value={form.dataCurso2} onChange={event => update("dataCurso2", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field><Field label="3º dia do curso"><Input type="date" value={form.dataCurso3} onChange={event => update("dataCurso3", event.target.value)} className="h-11 rounded-xl border-[#cfe3de]" /></Field></div><div className="mt-5 grid gap-3 md:grid-cols-3">{[["Estudo do ambiente", "Condições de trabalho e riscos do processo"], ["Prevenção", "Acidentes, doenças e medidas preventivas"], ["Organização", "Atribuições da CIPA e prevenção do assédio"]].map(([title, description]) => <div key={title} className="rounded-2xl border border-[#e6f0ee] bg-white p-4"><CheckCircle2 className="h-4 w-4 text-[#0c7474]" /><p className="mt-2 text-sm font-bold text-[#315158]">{title}</p><p className="mt-1 text-xs leading-5 text-[#668087]">{description}</p></div>)}</div></SectionCard><div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setActiveStep(2)}>Voltar</Button><Button type="button" onClick={generateDocuments} disabled={isGenerating} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">{isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparando documentos</> : <>Gerar pacote de documentos <FileText className="ml-2 h-4 w-4" /></>}</Button></div></div>}
-
-            {activeStep === 4 && <div className="space-y-5">
-              <SectionCard icon={CalendarDays} eyebrow="Etapa 05 · acompanhamento" title="Reuniões ordinárias da CIPA">
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                  <div><p className="text-sm leading-6 text-[#668087]">Planeje a rotina mensal da comissão, acompanhe o status de cada encontro e mantenha o calendário vinculado ao ambiente ativo.</p></div>
-                  <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" onClick={exportMeetingsIcs} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><Download className="mr-1.5 h-3.5 w-3.5" /> Exportar .ics</Button><div className="flex items-center gap-1"><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(-1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Mês anterior"><ChevronLeft className="h-4 w-4" /></Button><span className="min-w-32 text-center text-sm font-bold capitalize text-[#315158]">{monthLabel(selectedMonth)}</span><Button type="button" variant="outline" size="icon" onClick={() => moveMonth(1)} className="h-9 w-9 rounded-xl border-[#dcebe8] text-[#0c7474]" aria-label="Próximo mês"><ChevronRight className="h-4 w-4" /></Button></div></div>
-                </div>
-                <div className="mt-5 overflow-hidden rounded-2xl border border-[#e4efec]">
-                  <div className="grid grid-cols-7 border-b border-[#e4efec] bg-[#f7fcfa]">{["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => <span key={day} className="py-2 text-center text-[10px] font-bold uppercase tracking-wide text-[#83a09a]">{day}</span>)}</div>
-                  <div className="grid grid-cols-7">{visibleCalendarDays.map((day, index) => { const dayKey = day ? `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}` : ""; const dayMeetings = dayKey ? meetings.filter(meeting => meeting.date === dayKey) : []; return <button key={`${dayKey || "empty"}-${index}`} type="button" disabled={!day} onClick={() => dayKey && setSelectedMeetingDate(dayKey)} className={`min-h-20 border-b border-r border-[#eef4f2] p-2 text-left transition ${!day ? "cursor-default bg-[#fbfdfc]" : selectedMeetingDate === dayKey ? "bg-[#e8f6f1]" : "bg-white hover:bg-[#f7fcfa]"}`} aria-label={day ? `Selecionar ${day.toLocaleDateString("pt-BR")}` : undefined}>{day && <><span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${selectedMeetingDate === dayKey ? "bg-[#0c7474] text-white" : "text-[#315158]"}`}>{day.getDate()}</span>{dayMeetings.map(meeting => <span key={meeting.id} className={`mt-2 block truncate rounded-md px-1.5 py-1 text-[9px] font-bold ${meeting.status === "realizada" ? "bg-[#e8f6f1] text-[#0c7474]" : meeting.status === "cancelada" ? "bg-[#fff0e9] text-[#b85c36]" : "bg-[#eaf4fd] text-[#3173a8]"}`}>{meeting.time} · Reunião</span>)}</>}</button>; })}</div>
-                </div>
-                <div className="mt-5 grid gap-4 rounded-2xl border border-[#dcebe8] bg-[#fbfefd] p-4 md:grid-cols-[1fr_140px_1fr_auto] md:items-end"><Field label="Primeira reunião do ciclo"><Input type="date" value={selectedMeetingDate} onChange={event => setSelectedMeetingDate(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Horário"><Input type="time" value={meetingTime} onChange={event => setMeetingTime(event.target.value)} className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Field label="Pauta ou observação"><Input value={meetingNotes} onChange={event => setMeetingNotes(event.target.value)} placeholder="Ex.: inspeção mensal e SIPAT" className="h-11 rounded-xl border-[#cfe3de] bg-white" /></Field><Button type="button" onClick={addMonthlyMeetings} className="h-11 rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Plus className="mr-2 h-4 w-4" /> Gerar 12 meses</Button></div>
-                <div className="mt-5 space-y-2">{visibleMeetings.length ? visibleMeetings.map(meeting => <div key={meeting.id} className="rounded-2xl border border-[#edf4f1] bg-white p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eaf4fd] text-[#3173a8]"><CalendarDays className="h-4 w-4" /></div><div><p className="text-sm font-bold text-[#315158]">{meeting.title}</p><p className="mt-1 text-xs text-[#668087]">{formatDate(meeting.date)} · {meeting.time}{meeting.notes ? ` · ${meeting.notes}` : ""}</p></div></div><div className="flex flex-wrap items-center gap-2">{meeting.status === "realizada" && <Button type="button" variant="outline" onClick={() => downloadMeetingMinutes(meeting)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><FileText className="mr-1.5 h-3.5 w-3.5" /> Baixar Ata PDF</Button>}<label className="inline-flex cursor-pointer items-center rounded-xl border border-[#dcebe8] bg-[#f7fcfa] px-3 py-2 text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><ImageUp className="mr-1.5 h-3.5 w-3.5" /> Anexar foto<input type="file" accept="image/*" className="sr-only" onChange={event => addMeetingAttachment(meeting.id, event.target.files?.[0], "foto")} /></label><label className="inline-flex cursor-pointer items-center rounded-xl border border-[#dcebe8] bg-[#f7fcfa] px-3 py-2 text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]"><Upload className="mr-1.5 h-3.5 w-3.5" /> Anexar doc<input type="file" accept=".pdf,.doc,.docx,.txt,.csv" className="sr-only" onChange={event => addMeetingAttachment(meeting.id, event.target.files?.[0], "documento")} /></label><select value={meeting.status} onChange={event => updateMeetingStatus(meeting.id, event.target.value as CipaMeeting["status"])} className="h-9 rounded-xl border border-[#dcebe8] bg-white px-3 text-xs font-bold text-[#315158] outline-none"><option value="agendada">Agendada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div></div>{meeting.attachments && meeting.attachments.length > 0 && <div className="mt-3 flex flex-wrap gap-2 border-t border-[#edf4f1] pt-3">{meeting.attachments.map(att => <span key={att.id} className="inline-flex items-center gap-1.5 rounded-full border border-[#dcebe8] bg-[#f7fcfa] px-3 py-1 text-[11px] font-semibold text-[#315158]"><span>{att.type === "foto" ? "📷" : "📄"}</span><span className="max-w-[160px] truncate">{att.name}</span><button type="button" onClick={() => removeMeetingAttachment(meeting.id, att.id)} className="ml-1 text-[#83a09a] hover:text-[#b85c36]" aria-label="Remover anexo"><X className="h-3 w-3" /></button></span>)}</div>}</div>) : <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-5 text-center text-xs text-[#668087]">Nenhuma reunião agendada neste mês. Escolha a primeira data e gere o ciclo mensal.</p>}</div>
-              </SectionCard>
-
-              <SectionCard icon={FileSpreadsheet} eyebrow="Etapa 05 · base de funcionários" title="Importar planilha para votação e candidatos">
-                <div className="flex flex-col justify-between gap-4 rounded-2xl border border-[#cfe3de] bg-[#f7fcfa] p-4 sm:flex-row sm:items-center"><div><p className="text-sm font-bold text-[#315158]">Use CSV ou TXT exportado do Excel ou Google Sheets</p><p className="mt-1 text-xs leading-5 text-[#668087]">A coluna Nome é obrigatória. As colunas Apto votar e Candidato são opcionais e podem ser revisadas manualmente abaixo.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={downloadEmployeesTemplate} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474]"><Download className="mr-2 h-3.5 w-3.5" /> Baixar modelo</Button><label className="inline-flex cursor-pointer items-center rounded-xl bg-[#0c7474] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#063b43]"><Upload className="mr-2 h-3.5 w-3.5" /> {isImportingEmployees ? "Lendo..." : "Importar planilha"}<input type="file" accept=".csv,.txt,text/csv,text/plain" className="sr-only" disabled={isImportingEmployees} onChange={event => handleEmployeeImport(event.target.files?.[0])} /></label></div></div>
-                <div className="mt-5 flex flex-wrap gap-3"><span className="rounded-full bg-[#e8f6f1] px-3 py-1.5 text-xs font-bold text-[#0c7474]">{employees.length} funcionário(s)</span><span className="rounded-full bg-[#eaf4fd] px-3 py-1.5 text-xs font-bold text-[#3173a8]">{employees.filter(employee => employee.eligibleToVote).length} apto(s) a votar</span><span className="rounded-full bg-[#fff7dd] px-3 py-1.5 text-xs font-bold text-[#9a6d0b]">{employees.filter(employee => employee.candidate).length} candidato(s)</span></div>
-                {employees.length ? <div className="mt-4 overflow-x-auto rounded-2xl border border-[#e4efec]"><table className="w-full min-w-[760px] text-left text-xs"><thead className="bg-[#f7fcfa] text-[10px] uppercase tracking-wide text-[#83a09a]"><tr><th className="px-4 py-3 font-bold">Funcionário</th><th className="px-4 py-3 font-bold">Cargo / setor</th><th className="px-4 py-3 font-bold">Apto a votar</th><th className="px-4 py-3 font-bold">Candidato</th></tr></thead><tbody className="divide-y divide-[#edf4f1]">{employees.map(employee => <tr key={employee.id} className="bg-white"><td className="px-4 py-3"><p className="font-bold text-[#315158]">{employee.name}</p><p className="mt-1 text-[#83a09a]">{employee.registration || employee.email || "Sem matrícula/e-mail"}</p></td><td className="px-4 py-3 text-[#668087]">{employee.role || "Não informado"}{employee.department ? ` · ${employee.department}` : ""}</td><td className="px-4 py-3"><button type="button" aria-pressed={employee.eligibleToVote} onClick={() => toggleEmployeeFlag(employee.id, "eligibleToVote")} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${employee.eligibleToVote ? "bg-[#e8f6f1] text-[#0c7474]" : "bg-[#f2f5f4] text-[#83a09a]"}`}>{employee.eligibleToVote ? "Sim" : "Não"}</button></td><td className="px-4 py-3"><button type="button" aria-pressed={employee.candidate} onClick={() => toggleEmployeeFlag(employee.id, "candidate")} className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${employee.candidate ? "bg-[#fff7dd] text-[#9a6d0b]" : "bg-[#f2f5f4] text-[#83a09a]"}`}>{employee.candidate ? "Sim" : "Não"}</button></td></tr>)}</tbody></table></div> : <div className="mt-4 rounded-2xl border border-dashed border-[#cfe3de] p-6 text-center"><UsersRound className="mx-auto h-7 w-7 text-[#9ab0aa]" /><p className="mt-2 text-sm font-bold text-[#315158]">Nenhuma planilha importada</p><p className="mt-1 text-xs text-[#668087]">Baixe o modelo, preencha com dados reais e importe para revisar a lista da eleição.</p></div>}
-              </SectionCard>
-              <div className="flex justify-between"><Button type="button" variant="ghost" onClick={() => setActiveStep(3)}>Voltar</Button><Button type="button" onClick={() => setActiveStep(5)} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">Revisar documentos <ArrowRight className="ml-2 h-4 w-4" /></Button></div>
-            </div>}
-
-            {activeStep === 5 && <div className="space-y-5"><section className="rounded-[1.75rem] border border-[#b9e3d7] bg-[linear-gradient(120deg,#f3fbf8_0%,#ffffff_55%,#fff8ed_100%)] p-5 shadow-sm lg:p-6"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-start"><div><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]"><CheckCircle2 className="h-4 w-4" /> Pacote pronto para revisão</div><h2 className="mt-2 text-2xl font-bold text-[#102b32]">Documentos do processo CIPA</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#668087]">Os arquivos abaixo foram montados a partir dos dados preenchidos nesta sessão. Abra a prévia, revise o conteúdo e exporte os documentos individualmente em PDF.</p></div><span className="rounded-full bg-[#e8f6f1] px-3 py-1.5 text-xs font-bold text-[#0c7474]">{generatedDocuments.length} documentos</span></div></section><div className="grid gap-4 md:grid-cols-2">{generatedDocuments.map(document => <article key={document.id} className="group rounded-[1.5rem] border border-[#dcebe8] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#a8d8ca] hover:shadow-[0_16px_35px_rgba(12,116,116,.1)]"><div className="flex items-start justify-between gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[#f0f7f5] text-[#0c7474]"><FileText className="h-5 w-5" /></div><span className="rounded-full bg-[#f5f8f7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#668087]">{document.category === "processo-eleitoral" ? "Eleição" : document.category === "capacitacao" ? "Capacitação" : "Gestão"}</span></div><h3 className="mt-4 text-base font-bold text-[#102b32]">{document.title}</h3><p className="mt-2 min-h-10 text-xs leading-5 text-[#668087]">{document.description}</p><div className="mt-5 flex gap-2"><Button type="button" variant="outline" onClick={() => setSelectedDocument(document)} className="flex-1 rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">Visualizar <ChevronRight className="ml-1 h-3.5 w-3.5" /></Button><Button type="button" onClick={() => downloadDocument(document)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"><Download className="h-3.5 w-3.5" /></Button></div></article>)}</div><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm lg:p-6"><div className="flex flex-col justify-between gap-3 border-b border-[#edf4f1] pb-4 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#eaf4fd] text-[#3173a8]"><History className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#3173a8]">Acervo deste navegador</p><h3 className="mt-1 text-lg font-bold text-[#102b32]">Histórico de documentos CIPA</h3></div></div><div className="flex items-center gap-3"><span className="rounded-full bg-[#eaf4fd] px-3 py-1.5 text-xs font-bold text-[#3173a8]">{historyDocuments.length} registro(s)</span>{historyDocuments.length > 0 && <Button type="button" variant="ghost" onClick={clearHistory} className="rounded-xl text-xs font-bold text-[#b85c36] hover:bg-[#fff0e9]"><Trash2 className="mr-1.5 h-3.5 w-3.5" /> Limpar histórico</Button>}</div></div>{historyDocuments.length ? <div className="mt-4 space-y-2">{historyDocuments.map(entry => <div key={`${entry.createdAt}-${entry.id}`} className="flex flex-col gap-3 rounded-2xl border border-[#edf4f1] bg-[#fbfefd] p-4 transition hover:border-[#b9dcd2] sm:flex-row sm:items-center sm:justify-between"><div className="flex min-w-0 items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[#0c7474] shadow-sm"><FileText className="h-4 w-4" /></div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#315158]">{entry.title}</p><p className="mt-1 truncate text-xs text-[#668087]">{entry.companyName || "Empresa não informada"} · {new Date(entry.createdAt).toLocaleString("pt-BR")}</p></div></div><div className="flex shrink-0 gap-2"><Button type="button" variant="outline" onClick={() => setSelectedDocument(entry)} className="rounded-xl border-[#b9dcd2] text-xs font-bold text-[#0c7474] hover:bg-[#e8f6f1]">Visualizar</Button><Button type="button" onClick={() => downloadDocument(entry)} className="rounded-xl bg-[#0c7474] text-xs font-bold text-white hover:bg-[#063b43]"><Download className="mr-1.5 h-3.5 w-3.5" /> Baixar</Button></div></div>)}</div> : <div className="mt-4 rounded-2xl border border-dashed border-[#cfe3de] bg-[#f7fcfa] p-6 text-center"><History className="mx-auto h-7 w-7 text-[#9ab0aa]" /><p className="mt-2 text-sm font-bold text-[#315158]">Nenhum documento no histórico</p><p className="mt-1 text-xs text-[#668087]">Depois de gerar um pacote, os documentos aparecerão aqui para consulta e download novamente.</p></div>}</section><div className="flex flex-wrap justify-between gap-3"><Button type="button" variant="ghost" onClick={() => setActiveStep(3)}>Voltar e revisar</Button><Button type="button" onClick={clearForm} variant="outline" className="rounded-xl border-[#f0c9bc] text-[#b85c36] hover:bg-[#fff6f1]">Iniciar novo processo <RotateCcw className="ml-2 h-4 w-4" /></Button></div></div>}
-          </main>
-        </div>
-      </div>
-
-      {selectedDocument && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#06272d]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`Prévia de ${selectedDocument.title}`}><div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-2xl"><div className="flex items-center justify-between border-b border-[#e6f0ee] px-5 py-4"><div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#0c8c89]">Prévia do documento</p><h2 className="mt-1 text-lg font-bold text-[#102b32]">{selectedDocument.title}</h2></div><button type="button" onClick={() => setSelectedDocument(null)} className="grid h-9 w-9 place-items-center rounded-xl text-[#668087] transition hover:bg-[#f2f8f6] hover:text-[#102b32]" aria-label="Fechar prévia"><X className="h-5 w-5" /></button></div><div className="overflow-y-auto bg-[#f4f8f6] p-4 sm:p-8"><div className="mx-auto min-h-[560px] max-w-[680px] bg-white p-8 shadow-[0_10px_35px_rgba(16,43,50,.09)] sm:p-12"><div className="mb-8 border-b-2 border-[#0c7474] pb-5"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold tracking-[.18em] text-[#0c7474]">TST BRASIL HUB · ASSISTANT CIPA</p><h3 className="mt-3 text-xl font-bold text-[#102b32]">{selectedDocument.title}</h3><p className="mt-2 text-xs text-[#668087]">{selectedCompanyName || "Empresa não informada"}</p></div><div className="grid h-14 w-20 place-items-center overflow-hidden rounded-xl border border-[#dcebe8] bg-[#fbfefd]">{selectedLogo ? <img src={selectedLogo} alt="Logo da empresa no documento" className="max-h-11 max-w-[4.5rem] object-contain" /> : <span className="text-[10px] font-bold uppercase tracking-wide text-[#9ab0aa]">Logo</span>}</div></div></div><pre className="whitespace-pre-wrap font-sans text-xs leading-6 text-[#394c50]">{selectedDocument.content}</pre></div></div><div className="flex justify-end gap-2 border-t border-[#e6f0ee] px-5 py-4"><Button type="button" variant="ghost" onClick={() => setSelectedDocument(null)}>Fechar</Button><Button type="button" onClick={() => downloadDocument(selectedDocument)} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]"><Download className="mr-2 h-4 w-4" /> Baixar PDF</Button></div></div></div>}
-    </DashboardLayout>
-  );
+      {activeTab === "documents" && <div className="grid gap-5 xl:grid-cols-[1.1fr_.9fr]"><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm"><SectionTitle icon={FileText} eyebrow="Documentos parametrizados" title="Gerar e registrar no dossiê" description="Cada documento usa os dados da gestão e o logotipo cadastrado na empresa ativa." /><div className="mt-5 grid gap-3 md:grid-cols-2">{documentCatalog.map(item => <div key={item.type} className="rounded-2xl border border-[#e4efec] bg-[#fbfefd] p-4"><FileText className="h-5 w-5 text-[#0c7474]" /><h3 className="mt-3 text-sm font-bold text-[#17383e]">{item.title}</h3><p className="mt-1 min-h-10 text-xs leading-5 text-[#668087]">{item.description}</p><Button disabled={createDocument.isPending} onClick={() => generateDocument(item.type)} variant="outline" className="mt-4 w-full rounded-xl border-[#b9dcd2] text-[#0c7474] hover:bg-[#e8f6f1]"><FileDown className="mr-2 h-4 w-4" />Gerar PDF</Button></div>)}</div></section><section className="rounded-[1.75rem] border border-[#dcebe8] bg-white p-5 shadow-sm"><SectionTitle icon={FileDown} eyebrow="Dossiê persistente" title="Documentos da gestão" description="Os dados e a identidade utilizada em cada emissão ficam preservados neste ambiente." /><div className="mt-5 space-y-2">{documents.length ? documents.map(document => <div key={document.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#e4efec] p-3"><div className="min-w-0"><p className="truncate text-sm font-bold text-[#315158]">{document.title}</p><p className="mt-1 text-xs text-[#83a09a]">Emitido em {new Date(document.createdAt).toLocaleDateString("pt-BR")}</p></div><Button size="icon" variant="ghost" onClick={() => selectedCompany && downloadCipaPdf(document, selectedCompany)} className="h-9 w-9 shrink-0 rounded-lg text-[#0c7474] hover:bg-[#e8f6f1]" aria-label={`Baixar ${document.title}`}><FileDown className="h-4 w-4" /></Button></div>) : <p className="rounded-xl bg-[#f8fbfa] p-4 text-sm leading-6 text-[#668087]">Nenhum documento foi emitido nesta gestão. Gere o primeiro para iniciar o dossiê digital.</p>}</div></section></div>}
+    </>}
+  </div></DashboardLayout>;
 }

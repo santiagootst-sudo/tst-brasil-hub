@@ -940,3 +940,119 @@ export const pgrTechnicalSignatureSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
 });
+
+export const cipaCommissionStatusSchema = z.enum(["planning", "election", "active", "archived"]);
+export const cipaTermStatusSchema = z.enum(["planning", "election", "active", "closed"]);
+export const cipaMemberRoleSchema = z.enum(["election_committee", "candidate", "employer_representative", "employee_representative"]);
+export const cipaMemberConditionSchema = z.enum(["titular", "suplente", "not_applicable"]);
+export const cipaMemberStatusSchema = z.enum(["active", "withdrawn", "elected", "not_elected"]);
+export const cipaDocumentTypeSchema = z.enum(["election_committee", "union_notice", "notice", "registration", "ballot", "election_minutes", "possession_minutes", "work_plan"]);
+
+export const createCipaCommissionInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  riskLevel: z.number().int().min(1).max(4),
+  employeeCount: z.number().int().min(0).max(100_000),
+  city: z.string().trim().max(160).nullable().optional(),
+  workplace: z.string().trim().max(255).nullable().optional(),
+  unionName: z.string().trim().max(255).nullable().optional(),
+  termLabel: z.string().trim().min(4).max(64),
+  enrollmentStartsAt: z.coerce.date().nullable().optional(),
+  electionAt: z.coerce.date().nullable().optional(),
+  possessionAt: z.coerce.date().nullable().optional(),
+  endsAt: z.coerce.date().nullable().optional(),
+});
+
+export const createCipaMemberInput = workspaceIdInput.extend({
+  commissionId: z.number().int().positive(),
+  termId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  role: cipaMemberRoleSchema,
+  condition: cipaMemberConditionSchema.default("not_applicable"),
+  notes: z.string().trim().max(1000).nullable().optional(),
+});
+
+export const updateCipaMemberElectionInput = workspaceIdInput.extend({
+  memberId: z.number().int().positive(),
+  voteCount: z.number().int().min(0).max(1_000_000),
+  status: cipaMemberStatusSchema,
+  condition: cipaMemberConditionSchema,
+});
+
+export const createCipaDocumentInput = workspaceIdInput.extend({
+  commissionId: z.number().int().positive(),
+  termId: z.number().int().positive(),
+  type: cipaDocumentTypeSchema,
+  title: z.string().trim().min(3).max(255),
+  content: z.string().trim().min(10).max(30_000),
+});
+
+export const cipaCommissionSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  status: cipaCommissionStatusSchema,
+  riskLevel: z.number().int().min(1).max(4),
+  employeeCount: z.number().int().nonnegative(),
+  city: z.string().nullable(),
+  workplace: z.string().nullable(),
+  unionName: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const cipaTermSchema = z.object({
+  id: z.number().int().positive(),
+  commissionId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  label: z.string(),
+  enrollmentStartsAt: z.date().nullable(),
+  electionAt: z.date().nullable(),
+  possessionAt: z.date().nullable(),
+  endsAt: z.date().nullable(),
+  status: cipaTermStatusSchema,
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const cipaMemberSchema = z.object({
+  id: z.number().int().positive(),
+  commissionId: z.number().int().positive(),
+  termId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  role: cipaMemberRoleSchema,
+  condition: cipaMemberConditionSchema,
+  voteCount: z.number().int().nonnegative(),
+  status: cipaMemberStatusSchema,
+  notes: z.string().nullable(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const cipaDocumentSchema = z.object({
+  id: z.number().int().positive(),
+  commissionId: z.number().int().positive(),
+  termId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  type: cipaDocumentTypeSchema,
+  title: z.string(),
+  content: z.string(),
+  companyLogoUrl: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+});
+
+export const cipaSnapshotSchema = z.object({
+  companies: z.array(companySchema),
+  employees: z.array(employeeSchema),
+  commissions: z.array(cipaCommissionSchema),
+  terms: z.array(cipaTermSchema),
+  members: z.array(cipaMemberSchema),
+  documents: z.array(cipaDocumentSchema),
+});
+
+export const cipaCommissionCreatedSchema = z.object({
+  commission: cipaCommissionSchema,
+  term: cipaTermSchema,
+});

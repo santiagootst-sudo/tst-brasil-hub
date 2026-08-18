@@ -449,6 +449,78 @@ export const trainings = mysqlTable("trainings", {
   index("trainings_company_idx").on(table.companyId),
 ]);
 
+export const cipaCommissions = mysqlTable("cipa_commissions", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  status: mysqlEnum("status", ["planning", "election", "active", "archived"]).default("planning").notNull(),
+  riskLevel: int("riskLevel").notNull(),
+  employeeCount: int("employeeCount").notNull(),
+  city: varchar("city", { length: 160 }),
+  workplace: varchar("workplace", { length: 255 }),
+  unionName: varchar("unionName", { length: 255 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("cipa_commissions_workspace_company_unique").on(table.workspaceId, table.companyId),
+  index("cipa_commissions_workspace_idx").on(table.workspaceId, table.status),
+  index("cipa_commissions_company_idx").on(table.companyId),
+]);
+
+export const cipaTerms = mysqlTable("cipa_terms", {
+  id: int("id").autoincrement().primaryKey(),
+  commissionId: int("commissionId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  label: varchar("label", { length: 64 }).notNull(),
+  enrollmentStartsAt: timestamp("enrollmentStartsAt"),
+  electionAt: timestamp("electionAt"),
+  possessionAt: timestamp("possessionAt"),
+  endsAt: timestamp("endsAt"),
+  status: mysqlEnum("status", ["planning", "election", "active", "closed"]).default("planning").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("cipa_terms_commission_label_unique").on(table.commissionId, table.label),
+  index("cipa_terms_workspace_idx").on(table.workspaceId, table.status),
+  index("cipa_terms_commission_idx").on(table.commissionId, table.updatedAt),
+]);
+
+export const cipaMembers = mysqlTable("cipa_members", {
+  id: int("id").autoincrement().primaryKey(),
+  commissionId: int("commissionId").notNull(),
+  termId: int("termId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  employeeId: int("employeeId").notNull(),
+  role: mysqlEnum("role", ["election_committee", "candidate", "employer_representative", "employee_representative"]).notNull(),
+  condition: mysqlEnum("condition", ["titular", "suplente", "not_applicable"]).default("not_applicable").notNull(),
+  voteCount: int("voteCount").default(0).notNull(),
+  status: mysqlEnum("status", ["active", "withdrawn", "elected", "not_elected"]).default("active").notNull(),
+  notes: varchar("notes", { length: 1000 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("cipa_members_term_employee_role_unique").on(table.termId, table.employeeId, table.role),
+  index("cipa_members_term_idx").on(table.termId, table.role, table.status),
+  index("cipa_members_workspace_idx").on(table.workspaceId, table.employeeId),
+]);
+
+export const cipaDocuments = mysqlTable("cipa_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  commissionId: int("commissionId").notNull(),
+  termId: int("termId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  type: mysqlEnum("type", ["election_committee", "union_notice", "notice", "registration", "ballot", "election_minutes", "possession_minutes", "work_plan"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  companyLogoUrl: varchar("companyLogoUrl", { length: 2048 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("cipa_documents_term_idx").on(table.termId, table.createdAt),
+  index("cipa_documents_workspace_idx").on(table.workspaceId, table.type),
+]);
+
 export const materials = mysqlTable("materials", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
@@ -530,6 +602,10 @@ export type Inspection = typeof inspections.$inferSelect;
 export type ActionItem = typeof actionItems.$inferSelect;
 export type ClientEngagement = typeof clientEngagements.$inferSelect;
 export type ClientVisit = typeof clientVisits.$inferSelect;
+export type CipaCommission = typeof cipaCommissions.$inferSelect;
+export type CipaTerm = typeof cipaTerms.$inferSelect;
+export type CipaMember = typeof cipaMembers.$inferSelect;
+export type CipaDocumentRecord = typeof cipaDocuments.$inferSelect;
 
 // Módulo COPSOQ-III (Avaliação de Riscos Psicossociais - NR-1)
 export const psychosocialApplications = mysqlTable("psychosocial_applications", {
