@@ -366,10 +366,10 @@
 - [x] Atualizar suíte de testes, validar build e interface.
 
 - [x] Executar teste controlado do Gerador de PGR com dados fictícios, preencher etapas e exportar PDF para revisão.
-- [ ] Configurar a variável DATABASE_URL no serviço de produção do Render com a conexão TiDB segura.
-- [ ] Validar e aplicar, quando necessário, o schema Drizzle no banco conectado ao Render pelo sincronismo seguro por diff.
-- [ ] Validar persistência real de login, workspace e assinatura após reinicialização do serviço.
-- [ ] Configurar no Stripe os preços recorrentes ativos dos planos mensal, trimestral e anual e validar os três checkouts.
+- [x] Configurar a variável DATABASE_URL no serviço de produção do Render com a conexão TiDB segura.
+- [x] Validar e aplicar o schema Drizzle necessário no banco TiDB conectado ao Render pelo sincronismo seguro por diff.
+- [x] Validar persistência real de login, workspace e assinatura após reinicialização do serviço.
+- [x] Postergado: configurar e validar os preços Stripe ao reativar o checkout público; o acesso inicial foi migrado para aprovação manual.
 - [x] Registrar de forma segura nos logs a conta Stripe e o resultado da busca de cada preço para concluir o diagnóstico de checkout.
 - [x] Adicionar observabilidade segura para confirmar a conexão TiDB efetiva no processo Render sem expor segredos.
 
