@@ -48,6 +48,20 @@ describe("módulo CIPA persistente", () => {
     expect(page).toContain("companyLogoUrl");
   });
 
+  it("mantém os blocos formais dos modelos enviados nas atas, edital, fichas e cédulas", () => {
+    const page = readFileSync(new URL("../client/src/pages/CipaAssistant.tsx", import.meta.url), "utf8");
+    expect(page).toContain("ATA DE ELEIÇÃO");
+    expect(page).toContain("CANDIDATOS VOTADOS NÃO ELEITOS");
+    expect(page).toContain("ATA DE POSSE");
+    expect(page).toContain("REPRESENTANTES DA ORGANIZAÇÃO — DESIGNADOS");
+    expect(page).toContain("COMUNICAÇÃO AO SINDICATO");
+    expect(page).toContain("FICHA DE INSCRIÇÃO — ELEIÇÃO DA CIPA");
+    expect(page).toContain("Voto secreto. Não assine nem identifique esta cédula.");
+    expect(page).toContain("drawSignatureRow");
+    expect(page).toContain("drawTable");
+    expect(page).not.toContain("TST Brasil Hub · Assistant CIPA");
+  });
+
   it("mantém a resposta tipada de criação com comissão e mandato", () => {
     const now = new Date("2026-08-18T12:00:00.000Z");
     const result = cipaCommissionCreatedSchema.parse({

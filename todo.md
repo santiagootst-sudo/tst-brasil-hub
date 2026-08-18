@@ -662,5 +662,7 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Corrigir o upload de logotipo sem dependência de credenciais de armazenamento Manus ausentes no Render.
 - [x] Corrigir a autorização e a abertura do Gerador de PGR para usuários com acesso válido.
 - [x] Redesenhar os documentos CIPA conforme os modelos enviados, removendo a marca TST Brasil Hub do cabeçalho.
-- [ ] Validar as correções em telefone e desktop, enviar ao GitHub e publicar no Render.
-- [ ] Rastrear e corrigir a autorização do iframe PGR em produção até confirmar a abertura com a conta mestre.
+- [x] Validar as correções em telefone e desktop, enviar ao GitHub e publicar no Render.
+- [x] Rastrear e corrigir a autorização do iframe PGR em produção até confirmar a abertura com a conta mestre.
+- [x] Comparar os modelos CIPA reenviados com os documentos atuais e reproduzir fielmente sua estrutura, redação, tabelas e campos no portal.
+- [ ] Validar a geração documental CIPA pelos modelos aprovados, enviar ao GitHub e publicar no Render.
