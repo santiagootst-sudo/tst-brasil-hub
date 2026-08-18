@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createContentMaterial, listContentMaterialsForAdmin, listPublishedContentMaterials, updateContentMaterial } from "../db";
+import { createContentMaterial, getContentMaterialCheckoutMetrics, listContentMaterialsForAdmin, listPublishedContentMaterials, registerContentMaterialCheckoutClick, updateContentMaterial } from "../db";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 
 const placementSchema = z.enum(["marketplace", "library"]);
@@ -20,6 +20,9 @@ const contentMaterialInput = z.object({
   priceCents: z.number().int().min(0).max(99_999_999).nullable().optional(),
   referenceUrl: optionalUrl,
   coverUrl: optionalUrl,
+  fileUrl: optionalUrl,
+  fileName: z.string().trim().max(255).optional().or(z.literal("")),
+  fileMimeType: z.string().trim().max(120).optional().or(z.literal("")),
   status: statusSchema,
   featured: z.boolean().default(false),
 });
@@ -27,6 +30,9 @@ const contentMaterialInput = z.object({
 function normalizeMaterial(input: z.infer<typeof contentMaterialInput>) {
   const referenceUrl = input.referenceUrl?.trim() || null;
   const coverUrl = input.coverUrl?.trim() || null;
+  const fileUrl = input.fileUrl?.trim() || null;
+  const fileName = input.fileName?.trim() || null;
+  const fileMimeType = input.fileMimeType?.trim() || null;
 
   if (input.status === "published" && !referenceUrl) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Informe o link do material antes de publicá-lo." });
@@ -36,12 +42,14 @@ function normalizeMaterial(input: z.infer<typeof contentMaterialInput>) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Selecione Hotmart, Kiwify ou outra plataforma para publicar uma oferta." });
   }
 
-  return { ...input, referenceUrl, coverUrl, priceCents: input.priceCents ?? null };
+  return { ...input, referenceUrl, coverUrl, fileUrl, fileName, fileMimeType, priceCents: input.priceCents ?? null };
 }
 
 export const contentRouter = router({
   published: protectedProcedure.input(z.object({ placement: placementSchema })).query(({ input }) => listPublishedContentMaterials(input.placement)),
   adminList: adminProcedure.query(() => listContentMaterialsForAdmin()),
+  metrics: adminProcedure.query(() => getContentMaterialCheckoutMetrics()),
+  trackCheckout: protectedProcedure.input(z.object({ materialId: z.number().int().positive() })).mutation(({ ctx, input }) => registerContentMaterialCheckoutClick({ materialId: input.materialId, userId: ctx.user.id })),
   create: adminProcedure.input(contentMaterialInput).mutation(({ ctx, input }) => createContentMaterial({ ...normalizeMaterial(input), createdByUserId: ctx.user.id })),
   update: adminProcedure.input(z.object({ id: z.number().int().positive(), material: contentMaterialInput })).mutation(({ input }) => updateContentMaterial(input.id, normalizeMaterial(input.material))),
 });

@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -533,6 +533,9 @@ export type ContentMaterialInput = {
   priceCents?: number | null;
   referenceUrl?: string | null;
   coverUrl?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileMimeType?: string | null;
   status: "draft" | "published" | "hidden";
   featured: boolean;
 };
@@ -560,6 +563,9 @@ export async function createContentMaterial(input: ContentMaterialInput & { crea
     priceCents: input.priceCents ?? null,
     referenceUrl: input.referenceUrl ?? null,
     coverUrl: input.coverUrl ?? null,
+    fileUrl: input.fileUrl ?? null,
+    fileName: input.fileName ?? null,
+    fileMimeType: input.fileMimeType ?? null,
     publishedAt: input.status === "published" ? now : null,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, publishedAt: input.status === "published" ? now : null };
@@ -576,9 +582,45 @@ export async function updateContentMaterial(id: number, input: ContentMaterialIn
     priceCents: input.priceCents ?? null,
     referenceUrl: input.referenceUrl ?? null,
     coverUrl: input.coverUrl ?? null,
+    fileUrl: input.fileUrl ?? null,
+    fileName: input.fileName ?? null,
+    fileMimeType: input.fileMimeType ?? null,
     publishedAt,
   }).where(eq(contentMaterials.id, id));
   return { id, ...input, publishedAt };
+}
+
+export async function registerContentMaterialCheckoutClick(input: { materialId: number; userId: number }) {
+  const db = await getDb();
+  if (!db) return { recorded: false };
+  const material = await db.select({ id: contentMaterials.id }).from(contentMaterials).where(and(
+    eq(contentMaterials.id, input.materialId),
+    eq(contentMaterials.placement, "marketplace"),
+    eq(contentMaterials.status, "published"),
+  )).limit(1);
+  if (!material[0]) return { recorded: false };
+  await db.insert(contentMaterialClicks).values(input);
+  return { recorded: true };
+}
+
+export async function getContentMaterialCheckoutMetrics() {
+  const db = await getDb();
+  if (!db) return { totalClicks: 0, materials: [] };
+  const [materialsList, clickRows] = await Promise.all([
+    db.select().from(contentMaterials).where(eq(contentMaterials.placement, "marketplace")).orderBy(desc(contentMaterials.updatedAt)),
+    db.select({
+      materialId: contentMaterialClicks.materialId,
+      checkoutClicks: sql<number>`count(*)`,
+      lastCheckoutAt: sql<Date | null>`max(${contentMaterialClicks.createdAt})`,
+    }).from(contentMaterialClicks).groupBy(contentMaterialClicks.materialId),
+  ]);
+  const clicksByMaterial = new Map(clickRows.map(row => [row.materialId, { checkoutClicks: Number(row.checkoutClicks), lastCheckoutAt: row.lastCheckoutAt }]));
+  const materials = materialsList.map(material => ({
+    ...material,
+    checkoutClicks: clicksByMaterial.get(material.id)?.checkoutClicks ?? 0,
+    lastCheckoutAt: clicksByMaterial.get(material.id)?.lastCheckoutAt ?? null,
+  })).sort((a, b) => b.checkoutClicks - a.checkoutClicks || b.updatedAt.getTime() - a.updatedAt.getTime());
+  return { totalClicks: materials.reduce((total, material) => total + material.checkoutClicks, 0), materials };
 }
 
 export async function listSupportTicketsForWorkspace(workspaceId: number) {

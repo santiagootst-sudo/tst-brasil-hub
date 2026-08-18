@@ -641,3 +641,8 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Corrigir a entrega do logotipo e das imagens do portal no domínio externo de produção.
 - [x] Transformar o Marketplace em catálogo de materiais profissionais para TST, com encaminhamento de compra por Hotmart e Kiwify.
 - [x] Permitir que o Administrador Mestre cadastre, publique, atualize, oculte e organize materiais do Marketplace e da Biblioteca pelo portal.
+- [x] Criar filtros rápidos e categorias visuais no Marketplace para facilitar a descoberta de materiais.
+- [x] Registrar e exibir no painel mestre métricas de cliques nos links de checkout por material.
+- [x] Permitir upload direto de imagens de capa e arquivos PDF pelo painel do Administrador Mestre.
+- [x] Preparar a ativação guiada de um armazenamento público para capas e PDFs no domínio externo.
+- [x] Configurar uma pasta e um preset Cloudinary restritos aos uploads administrativos do TST Brasil Hub.

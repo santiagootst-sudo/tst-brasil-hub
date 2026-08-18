@@ -3,8 +3,10 @@ import type { TrpcContext } from "./_core/context";
 
 const db = vi.hoisted(() => ({
   createContentMaterial: vi.fn(),
+  getContentMaterialCheckoutMetrics: vi.fn(),
   listContentMaterialsForAdmin: vi.fn(),
   listPublishedContentMaterials: vi.fn(),
+  registerContentMaterialCheckoutClick: vi.fn(),
   updateContentMaterial: vi.fn(),
 }));
 
@@ -76,5 +78,15 @@ describe("catálogo global de materiais", () => {
 
     await expect(contentRouter.createCaller(createContext()).update({ id: 1, material: { ...publishedMarketplaceMaterial, status: "hidden" } })).resolves.toMatchObject({ status: "hidden" });
     expect(db.updateContentMaterial).toHaveBeenCalledWith(1, expect.objectContaining({ status: "hidden" }));
+  });
+
+  it("registra cliques de checkout para profissionais autenticados e entrega métricas apenas ao administrador", async () => {
+    db.registerContentMaterialCheckoutClick.mockResolvedValue({ recorded: true });
+    db.getContentMaterialCheckoutMetrics.mockResolvedValue({ totalClicks: 4, materials: [{ id: 1, title: publishedMarketplaceMaterial.title, checkoutClicks: 4 }] });
+
+    await expect(contentRouter.createCaller(createContext("user")).trackCheckout({ materialId: 1 })).resolves.toEqual({ recorded: true });
+    expect(db.registerContentMaterialCheckoutClick).toHaveBeenCalledWith({ materialId: 1, userId: 19080001 });
+    await expect(contentRouter.createCaller(createContext()).metrics()).resolves.toMatchObject({ totalClicks: 4 });
+    await expect(contentRouter.createCaller(createContext("user")).metrics()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

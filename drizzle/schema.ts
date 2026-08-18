@@ -472,6 +472,9 @@ export const contentMaterials = mysqlTable("content_materials", {
   priceCents: int("priceCents"),
   referenceUrl: varchar("referenceUrl", { length: 2048 }),
   coverUrl: varchar("coverUrl", { length: 2048 }),
+  fileUrl: varchar("fileUrl", { length: 2048 }),
+  fileName: varchar("fileName", { length: 255 }),
+  fileMimeType: varchar("fileMimeType", { length: 120 }),
   status: mysqlEnum("status", ["draft", "published", "hidden"]).default("draft").notNull(),
   featured: boolean("featured").default(false).notNull(),
   createdByUserId: int("createdByUserId").notNull(),
@@ -481,6 +484,16 @@ export const contentMaterials = mysqlTable("content_materials", {
 }, table => [
   index("content_materials_public_idx").on(table.placement, table.status, table.featured),
   index("content_materials_updated_idx").on(table.updatedAt),
+]);
+
+export const contentMaterialClicks = mysqlTable("content_material_clicks", {
+  id: int("id").autoincrement().primaryKey(),
+  materialId: int("materialId").notNull(),
+  userId: int("userId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("content_material_clicks_material_created_idx").on(table.materialId, table.createdAt),
+  index("content_material_clicks_user_created_idx").on(table.userId, table.createdAt),
 ]);
 
 export const supportTickets = mysqlTable("support_tickets", {
