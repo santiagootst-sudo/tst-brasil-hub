@@ -650,3 +650,4 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Projetar a Biblioteca Interna persistente, isolada por empresa, com arquivos no Cloudinary e metadados no TiDB.
 - [x] Definir o armazenamento local do dispositivo como cache opcional, sem substituir a Biblioteca Interna corporativa persistente.
 - [x] Permitir que técnicos salvem documentos autorizados para leitura offline, com atualização e remoção do cache local.
+- [x] Reestruturar a apresentação dos preços e benefícios nos cards de planos para destacar economia e recomendação de compra.

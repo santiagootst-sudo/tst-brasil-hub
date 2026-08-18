@@ -6,10 +6,11 @@ const pricingPage = readFileSync(resolve(process.cwd(), "client/src/pages/Pricin
 const globalStyles = readFileSync(resolve(process.cwd(), "client/src/index.css"), "utf8");
 
 describe("destaque comercial do plano anual", () => {
-  it("exibe equivalente mensal e economia no card anual", () => {
-    expect(pricingPage).toContain("Equivale a R$ 74,90/mês — economia de R$ 25,00 por mês");
+  it("exibe investimento mensal e economia anual no card anual", () => {
+    expect(pricingPage).toContain('monthly: "R$ 74,90"');
+    expect(pricingPage).toContain("Economize R$ 300 no ano versus o mensal");
     expect(pricingPage).toContain("pricing-badge-pulse");
-    expect(pricingPage).toContain("Melhor Opção");
+    expect(pricingPage).toContain("Melhor opção");
   });
 
   it("desativa o pulso quando o usuário prefere movimento reduzido", () => {

@@ -20,10 +20,25 @@ const cycleNote: Record<PlanCode, string> = {
   anual: "Mais continuidade para estruturar a gestão de SST durante todo o ano.",
 };
 
-const monthlyEquivalent: Record<PlanCode, string> = {
-  mensal: "R$ 99,90 por mês após a oferta",
-  trimestral: "equivalente a R$ 89,90/mês",
-  anual: "Equivale a R$ 74,90/mês — economia de R$ 25,00 por mês",
+const priceStrategy: Record<PlanCode, { monthly: string; billing: string; advantage: string; label: string }> = {
+  mensal: {
+    monthly: "R$ 69,90",
+    billing: "Oferta de entrada no primeiro mês. Depois, R$ 99,90/mês.",
+    advantage: "Comece com flexibilidade",
+    label: "Para experimentar",
+  },
+  trimestral: {
+    monthly: "R$ 89,90",
+    billing: "Cobrança de R$ 269,70 a cada 3 meses.",
+    advantage: "Economize R$ 120 no ano versus o mensal",
+    label: "Planejamento de 90 dias",
+  },
+  anual: {
+    monthly: "R$ 74,90",
+    billing: "Cobrança única de R$ 898,80 por ano.",
+    advantage: "Economize R$ 300 no ano versus o mensal",
+    label: "Melhor custo mensal",
+  },
 };
 
 const whatsappNumber = "5554999097610";
@@ -86,26 +101,25 @@ export default function Pricing() {
             </div>
           ) : plans?.map(plan => {
             const code = plan.code as PlanCode;
-            const isFeatured = plan.featured;
+            const isFeatured = code === "anual";
+            const presentation = priceStrategy[code];
             return (
               <article key={plan.code} className={`relative flex flex-col rounded-[1.75rem] border bg-white p-6 shadow-[0_12px_36px_rgba(19,76,76,.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(19,76,76,.12)] sm:p-7 ${isFeatured ? "border-[#0c8c89] ring-4 ring-[#d9f1e7]" : "border-[#deece9]"}`}>
-                {isFeatured && <span className="absolute -top-3 left-7 rounded-full bg-[#0c7474] px-3 py-1 text-xs font-bold text-white shadow-sm">Mais escolhido</span>}
-                {code === "anual" && <span className="pricing-badge-pulse absolute -top-3 right-7 rounded-full border border-[#d6a84f]/40 bg-[#f4c76b] px-3 py-1 text-xs font-bold text-[#5a3d0e] shadow-sm">Melhor Opção</span>}
+                {isFeatured && <span className="absolute -top-3 left-7 rounded-full bg-[#0c7474] px-3 py-1 text-xs font-bold text-white shadow-sm">Mais economia</span>}
+                {code === "anual" && <span className="pricing-badge-pulse absolute -top-3 right-7 rounded-full border border-[#d6a84f]/40 bg-[#f4c76b] px-3 py-1 text-xs font-bold text-[#5a3d0e] shadow-sm">Melhor opção</span>}
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">{cycleLabel[code]}</p>
                     <h2 className="mt-2 text-2xl font-bold tracking-[-.03em]">{plan.name}</h2>
                   </div>
-                  <span className="rounded-xl bg-[#eff9f4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] text-[#0c7474]">{code === "mensal" ? "flexível" : code === "trimestral" ? "90 dias" : "12 meses"}</span>
+                  <span className="rounded-xl bg-[#eff9f4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.08em] text-[#0c7474]">{presentation.label}</span>
                 </div>
                 <p className="mt-4 min-h-12 text-sm leading-6 text-[#5d7479]">{cycleNote[code]}</p>
-                <div className="mt-6 rounded-2xl border border-[#dcebe8] bg-[#f8fcfa] p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#66827c]">Oferta de lançamento</p>
-                  <p className="mt-2 text-2xl font-bold tracking-[-.04em] text-[#102b32]">{plan.promotionDisplayPrice}</p>
-                  <div className="my-4 h-px bg-[#deece9]" />
-                  <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#66827c]">Após a promoção</p>
-                  <p className="mt-2 text-lg font-bold text-[#0c7474]">{plan.recurringDisplayPrice}</p>
-                  <p className="mt-1 text-xs text-[#78928d]">{monthlyEquivalent[code]}</p>
+                <div className={`mt-6 rounded-2xl border p-4 ${isFeatured ? "border-[#9bd8c9] bg-[#f0fbf7]" : "border-[#dcebe8] bg-[#f8fcfa]"}`}>
+                  <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#66827c]">A partir de</p>
+                  <div className="mt-2 flex items-end gap-2"><p className="text-4xl font-extrabold tracking-[-.06em] text-[#102b32]">{presentation.monthly}</p><p className="pb-1 text-sm font-bold text-[#426069]">/mês</p></div>
+                  <p className="mt-2 text-xs leading-5 text-[#5d7479]">{presentation.billing}</p>
+                  <p className={`mt-3 inline-flex rounded-lg px-2.5 py-1.5 text-xs font-bold ${code === "mensal" ? "bg-[#eef4f3] text-[#49636a]" : "bg-[#d9f1e7] text-[#087262]"}`}>{presentation.advantage}</p>
                 </div>
                 <Button onClick={() => selectPlan(code)} className={`mt-6 w-full rounded-xl text-white transition active:scale-[.98] ${isFeatured ? "bg-[#0c7474] hover:bg-[#063b43]" : "bg-[#3173a8] hover:bg-[#235882]"}`}>
                   <MessageCircle className="mr-2 h-4 w-4" />
@@ -127,7 +141,8 @@ export default function Pricing() {
           <div className="grid gap-px bg-[#e5f0ed] md:grid-cols-3">
             {plans?.map(plan => {
               const code = plan.code as PlanCode;
-              return <div key={`compare-${plan.code}`} className="bg-white p-5 sm:p-7"><p className="text-sm font-bold text-[#102b32]">{cycleLabel[code]}</p><p className="mt-4 text-xs font-bold uppercase tracking-[.12em] text-[#66827c]">Oferta de lançamento</p><p className="mt-2 text-lg font-bold text-[#315158]">{plan.promotionDisplayPrice}</p><p className="mt-5 text-xs font-bold uppercase tracking-[.12em] text-[#66827c]">Após a promoção</p><p className="mt-2 text-lg font-bold text-[#0c7474]">{plan.recurringDisplayPrice}</p></div>;
+              const presentation = priceStrategy[code];
+              return <div key={`compare-${plan.code}`} className="bg-white p-5 sm:p-7"><p className="text-sm font-bold text-[#102b32]">{cycleLabel[code]}</p><p className="mt-4 text-xs font-bold uppercase tracking-[.12em] text-[#66827c]">Investimento mensal</p><p className="mt-2 text-2xl font-extrabold tracking-[-.04em] text-[#315158]">{presentation.monthly}<span className="text-sm">/mês</span></p><p className="mt-3 text-xs leading-5 text-[#66827c]">{presentation.billing}</p><p className="mt-4 text-xs font-bold text-[#087262]">{presentation.advantage}</p></div>;
             })}
           </div>
         </section>
