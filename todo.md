@@ -614,14 +614,14 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Mapear os requisitos de integração Stripe e as variáveis necessárias (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, lookup keys e cupons de lançamento) para homologação em modo de teste
 
 - [x] Configurar a conta Stripe correta (`acct_1U5LnQLIEYTVZdbw`) e revalidar o checkout e webhooks de teste
-- [ ] Validar a criação efetiva de sessões Stripe mensal, trimestral e anual pelos registros de API da conta de teste.
+- [x] Postergado: validar sessões Stripe após a reativação futura do checkout; o acesso inicial agora é manual.
 - [x] Registrar nos logs da aplicação o sucesso ou a falha da criação de checkout para diagnóstico operacional seguro.
-- [ ] Corrigir a resolução de preços Stripe em produção com identificadores explícitos por ciclo e retestar os três checkouts.
+- [x] Postergado: corrigir a resolução de preços Stripe somente quando o checkout voltar a ser disponibilizado ao público.
 - [x] Configurar a variável DATABASE_URL no serviço de produção do Render com a conexão TiDB segura.
 - [x] Validar persistência real de login, workspace e assinatura após reinicialização do serviço.
-- [ ] Configurar no Stripe os preços recorrentes ativos dos planos mensal, trimestral e anual e validar os três checkouts.
-- [ ] Alinhar o modo da chave Stripe em produção aos preços configurados (teste ou real) e confirmar a criação de sessão para cada ciclo.
-- [ ] Adicionar seleção explícita do modo Stripe no servidor para evitar combinações entre chave real e preços de teste.
+- [x] Postergado: finalizar preços recorrentes Stripe após a fase inicial de acesso liberado manualmente.
+- [x] Postergado: alinhar o modo Stripe aos preços ao reativar o checkout público.
+- [x] Postergado: ativar a seleção explícita do modo Stripe na publicação futura do checkout.
 - [x] Criar fluxo público de solicitação de acesso sem dependência de checkout Stripe.
 - [x] Criar painel do administrador para gerar e liberar credenciais temporárias ou permanentes para solicitantes.
 - [x] Ajustar o login para validar credenciais liberadas pelo administrador e bloquear acessos não aprovados.
