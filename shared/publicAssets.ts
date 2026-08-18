@@ -8,6 +8,7 @@ export const publicAssetUrls = {
   watermarkNr20: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663066398548/wBloudQGlGayBedS.jpg",
   watermarkNr33: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663066398548/yCSjYqTsWedjyVjP.jpg",
   watermarkNr35: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663066398548/FvgaWGdCfWGopScW.jpg",
+  pgrLegacyHtml: "https://tstportal-lhmdcupa.manus.space/manus-storage/pgr-pro-portal-integrado_dfb92040.html",
 } as const;
 
 export const legacyPublicAssetUrls: Record<string, string> = {

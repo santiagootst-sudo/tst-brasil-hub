@@ -47,4 +47,12 @@ describe("PGR legado integrado ao Portal TST", () => {
     expect(shell).toContain("portalStorage.removeItem = function");
     expect(shell).toContain("portalBackUrl = '/app/pgr?workspace=${workspaceId}'");
   });
+
+  it("mantém uma origem pública de contingência para o HTML legado no Render", async () => {
+    const shell = await readFile("server/pgrLegacyRoute.ts", "utf8");
+    const assets = await readFile("shared/publicAssets.ts", "utf8");
+
+    expect(shell).toContain("publicAssetUrls.pgrLegacyHtml");
+    expect(assets).toContain("pgrLegacyHtml");
+  });
 });

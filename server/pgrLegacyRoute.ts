@@ -4,14 +4,22 @@ import { getSubscriptionForUser, getUserById, getWorkspaceForUser } from "./db";
 import { verifyPgrIframeTicket } from "./pgrIframeTicket";
 import { sdk } from "./_core/sdk";
 import { storageGetSignedUrl } from "./storage";
+import { publicAssetUrls } from "@shared/publicAssets";
 
 const PGR_STORAGE_KEY = "pgr-pro-portal-integrado_2fdf701f.html";
 let cachedPgrHtml: string | null = null;
 
 async function getPgrHtml() {
   if (cachedPgrHtml) return cachedPgrHtml;
-  const signedUrl = await storageGetSignedUrl(PGR_STORAGE_KEY);
-  const response = await fetch(signedUrl);
+  let sourceUrl: string = publicAssetUrls.pgrLegacyHtml;
+  if (process.env.BUILT_IN_FORGE_API_URL && process.env.BUILT_IN_FORGE_API_KEY) {
+    try {
+      sourceUrl = await storageGetSignedUrl(PGR_STORAGE_KEY);
+    } catch (error) {
+      console.warn("[PGR] Armazenamento Forge indisponível; usando a origem pública do aplicativo legado.", error);
+    }
+  }
+  const response = await fetch(sourceUrl);
   if (!response.ok) throw new Error(`Falha ao carregar o PGR do armazenamento (${response.status}).`);
   cachedPgrHtml = await response.text();
   return cachedPgrHtml;
