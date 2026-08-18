@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-const FAVICON_URL = "/manus-storage/tst-brasil-hub-favicon_07785ba1.png";
+const OFFICIAL_LOGO_URL = "/manus-storage/tst-brasil-hub-logo-otimizado_50d81e90.png";
 
 type BrandLockupProps = HTMLAttributes<HTMLDivElement> & {
   compact?: boolean;
@@ -8,17 +8,16 @@ type BrandLockupProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 export function BrandLockup({ compact = false, inverse = false, className = "", ...props }: BrandLockupProps) {
-  const titleColor = inverse ? "text-white" : "text-[#102b32]";
-  const subtitleColor = inverse ? "text-[#9ecfc5]" : "text-[#0c7474]";
+  const imageSize = compact ? "h-8 w-[5.7rem]" : "h-12 w-[8.6rem]";
 
   return (
-    <div className={`flex items-center gap-2.5 ${className}`} {...props}>
-      <div className={`grid place-content-center bg-gradient-to-br from-[#0c8c89] to-[#063b43] text-white shadow-md ${compact ? "h-8 w-8 rounded-lg text-xs" : "h-10 w-10 rounded-xl text-base"} font-black tracking-tighter`}>
-        TST
-      </div>
-      <div className="leading-none">
-        <p className={`${compact ? "text-base" : "text-lg"} font-extrabold tracking-[-0.04em] ${titleColor}`}>TST</p>
-        <p className={`${compact ? "mt-0.5 text-[8px]" : "mt-1 text-[9px]"} font-bold uppercase tracking-[0.18em] ${subtitleColor}`}>Brasil Hub</p>
+    <div className={`flex items-center ${className}`} {...props}>
+      <div className={inverse ? "rounded-xl bg-white px-2 py-1.5 shadow-sm" : ""}>
+        <img
+          src={OFFICIAL_LOGO_URL}
+          alt="TST Brasil Hub"
+          className={`${imageSize} block object-contain`}
+        />
       </div>
     </div>
   );

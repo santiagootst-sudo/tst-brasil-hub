@@ -637,3 +637,4 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Incluir envio das credenciais geradas pelo WhatsApp do usuário cadastrado.
 - [x] Identificar contas de teste e remover somente os registros confirmados pelo administrador.
 - [x] Aplicar a restrição única de openId no banco para impedir a recriação de usuários duplicados a cada login.
+- [x] Substituir a marca textual atual pelo logotipo oficial do TST Brasil Hub nas interfaces pública e autenticada.

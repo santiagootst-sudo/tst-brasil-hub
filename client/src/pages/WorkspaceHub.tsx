@@ -159,7 +159,7 @@ export default function WorkspaceHub() {
         <header className="mx-auto flex max-w-6xl items-center justify-between rounded-[1.5rem] border border-white/80 bg-white/65 px-4 py-3 shadow-[0_14px_40px_rgba(28,74,77,0.07)] backdrop-blur-2xl sm:px-5">
           <div className="flex items-center gap-3">
             <BrandLockup aria-label="TST Brasil Hub" />
-            <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#0c8c89]">TST Brasil Hub</p><p className="text-xs font-semibold text-[#547078]">Seu espaço profissional de SST</p></div>
+            <p className="text-xs font-semibold text-[#547078]">Seu espaço profissional de SST</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {billing.data?.subscription && <Button onClick={() => manageSubscription.mutate()} variant="outline" className="hidden rounded-xl border-white/80 bg-white/45 text-xs font-bold text-[#0c7474] backdrop-blur-md hover:bg-white/80 sm:inline-flex">Gerenciar assinatura</Button>}

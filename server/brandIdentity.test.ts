@@ -9,9 +9,10 @@ const layoutSource = readFileSync(resolve(process.cwd(), "client/src/components/
 const htmlSource = readFileSync(resolve(process.cwd(), "client/index.html"), "utf8");
 
 describe("identidade TST Brasil Hub", () => {
-  it("mantém o favicon simplificado como base do lockup reutilizável", () => {
-    expect(brandSource).toContain("tst-brasil-hub-favicon_07785ba1.png");
-    expect(brandSource).toContain("Brasil Hub");
+  it("utiliza o logotipo oficial otimizado no lockup reutilizável", () => {
+    expect(brandSource).toContain("tst-brasil-hub-logo-otimizado_50d81e90.png");
+    expect(brandSource).toContain('alt="TST Brasil Hub"');
+    expect(brandSource).toContain('inverse ? "rounded-xl bg-white');
   });
 
   it("aplica o lockup na entrada pública, na escolha de ambiente e no dashboard", () => {
@@ -19,6 +20,7 @@ describe("identidade TST Brasil Hub", () => {
     expect(workspaceSource).toContain("<BrandLockup");
     expect(layoutSource).toContain("<BrandLockup inverse");
     expect(layoutSource).toContain('title = "TST Brasil Hub"');
+    expect(workspaceSource).not.toContain('>TST Brasil Hub</p>');
   });
 
   it("publica metadados coerentes com a marca atual", () => {
