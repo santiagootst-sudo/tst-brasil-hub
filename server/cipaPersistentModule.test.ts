@@ -4,7 +4,9 @@ import {
   cipaCommissionCreatedSchema,
   createCipaCommissionInput,
   createCipaDocumentInput,
+  createCipaMeetingInput,
   createCipaMemberInput,
+  updateCipaMeetingInput,
   updateCipaMemberElectionInput,
 } from "../shared/contracts/portal";
 
@@ -36,6 +38,14 @@ describe("módulo CIPA persistente", () => {
     expect(createCipaDocumentInput.parse({ workspaceId: 7, commissionId: 30, termId: 31, type: "notice", title: "Edital de convocação", content: "Conteúdo da convocação CIPA devidamente revisado." }).type).toBe("notice");
   });
 
+  it("vincula reuniões persistentes ao mandato e valida a situação da agenda", () => {
+    const created = createCipaMeetingInput.parse({ workspaceId: 7, commissionId: 30, termId: 31, title: "Reunião ordinária de setembro", scheduledAt: "2026-09-15T14:00:00.000Z", status: "scheduled" });
+    expect(created.meetingType).toBe("ordinary");
+    expect(created.scheduledAt).toBeInstanceOf(Date);
+    expect(updateCipaMeetingInput.parse({ workspaceId: 7, meetingId: 44, title: "Reunião extraordinária", meetingType: "extraordinary", scheduledAt: "2026-09-17T15:00:00.000Z", status: "completed" }).status).toBe("completed");
+    expect(() => createCipaMeetingInput.parse({ workspaceId: 7, commissionId: 30, termId: 31, title: "R", scheduledAt: "ontem" })).toThrow();
+  });
+
   it("mantém as proteções de isolamento CLT, empresa e logo no código do módulo", () => {
     const router = readFileSync(new URL("./routers/cipaRouter.ts", import.meta.url), "utf8");
     const schema = readFileSync(new URL("../drizzle/schema.ts", import.meta.url), "utf8");
@@ -46,6 +56,8 @@ describe("módulo CIPA persistente", () => {
     expect(router).toContain("companyLogoUrl: company.logoUrl");
     expect(page).toContain("downloadCipaPdf");
     expect(page).toContain("companyLogoUrl");
+    expect(page).toContain("Calendário persistente");
+    expect(router).toContain("createCipaMeeting");
   });
 
   it("mantém os blocos formais dos modelos enviados nas atas, edital, fichas e cédulas", () => {

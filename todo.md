@@ -666,3 +666,7 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Rastrear e corrigir a autorização do iframe PGR em produção até confirmar a abertura com a conta mestre.
 - [x] Comparar os modelos CIPA reenviados com os documentos atuais e reproduzir fielmente sua estrutura, redação, tabelas e campos no portal.
 - [x] Validar a geração documental CIPA pelos modelos aprovados, enviar ao GitHub e publicar no Render.
+- [x] Criar calendário persistente de reuniões CIPA, com cadastro, edição, status e visualização na gestão correspondente.
+- [x] Gerar amostras de todos os documentos PDF CIPA usando registros reais disponíveis e disponibilizá-las para validação final.
+- [x] Criar módulo de vídeos YouTube para assinantes, com galeria de miniaturas e gestão administrativa de links, títulos, categorias e publicação.
+- [ ] Publicar no GitHub e Render o calendário CIPA e o módulo de vídeos YouTube após a validação técnica.

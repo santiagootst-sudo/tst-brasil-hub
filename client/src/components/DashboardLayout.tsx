@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2, Video } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -173,10 +173,11 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Controle de EPIs por cliente", icon: HardHat, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     ] },
-    { label: "Conhecimento", items: [
-      { label: "Cursos e treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
-      { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
-      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+      { label: "Conhecimento", items: [
+        { label: "Cursos e treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
+        { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+        { label: "Vídeos do canal", icon: Video, path: "/app/videos" },
+        { label: "Suporte", icon: Headphones, path: "/app/suporte" },
       { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
     ] },
   ] : isClt ? [
@@ -195,9 +196,10 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },
     ] },
-    { label: "Conhecimento", items: [
-      { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
-      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+      { label: "Conhecimento", items: [
+        { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+        { label: "Vídeos do canal", icon: Video, path: "/app/videos" },
+        { label: "Suporte", icon: Headphones, path: "/app/suporte" },
       { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
     ] },
   ] : [{ label: "Aplicativos", items: [
@@ -210,6 +212,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
       { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
       { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
+      { label: "Vídeos do canal", icon: Video, path: "/app/videos" },
       { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
       { label: "Suporte", icon: Headphones, path: "/app/suporte" },
       { label: "Certificados", icon: Trophy, path: "/app/certificados" },

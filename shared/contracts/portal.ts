@@ -948,6 +948,8 @@ export const cipaMemberRoleSchema = z.enum(["election_committee", "candidate", "
 export const cipaMemberConditionSchema = z.enum(["titular", "suplente", "not_applicable"]);
 export const cipaMemberStatusSchema = z.enum(["active", "withdrawn", "elected", "not_elected"]);
 export const cipaDocumentTypeSchema = z.enum(["election_committee", "union_notice", "notice", "registration", "ballot", "election_minutes", "possession_minutes", "work_plan"]);
+export const cipaMeetingTypeSchema = z.enum(["ordinary", "extraordinary"]);
+export const cipaMeetingStatusSchema = z.enum(["scheduled", "completed", "cancelled"]);
 
 export const createCipaCommissionInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
@@ -985,6 +987,27 @@ export const createCipaDocumentInput = workspaceIdInput.extend({
   type: cipaDocumentTypeSchema,
   title: z.string().trim().min(3).max(255),
   content: z.string().trim().min(10).max(30_000),
+});
+
+const cipaMeetingInputFields = {
+  title: z.string().trim().min(3).max(255),
+  meetingType: cipaMeetingTypeSchema.default("ordinary"),
+  scheduledAt: z.coerce.date(),
+  location: z.string().trim().max(255).nullable().optional(),
+  agenda: z.string().trim().max(2000).nullable().optional(),
+  minutesSummary: z.string().trim().max(4000).nullable().optional(),
+  status: cipaMeetingStatusSchema.default("scheduled"),
+};
+
+export const createCipaMeetingInput = workspaceIdInput.extend({
+  commissionId: z.number().int().positive(),
+  termId: z.number().int().positive(),
+  ...cipaMeetingInputFields,
+});
+
+export const updateCipaMeetingInput = workspaceIdInput.extend({
+  meetingId: z.number().int().positive(),
+  ...cipaMeetingInputFields,
 });
 
 export const cipaCommissionSchema = z.object({
@@ -1044,6 +1067,23 @@ export const cipaDocumentSchema = z.object({
   createdAt: z.date(),
 });
 
+export const cipaMeetingSchema = z.object({
+  id: z.number().int().positive(),
+  commissionId: z.number().int().positive(),
+  termId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  title: z.string(),
+  meetingType: cipaMeetingTypeSchema,
+  scheduledAt: z.date(),
+  location: z.string().nullable(),
+  agenda: z.string().nullable(),
+  minutesSummary: z.string().nullable(),
+  status: cipaMeetingStatusSchema,
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
 export const cipaSnapshotSchema = z.object({
   companies: z.array(companySchema),
   employees: z.array(employeeSchema),
@@ -1051,6 +1091,7 @@ export const cipaSnapshotSchema = z.object({
   terms: z.array(cipaTermSchema),
   members: z.array(cipaMemberSchema),
   documents: z.array(cipaDocumentSchema),
+  meetings: z.array(cipaMeetingSchema),
 });
 
 export const cipaCommissionCreatedSchema = z.object({

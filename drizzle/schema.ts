@@ -521,6 +521,46 @@ export const cipaDocuments = mysqlTable("cipa_documents", {
   index("cipa_documents_workspace_idx").on(table.workspaceId, table.type),
 ]);
 
+export const cipaMeetings = mysqlTable("cipa_meetings", {
+  id: int("id").autoincrement().primaryKey(),
+  commissionId: int("commissionId").notNull(),
+  termId: int("termId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  meetingType: mysqlEnum("meetingType", ["ordinary", "extraordinary"]).default("ordinary").notNull(),
+  scheduledAt: timestamp("scheduledAt").notNull(),
+  location: varchar("location", { length: 255 }),
+  agenda: varchar("agenda", { length: 2000 }),
+  minutesSummary: varchar("minutesSummary", { length: 4000 }),
+  status: mysqlEnum("status", ["scheduled", "completed", "cancelled"]).default("scheduled").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("cipa_meetings_term_schedule_idx").on(table.termId, table.scheduledAt),
+  index("cipa_meetings_workspace_schedule_idx").on(table.workspaceId, table.scheduledAt),
+]);
+
+export const youtubeVideos = mysqlTable("youtube_videos", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1500 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  youtubeUrl: varchar("youtubeUrl", { length: 2048 }).notNull(),
+  youtubeVideoId: varchar("youtubeVideoId", { length: 32 }).notNull(),
+  thumbnailUrl: varchar("thumbnailUrl", { length: 2048 }).notNull(),
+  status: mysqlEnum("status", ["draft", "published", "hidden"]).default("draft").notNull(),
+  featured: boolean("featured").default(false).notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("youtube_videos_video_id_unique").on(table.youtubeVideoId),
+  index("youtube_videos_public_idx").on(table.status, table.featured, table.publishedAt),
+  index("youtube_videos_updated_idx").on(table.updatedAt),
+]);
+
 export const materials = mysqlTable("materials", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
@@ -588,6 +628,8 @@ export type Certificate = typeof certificates.$inferSelect;
 export type Training = typeof trainings.$inferSelect;
 export type Material = typeof materials.$inferSelect;
 export type ContentMaterial = typeof contentMaterials.$inferSelect;
+export type CipaMeeting = typeof cipaMeetings.$inferSelect;
+export type YouTubeVideo = typeof youtubeVideos.$inferSelect;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type Department = typeof departments.$inferSelect;
 export type JobRole = typeof jobRoles.$inferSelect;

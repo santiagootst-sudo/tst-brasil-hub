@@ -11,6 +11,7 @@ import { adminRouter } from "./routers/adminRouter";
 import { portalRouter } from "./routers/portalRouter";
 import { accessRouter } from "./routers/accessRouter";
 import { contentRouter } from "./routers/contentRouter";
+import { videoRouter } from "./routers/videoRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -79,6 +80,7 @@ export const appRouter = router({
   billing: billingRouter,
   admin: adminRouter,
   content: contentRouter,
+  videos: videoRouter,
 });
 
 export type AppRouter = typeof appRouter;

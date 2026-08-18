@@ -5,7 +5,10 @@ import {
   cipaSnapshotSchema,
   createCipaCommissionInput,
   createCipaDocumentInput,
+  createCipaMeetingInput,
   createCipaMemberInput,
+  cipaMeetingSchema,
+  updateCipaMeetingInput,
   updateCipaMemberElectionInput,
   workspaceIdInput,
 } from "@shared/contracts/portal";
@@ -33,15 +36,16 @@ export const cipaRouter = router({
   cipaSnapshot: protectedProcedure.input(workspaceIdInput).output(cipaSnapshotSchema).query(async ({ ctx, input }) => {
     const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);
     if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
-    const [companies, employees, commissions, terms, members, documents] = await Promise.all([
+    const [companies, employees, commissions, terms, members, documents, meetings] = await Promise.all([
       portalDb.listCompaniesForWorkspace(input.workspaceId),
       portalDb.listEmployeesForWorkspace(input.workspaceId),
       portalDb.listCipaCommissionsForWorkspace(input.workspaceId),
       portalDb.listCipaTermsForWorkspace(input.workspaceId),
       portalDb.listCipaMembersForWorkspace(input.workspaceId),
       portalDb.listCipaDocumentsForWorkspace(input.workspaceId),
+      portalDb.listCipaMeetingsForWorkspace(input.workspaceId),
     ]);
-    return { companies, employees, commissions, terms, members, documents };
+    return { companies, employees, commissions, terms, members, documents, meetings };
   }),
   createCipaCommission: protectedProcedure.input(createCipaCommissionInput).output(cipaCommissionCreatedSchema).mutation(async ({ ctx, input }) => {
     const workspace = await requireManagedWorkspace(ctx.user.id, input.workspaceId);
@@ -88,5 +92,21 @@ export const cipaRouter = router({
     const document = await portalDb.createCipaDocumentForWorkspace({ ...input, companyLogoUrl: company.logoUrl, createdByUserId: ctx.user.id });
     if (!document) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o documento CIPA." });
     return document;
+  }),
+  createCipaMeeting: protectedProcedure.input(createCipaMeetingInput).output(cipaMeetingSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    await requireCommissionTerm(input.workspaceId, input.commissionId, input.termId);
+    const meeting = await portalDb.createCipaMeetingForWorkspace({ ...input, createdByUserId: ctx.user.id });
+    if (!meeting) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar a reunião CIPA." });
+    return meeting;
+  }),
+  updateCipaMeeting: protectedProcedure.input(updateCipaMeetingInput).output(cipaMeetingSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    const meeting = await portalDb.getCipaMeetingForWorkspace(input.meetingId, input.workspaceId);
+    if (!meeting) throw new TRPCError({ code: "NOT_FOUND", message: "Reunião CIPA não encontrada neste ambiente." });
+    await requireCommissionTerm(input.workspaceId, meeting.commissionId, meeting.termId);
+    const updated = await portalDb.updateCipaMeetingForWorkspace(input);
+    if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Não foi possível atualizar a reunião CIPA." });
+    return updated;
   }),
 });
