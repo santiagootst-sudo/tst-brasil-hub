@@ -85,3 +85,11 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </trpc.Provider>
 );
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/offline-sw.js").catch(() => {
+      // O portal continua funcionando online quando o navegador não aceitar Service Worker.
+    });
+  });
+}

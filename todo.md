@@ -646,3 +646,7 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Permitir upload direto de imagens de capa e arquivos PDF pelo painel do Administrador Mestre.
 - [x] Preparar a ativação guiada de um armazenamento público para capas e PDFs no domínio externo.
 - [x] Configurar uma pasta e um preset Cloudinary restritos aos uploads administrativos do TST Brasil Hub.
+- [x] Avaliar e documentar a capacidade segura de empresas, usuários e bibliotecas corporativas na infraestrutura atual.
+- [x] Projetar a Biblioteca Interna persistente, isolada por empresa, com arquivos no Cloudinary e metadados no TiDB.
+- [x] Definir o armazenamento local do dispositivo como cache opcional, sem substituir a Biblioteca Interna corporativa persistente.
+- [x] Permitir que técnicos salvem documentos autorizados para leitura offline, com atualização e remoção do cache local.

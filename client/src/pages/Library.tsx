@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter, Upload, FileText, Building2, Plus, Trash2, ShieldCheck, Tag } from "lucide-react";
+import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter, Upload, FileText, Building2, Plus, Trash2, ShieldCheck, Tag, CheckCircle2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { listOfflineDocuments, openOfflineDocument, removeOfflineDocument, saveDocumentOffline, type OfflineDocument } from "@/lib/offlineDocumentCache";
 
 const libraryItems = [
   {
@@ -169,7 +170,7 @@ const HISTORY_KEY = "tst-library-history-v1";
 const INTERNAL_DOCS_KEY = "tst-internal-library-docs-v1";
 
 export default function Library() {
-  const { loading } = useAuth({ redirectOnUnauthenticated: true });
+  const { loading, user } = useAuth({ redirectOnUnauthenticated: true });
   const publishedMaterialsQuery = trpc.content.published.useQuery({ placement: "library" });
   const [librarySection, setLibrarySection] = useState<"global" | "internal">("global");
   const [term, setTerm] = useState("");
@@ -209,6 +210,9 @@ export default function Library() {
   const [newCategory, setNewCategory] = useState("Procedimento");
   const [newDescription, setNewDescription] = useState("");
   const [newFile, setNewFile] = useState<File | null>(null);
+  const [offlineDocuments, setOfflineDocuments] = useState<OfflineDocument[]>([]);
+  const [offlineBusyId, setOfflineBusyId] = useState<string | null>(null);
+  const offlineUserId = user?.id ?? 0;
 
   useEffect(() => {
     try {
@@ -220,6 +224,14 @@ export default function Library() {
       if (docs) setInternalDocs(JSON.parse(docs));
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (!offlineUserId) {
+      setOfflineDocuments([]);
+      return;
+    }
+    setOfflineDocuments(listOfflineDocuments(offlineUserId));
+  }, [offlineUserId]);
 
   const toggleFavorite = (code: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -302,6 +314,34 @@ export default function Library() {
     toast.success("Documento removido da biblioteca interna.");
   };
 
+  const toggleOfflineDocument = async (document: { id: string; title: string; sourceUrl: string }) => {
+    if (!offlineUserId) return;
+    setOfflineBusyId(document.id);
+    try {
+      const existing = offlineDocuments.find(item => item.id === document.id);
+      const next = existing
+        ? await removeOfflineDocument(offlineUserId, document.id)
+        : await saveDocumentOffline({ ...document, userId: offlineUserId });
+      setOfflineDocuments(next);
+      toast.success(existing ? "Cópia offline removida deste dispositivo." : "Documento salvo para leitura offline.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o documento offline.");
+    } finally {
+      setOfflineBusyId(null);
+    }
+  };
+
+  const openSavedDocument = async (document: OfflineDocument) => {
+    const objectUrl = await openOfflineDocument(offlineUserId, document.id);
+    if (!objectUrl) {
+      toast.error("A cópia offline não está mais disponível neste dispositivo.");
+      setOfflineDocuments(listOfflineDocuments(offlineUserId));
+      return;
+    }
+    window.open(objectUrl, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  };
+
   const categories = ["Todas", "Normas Regulamentadoras", "Manuais Oficiais", "Favoritos ⭐"];
   const themes = ["Todos", "Gestão e Riscos", "Organização e CIPA", "Proteção Coletiva e Individual", "Saúde Ocupacional", "Segurança Especializada", "Setor Específico"];
 
@@ -329,6 +369,7 @@ export default function Library() {
     const searchable = `${item.title} ${item.description} ${item.category} ${item.format}`.toLocaleLowerCase("pt-BR");
     return !term || searchable.includes(term.toLocaleLowerCase("pt-BR"));
   });
+  const offlineDocumentIds = new Set(offlineDocuments.map(document => document.id));
 
   if (loading) return null;
 
@@ -493,11 +534,30 @@ export default function Library() {
             {publishedMaterials.length > 0 && (
               <section className="space-y-4 rounded-[1.75rem] border border-[#cfe6df] bg-[#f5fcf9] p-5 shadow-sm lg:p-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Materiais publicados pela equipe</p><h3 className="mt-1 text-xl font-bold text-[#102b32]">Novidades na Biblioteca Técnica</h3></div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Materiais publicados pela equipe</p>
+                    <h3 className="mt-1 text-xl font-bold text-[#102b32]">Novidades na Biblioteca Técnica</h3>
+                  </div>
                   <span className="text-xs text-[#668087]">Atualizados automaticamente pelo Administrador Mestre</span>
                 </div>
+                {offlineDocuments.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#c8ddd7] bg-white px-4 py-3">
+                    <div className="flex items-center gap-2 text-xs text-[#49636a]"><WifiOff className="h-4 w-4 text-[#0c7474]" /><span><strong className="text-[#102b32]">{offlineDocuments.length}</strong> documento(s) salvo(s) neste dispositivo.</span></div>
+                    <div className="flex flex-wrap gap-2">
+                      {offlineDocuments.map(document => <button key={`offline-${document.id}`} onClick={() => openSavedDocument(document)} className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1.5 text-xs font-bold text-[#0c7474] hover:bg-[#0c7474] hover:text-white"><WifiOff className="h-3 w-3" /> Abrir offline</button>)}
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {publishedMaterials.map(item => { const resourceUrl = item.fileUrl || item.referenceUrl; return <article key={`published-${item.id}`} className="flex flex-col justify-between rounded-2xl border border-[#d7e9e4] bg-white p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md"><div><div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 rounded-lg bg-[#e8f6f1] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#0c7474]"><FileText className="h-3 w-3" /> {item.category}</span>{item.featured && <span className="rounded-full bg-[#fff1cf] px-2 py-1 text-[10px] font-bold text-[#9a6412]">Destaque</span>}</div><h4 className="mt-4 text-sm font-bold text-[#102b32]">{item.title}</h4><p className="mt-2 text-xs leading-5 text-[#668087]">{item.description}</p></div><div className="mt-4 flex items-center justify-between border-t border-[#eff6f3] pt-3"><span className="text-[10px] font-bold uppercase tracking-[.12em] text-[#78928d]">{item.format}</span>{resourceUrl && <a href={resourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1.5 text-xs font-bold text-[#0c7474] transition hover:bg-[#0c7474] hover:text-white">{item.fileUrl ? "Abrir PDF" : "Acessar"} <ExternalLink className="h-3 w-3" /></a>}</div></article>; })}
+                  {publishedMaterials.map(item => {
+                    const resourceUrl = item.fileUrl || item.referenceUrl;
+                    const offlineId = `material-${item.id}`;
+                    const isOffline = offlineDocumentIds.has(offlineId);
+                    return <article key={`published-${item.id}`} className="flex flex-col justify-between rounded-2xl border border-[#d7e9e4] bg-white p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md">
+                      <div><div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 rounded-lg bg-[#e8f6f1] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#0c7474]"><FileText className="h-3 w-3" /> {item.category}</span>{item.featured && <span className="rounded-full bg-[#fff1cf] px-2 py-1 text-[10px] font-bold text-[#9a6412]">Destaque</span>}</div><h4 className="mt-4 text-sm font-bold text-[#102b32]">{item.title}</h4><p className="mt-2 text-xs leading-5 text-[#668087]">{item.description}</p></div>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#eff6f3] pt-3"><span className="text-[10px] font-bold uppercase tracking-[.12em] text-[#78928d]">{item.format}</span><div className="flex flex-wrap gap-2">{item.fileUrl && <button type="button" disabled={offlineBusyId === offlineId} onClick={() => toggleOfflineDocument({ id: offlineId, title: item.title, sourceUrl: item.fileUrl! })} className="inline-flex items-center gap-1 rounded-lg bg-[#eff6f3] px-2.5 py-1.5 text-xs font-bold text-[#49636a] transition hover:bg-[#0c7474] hover:text-white disabled:opacity-60">{isOffline ? <><CheckCircle2 className="h-3 w-3" /> Salvo offline</> : <><WifiOff className="h-3 w-3" /> Offline</>}</button>}{resourceUrl && <a href={resourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1.5 text-xs font-bold text-[#0c7474] transition hover:bg-[#0c7474] hover:text-white">{item.fileUrl ? "Abrir PDF" : "Acessar"} <ExternalLink className="h-3 w-3" /></a>}</div></div>
+                    </article>;
+                  })}
                 </div>
               </section>
             )}
