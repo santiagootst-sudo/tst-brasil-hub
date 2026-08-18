@@ -5,6 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter, Upload, FileText, Building2, Plus, Trash2, ShieldCheck, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
 
 const libraryItems = [
   {
@@ -169,6 +170,7 @@ const INTERNAL_DOCS_KEY = "tst-internal-library-docs-v1";
 
 export default function Library() {
   const { loading } = useAuth({ redirectOnUnauthenticated: true });
+  const publishedMaterialsQuery = trpc.content.published.useQuery({ placement: "library" });
   const [librarySection, setLibrarySection] = useState<"global" | "internal">("global");
   const [term, setTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("Todas");
@@ -323,6 +325,10 @@ export default function Library() {
     .map(code => libraryItems.find(i => i.code === code))
     .filter(Boolean)
     .filter(item => item && `${item.code} ${item.title} ${item.description}`.toLocaleLowerCase("pt-BR").includes(histSearch.toLocaleLowerCase("pt-BR"))) as typeof libraryItems;
+  const publishedMaterials = (publishedMaterialsQuery.data ?? []).filter(item => {
+    const searchable = `${item.title} ${item.description} ${item.category} ${item.format}`.toLocaleLowerCase("pt-BR");
+    return !term || searchable.includes(term.toLocaleLowerCase("pt-BR"));
+  });
 
   if (loading) return null;
 
@@ -484,6 +490,17 @@ export default function Library() {
             )}
 
             {/* Grade de Cards Menores */}
+            {publishedMaterials.length > 0 && (
+              <section className="space-y-4 rounded-[1.75rem] border border-[#cfe6df] bg-[#f5fcf9] p-5 shadow-sm lg:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Materiais publicados pela equipe</p><h3 className="mt-1 text-xl font-bold text-[#102b32]">Novidades na Biblioteca Técnica</h3></div>
+                  <span className="text-xs text-[#668087]">Atualizados automaticamente pelo Administrador Mestre</span>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {publishedMaterials.map(item => <article key={`published-${item.id}`} className="flex flex-col justify-between rounded-2xl border border-[#d7e9e4] bg-white p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md"><div><div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-1.5 rounded-lg bg-[#e8f6f1] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#0c7474]"><FileText className="h-3 w-3" /> {item.category}</span>{item.featured && <span className="rounded-full bg-[#fff1cf] px-2 py-1 text-[10px] font-bold text-[#9a6412]">Destaque</span>}</div><h4 className="mt-4 text-sm font-bold text-[#102b32]">{item.title}</h4><p className="mt-2 text-xs leading-5 text-[#668087]">{item.description}</p></div><div className="mt-4 flex items-center justify-between border-t border-[#eff6f3] pt-3"><span className="text-[10px] font-bold uppercase tracking-[.12em] text-[#78928d]">{item.format}</span>{item.referenceUrl && <a href={item.referenceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-[#e8f6f1] px-2.5 py-1.5 text-xs font-bold text-[#0c7474] transition hover:bg-[#0c7474] hover:text-white">Acessar <ExternalLink className="h-3 w-3" /></a>}</div></article>)}
+                </div>
+              </section>
+            )}
             <section className="space-y-4">
               <div className="flex items-center justify-between px-1">
                 <div>

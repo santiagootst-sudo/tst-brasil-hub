@@ -639,3 +639,5 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Aplicar a restrição única de openId no banco para impedir a recriação de usuários duplicados a cada login.
 - [x] Substituir a marca textual atual pelo logotipo oficial do TST Brasil Hub nas interfaces pública e autenticada.
 - [x] Corrigir a entrega do logotipo e das imagens do portal no domínio externo de produção.
+- [x] Transformar o Marketplace em catálogo de materiais profissionais para TST, com encaminhamento de compra por Hotmart e Kiwify.
+- [x] Permitir que o Administrador Mestre cadastre, publique, atualize, oculte e organize materiais do Marketplace e da Biblioteca pelo portal.

@@ -10,6 +10,7 @@ import { billingRouter } from "./routers/billingRouter";
 import { adminRouter } from "./routers/adminRouter";
 import { portalRouter } from "./routers/portalRouter";
 import { accessRouter } from "./routers/accessRouter";
+import { contentRouter } from "./routers/contentRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -77,6 +78,7 @@ export const appRouter = router({
   access: accessRouter,
   billing: billingRouter,
   admin: adminRouter,
+  content: contentRouter,
 });
 
 export type AppRouter = typeof appRouter;

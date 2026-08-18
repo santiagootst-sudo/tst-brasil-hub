@@ -5,11 +5,12 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AppDashboard from "./pages/AppDashboard";
 import AdminPanel from "./pages/AdminPanel";
+import AdminContentPanel from "./pages/AdminContentPanel";
 import Certificates from "./pages/Certificates";
 import CipaAssistant from "./pages/CipaAssistant";
 import Home from "./pages/Home";
 import Library from "./pages/Library";
-import Marketplace from "./pages/Marketplace";
+import Marketplace from "./pages/MarketplaceCatalog";
 import Materials from "./pages/Materials";
 import NotFound from "./pages/NotFound";
 import Operations from "./pages/Operations";
@@ -26,7 +27,7 @@ import BillingSuccess from "./pages/BillingSuccess";
 import RequestAccess from "./pages/RequestAccess";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/solicitar-acesso" component={RequestAccess} /><Route path="/planos" component={Pricing} /><Route path="/admin" component={AdminPanel} /><Route path="/app/billing/success" component={BillingSuccess} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/marketplace" component={Marketplace} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/cipa" component={CipaAssistant} /><Route path="/app/pgr" component={PgrApp} />
+  return <Switch><Route path="/" component={Home} /><Route path="/solicitar-acesso" component={RequestAccess} /><Route path="/planos" component={Pricing} /><Route path="/admin/materiais" component={AdminContentPanel} /><Route path="/admin" component={AdminPanel} /><Route path="/app/billing/success" component={BillingSuccess} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/marketplace" component={Marketplace} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/cipa" component={CipaAssistant} /><Route path="/app/pgr" component={PgrApp} />
 <Route path="/app/copsoq" component={PsychosocialApp} /><Route path="/app" component={AppDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 

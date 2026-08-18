@@ -461,6 +461,28 @@ export const materials = mysqlTable("materials", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("materials_workspace_idx").on(table.workspaceId)]);
 
+export const contentMaterials = mysqlTable("content_materials", {
+  id: int("id").autoincrement().primaryKey(),
+  placement: mysqlEnum("placement", ["marketplace", "library"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1500 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(),
+  format: mysqlEnum("format", ["modelo", "planilha", "checklist", "ebook", "curso", "documento", "outro"]).default("outro").notNull(),
+  salePlatform: mysqlEnum("salePlatform", ["hotmart", "kiwify", "externo", "nenhuma"]).default("nenhuma").notNull(),
+  priceCents: int("priceCents"),
+  referenceUrl: varchar("referenceUrl", { length: 2048 }),
+  coverUrl: varchar("coverUrl", { length: 2048 }),
+  status: mysqlEnum("status", ["draft", "published", "hidden"]).default("draft").notNull(),
+  featured: boolean("featured").default(false).notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("content_materials_public_idx").on(table.placement, table.status, table.featured),
+  index("content_materials_updated_idx").on(table.updatedAt),
+]);
+
 export const supportTickets = mysqlTable("support_tickets", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
@@ -480,6 +502,7 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Training = typeof trainings.$inferSelect;
 export type Material = typeof materials.$inferSelect;
+export type ContentMaterial = typeof contentMaterials.$inferSelect;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type Department = typeof departments.$inferSelect;
 export type JobRole = typeof jobRoles.$inferSelect;

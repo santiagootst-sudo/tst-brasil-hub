@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -521,6 +521,64 @@ export async function createMaterialForWorkspace(input: {
     referenceUrl: input.referenceUrl ?? null,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export type ContentMaterialInput = {
+  placement: "marketplace" | "library";
+  title: string;
+  description: string;
+  category: string;
+  format: "modelo" | "planilha" | "checklist" | "ebook" | "curso" | "documento" | "outro";
+  salePlatform: "hotmart" | "kiwify" | "externo" | "nenhuma";
+  priceCents?: number | null;
+  referenceUrl?: string | null;
+  coverUrl?: string | null;
+  status: "draft" | "published" | "hidden";
+  featured: boolean;
+};
+
+export async function listPublishedContentMaterials(placement: "marketplace" | "library") {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(contentMaterials)
+    .where(and(eq(contentMaterials.placement, placement), eq(contentMaterials.status, "published")))
+    .orderBy(desc(contentMaterials.featured), desc(contentMaterials.publishedAt), desc(contentMaterials.updatedAt));
+}
+
+export async function listContentMaterialsForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(contentMaterials).orderBy(desc(contentMaterials.updatedAt));
+}
+
+export async function createContentMaterial(input: ContentMaterialInput & { createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const now = new Date();
+  const inserted = await db.insert(contentMaterials).values({
+    ...input,
+    priceCents: input.priceCents ?? null,
+    referenceUrl: input.referenceUrl ?? null,
+    coverUrl: input.coverUrl ?? null,
+    publishedAt: input.status === "published" ? now : null,
+  });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, publishedAt: input.status === "published" ? now : null };
+}
+
+export async function updateContentMaterial(id: number, input: ContentMaterialInput) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const existing = await db.select().from(contentMaterials).where(eq(contentMaterials.id, id)).limit(1);
+  if (!existing[0]) return null;
+  const publishedAt = input.status === "published" ? (existing[0].publishedAt ?? new Date()) : null;
+  await db.update(contentMaterials).set({
+    ...input,
+    priceCents: input.priceCents ?? null,
+    referenceUrl: input.referenceUrl ?? null,
+    coverUrl: input.coverUrl ?? null,
+    publishedAt,
+  }).where(eq(contentMaterials.id, id));
+  return { id, ...input, publishedAt };
 }
 
 export async function listSupportTicketsForWorkspace(workspaceId: number) {
