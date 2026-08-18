@@ -616,3 +616,7 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Configurar a conta Stripe correta (`acct_1U5LnQLIEYTVZdbw`) e revalidar o checkout e webhooks de teste
 - [ ] Validar a criação efetiva de sessões Stripe mensal, trimestral e anual pelos registros de API da conta de teste.
 - [x] Registrar nos logs da aplicação o sucesso ou a falha da criação de checkout para diagnóstico operacional seguro.
+- [ ] Corrigir a resolução de preços Stripe em produção com identificadores explícitos por ciclo e retestar os três checkouts.
+- [x] Configurar a variável DATABASE_URL no serviço de produção do Render com a conexão TiDB segura.
+- [x] Validar persistência real de login, workspace e assinatura após reinicialização do serviço.
+- [x] Configurar no Stripe os preços recorrentes ativos dos planos mensal, trimestral e anual e validar os três checkouts.
