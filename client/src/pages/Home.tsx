@@ -29,6 +29,12 @@ const steps = [
   { num: "03", title: "Use as ferramentas", text: "Tenha em mãos PGR integrado, controle de EPIs com CA, certificados com QR Code, inspeções e suporte contínuo." },
 ];
 
+const launchPlans = [
+  { code: "Mensal", price: "R$ 69,90", detail: "no primeiro mês", renewal: "Depois, R$ 99,90/mês", tone: "border-[#d8e9e4]", featured: false },
+  { code: "Trimestral", price: "R$ 269,70", detail: "a cada 3 meses", renewal: "Planejamento de 90 dias", tone: "border-[#0c8c89] ring-2 ring-[#d9f1e7]", featured: true },
+  { code: "Anual", price: "R$ 898,80", detail: "por ano", renewal: "Equivale a R$ 74,90/mês", tone: "border-[#e5cf99]", featured: false },
+] as const;
+
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -39,6 +45,10 @@ export default function Home() {
   const [contactSubject, setContactSubject] = useState("Suporte");
   const [contactMessage, setContactMessage] = useState("");
   const enter = () => setIsLoginModalOpen(true);
+  const selectPlanOnWhatsApp = (plan: typeof launchPlans[number]) => {
+    const text = `Olá! Quero solicitar acesso ao TST Brasil Hub no plano ${plan.code}. Valor: ${plan.price} ${plan.detail}. Meu nome é: `;
+    window.open(`https://wa.me/5554999097610?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  };
 
   const handleContactSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -70,7 +80,7 @@ export default function Home() {
         <div className="hidden items-center gap-8 text-sm font-semibold text-[#405c63] md:flex">
           <a href="#beneficios" className="hover:text-[#0c7474]">Benefícios</a>
           <a href="#produto" className="hover:text-[#0c7474]">Ecossistema</a>
-          <a href="/solicitar-acesso" className="hover:text-[#0c7474]">Solicitar acesso</a>
+          <a href="#planos" className="hover:text-[#0c7474]">Planos e valores</a>
           <a href="#como-funciona" className="hover:text-[#0c7474]">Como Funciona</a>
           <a href="#faq" className="hover:text-[#0c7474]">FAQ</a>
           <a href="#contato" className="hover:text-[#0c7474]">Contato e Suporte</a>
@@ -110,8 +120,8 @@ export default function Home() {
               <Button onClick={enter} size="lg" className="h-14 rounded-2xl border border-[#8ff4e1]/45 bg-[#0c7474] px-8 text-base font-bold text-white shadow-xl shadow-black/25 transition-transform hover:-translate-y-0.5 hover:bg-[#118f89] hover:shadow-2xl hover:shadow-[#64e2d1]/20 active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
                 Acessar Plataforma <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <a href="/solicitar-acesso" className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#a8f4e7]/65 bg-white/15 px-8 text-sm font-bold text-white shadow-lg shadow-black/10 backdrop-blur-md transition-transform hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-xl active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
-                Solicitar acesso
+              <a href="#planos" className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#a8f4e7]/65 bg-white/15 px-8 text-sm font-bold text-white shadow-lg shadow-black/10 backdrop-blur-md transition-transform hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-xl active:translate-y-0 focus-visible:ring-2 focus-visible:ring-[#a8f4e7] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b4f55]">
+                Ver planos e valores
               </a>
             </div>
             <div className="hub-hero-item hub-hero-item--5 mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#bce3dc]">
@@ -186,6 +196,13 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="planos" className="scroll-mt-24 bg-[#f7fbfa] py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center"><span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Planos de lançamento</span><h2 className="mt-3 text-3xl font-extrabold tracking-[-.03em] text-[#0d2227] sm:text-4xl">Escolha o ciclo ideal para a sua rotina.</h2><p className="mt-4 text-base text-[#526b73]">Todos os planos incluem o ecossistema TST Brasil Hub. Ao escolher, você fala conosco pelo WhatsApp para receber a liberação de acesso.</p></div>
+          <div className="mt-11 grid gap-5 lg:grid-cols-3">{launchPlans.map(plan => <article key={plan.code} className={`relative flex flex-col rounded-[1.75rem] border bg-white p-7 shadow-[0_14px_38px_rgba(16,43,50,.07)] ${plan.tone}`}>{plan.featured && <span className="absolute -top-3 left-7 rounded-full bg-[#0c7474] px-3 py-1 text-xs font-bold text-white">Mais escolhido</span>}{plan.code === "Anual" && <span className="absolute -top-3 right-7 rounded-full bg-[#f4c76b] px-3 py-1 text-xs font-bold text-[#5a3d0e]">Melhor opção</span>}<p className="text-xs font-bold uppercase tracking-[.16em] text-[#0c8c89]">Plano {plan.code}</p><p className="mt-5 text-4xl font-extrabold tracking-[-.05em] text-[#102b32]">{plan.price}</p><p className="mt-2 text-sm font-semibold text-[#426069]">{plan.detail}</p><div className="my-6 h-px bg-[#e1ece8]" /><p className="min-h-10 text-sm text-[#668087]">{plan.renewal}</p><div className="mt-7 space-y-3 text-sm text-[#315158]"><p className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-[#0c8c89]" />PGR, EPIs, CIPA e documentos</p><p className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-[#0c8c89]" />Biblioteca, treinamentos e certificados</p></div><Button onClick={() => selectPlanOnWhatsApp(plan)} className="mt-8 w-full rounded-xl bg-[#0c7474] font-bold text-white hover:bg-[#063b43]"><PhoneCall className="mr-2 h-4 w-4" />Quero o plano {plan.code}</Button></article>)}</div>
         </div>
       </section>
 
