@@ -625,3 +625,6 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Criar fluxo público de solicitação de acesso sem dependência de checkout Stripe.
 - [x] Criar painel do administrador para gerar e liberar credenciais temporárias ou permanentes para solicitantes.
 - [x] Ajustar o login para validar credenciais liberadas pelo administrador e bloquear acessos não aprovados.
+- [x] Restaurar os cards de planos e valores na jornada pública sem checkout Stripe.
+- [x] Encaminhar cada escolha de plano ao WhatsApp de atendimento com mensagem pré-preenchida contendo o plano selecionado.
+- [x] Garantir que o botão Acessar Plataforma abra o formulário de e-mail e senha para visitantes não autenticados.

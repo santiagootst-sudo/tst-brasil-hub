@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Check, CircleHelp, Loader2, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, Loader2, MessageCircle, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { LoginModal } from "@/components/LoginModal";
 
@@ -27,33 +26,20 @@ const monthlyEquivalent: Record<PlanCode, string> = {
   anual: "Equivale a R$ 74,90/mês — economia de R$ 25,00 por mês",
 };
 
+const whatsappNumber = "5554999097610";
+const whatsappOffer: Record<PlanCode, string> = {
+  mensal: "R$ 69,90 no primeiro mês e R$ 99,90/mês após a oferta",
+  trimestral: "R$ 269,70 a cada 3 meses",
+  anual: "R$ 898,80 por ano",
+};
+
 export default function Pricing() {
-  const { isAuthenticated } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const { data: plans, isLoading } = trpc.billing.plans.useQuery();
-  const checkout = trpc.billing.checkout.useMutation();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const pendingPlan = localStorage.getItem("tst_pending_plan") as PlanCode | null;
-      if (pendingPlan) {
-        localStorage.removeItem("tst_pending_plan");
-        toast.success("Autenticação concluída! Abrindo checkout do Stripe...");
-        checkout.mutate({ planCode: pendingPlan });
-      }
-    }
-  }, [isAuthenticated]);
-
-  const selectPlan = (code: PlanCode, enabled: boolean) => {
-    void enabled;
-    window.location.assign("/solicitar-acesso");
-    return;
-    if (!isAuthenticated) {
-      localStorage.setItem("tst_pending_plan", code);
-      setIsLoginModalOpen(true);
-      return;
-    }
-    checkout.mutate({ planCode: code });
+  const selectPlan = (code: PlanCode) => {
+    const message = `Olá! Quero solicitar acesso ao TST Brasil Hub no plano ${cycleLabel[code]}. Valor: ${whatsappOffer[code]}. Meu nome é: `;
+    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    toast.success("Abrimos o WhatsApp com sua escolha de plano.");
   };
 
   const cancelled = new URLSearchParams(window.location.search).get("billing") === "cancelled";
@@ -66,7 +52,7 @@ export default function Pricing() {
             ← Portal TST Brasil
           </Link>
           <Button onClick={() => setIsLoginModalOpen(true)} variant="outline" className="rounded-full border-[#0c7474] text-[#0c7474] hover:bg-[#0c7474]/10 font-bold text-xs">
-            {isAuthenticated ? "Meu Painel" : "Entrar com e-mail"}
+            Entrar com e-mail
           </Button>
         </div>
 
@@ -121,9 +107,9 @@ export default function Pricing() {
                   <p className="mt-2 text-lg font-bold text-[#0c7474]">{plan.recurringDisplayPrice}</p>
                   <p className="mt-1 text-xs text-[#78928d]">{monthlyEquivalent[code]}</p>
                 </div>
-                <Button disabled={checkout.isPending} onClick={() => selectPlan(code, plan.checkoutReady)} className={`mt-6 w-full rounded-xl text-white transition active:scale-[.98] ${isFeatured ? "bg-[#0c7474] hover:bg-[#063b43]" : "bg-[#3173a8] hover:bg-[#235882]"}`}>
-                  {checkout.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-                  {checkout.isPending ? "Preparando checkout" : `Escolher plano ${cycleLabel[code]}`}
+                <Button onClick={() => selectPlan(code)} className={`mt-6 w-full rounded-xl text-white transition active:scale-[.98] ${isFeatured ? "bg-[#0c7474] hover:bg-[#063b43]" : "bg-[#3173a8] hover:bg-[#235882]"}`}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  {`Quero o plano ${cycleLabel[code]}`}
                 </Button>
                 <ul className="mt-7 space-y-3 border-t border-[#e5f0ed] pt-6">
                   {plan.features.map(feature => <li key={feature} className="flex gap-2 text-sm leading-5 text-[#315158]"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#39a77e]" />{feature}</li>)}
@@ -147,7 +133,7 @@ export default function Pricing() {
         </section>
 
         <section className="mx-auto mt-8 grid max-w-4xl gap-3 text-center text-xs text-[#6f858a] sm:grid-cols-3">
-          <p className="flex items-center justify-center gap-2"><LockKeyhole className="h-4 w-4 text-[#0c7474]" />Checkout protegido pelo Stripe</p>
+          <p className="flex items-center justify-center gap-2"><MessageCircle className="h-4 w-4 text-[#0c7474]" />Atendimento direto pelo WhatsApp</p>
           <p className="flex items-center justify-center gap-2"><CircleHelp className="h-4 w-4 text-[#0c7474]" />Suporte para escolher o ciclo</p>
           <p className="flex items-center justify-center gap-2"><Check className="h-4 w-4 text-[#0c7474]" />Acesso aos mesmos módulos</p>
         </section>

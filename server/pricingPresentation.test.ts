@@ -17,4 +17,13 @@ describe("destaque comercial do plano anual", () => {
     expect(globalStyles).toContain(".pricing-badge-pulse");
     expect(globalStyles).toContain("animation: none;");
   });
+
+  it("preserva os valores e encaminha a escolha de cada ciclo ao WhatsApp", () => {
+    expect(pricingPage).toContain('const whatsappNumber = "5554999097610"');
+    expect(pricingPage).toContain('mensal: "R$ 69,90 no primeiro mês e R$ 99,90/mês após a oferta"');
+    expect(pricingPage).toContain('trimestral: "R$ 269,70 a cada 3 meses"');
+    expect(pricingPage).toContain('anual: "R$ 898,80 por ano"');
+    expect(pricingPage).toContain("https://wa.me/${whatsappNumber}");
+    expect(pricingPage).toContain("Quero o plano");
+  });
 });

@@ -38,13 +38,7 @@ export default function Home() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactSubject, setContactSubject] = useState("Suporte");
   const [contactMessage, setContactMessage] = useState("");
-  const enter = () => {
-    if (isAuthenticated) {
-      window.location.assign("/app");
-      return;
-    }
-    setIsLoginModalOpen(true);
-  };
+  const enter = () => setIsLoginModalOpen(true);
 
   const handleContactSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -82,7 +76,7 @@ export default function Home() {
           <a href="#contato" className="hover:text-[#0c7474]">Contato e Suporte</a>
         </div>
         <Button onClick={enter} className="rounded-full bg-[#0c7474] px-7 py-2.5 text-sm text-white hover:bg-[#063b43] font-bold shadow-md shadow-[#0c7474]/15">
-          {loading ? "Carregando" : isAuthenticated ? "Acessar portal" : "Portal de Acesso"}
+          {loading ? "Carregando" : "Acessar portal"}
         </Button>
       </nav>
 
