@@ -1,7 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { eq, desc, sql } from "drizzle-orm";
 import { accessRequests, actionItems, adminAccessAudit, certificates, clientEngagements, clientVisits, companies, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -109,8 +108,10 @@ export async function getUserByOpenId(openId: string) {
         openId,
         name: "Santiago (Master Admin)",
         email: "santiagoocorretor@gmail.com",
-        role: "admin",
+        role: "admin" as const,
         loginMethod: "direct",
+        accessStatus: "active" as const,
+        accessExpiresAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
@@ -121,9 +122,11 @@ export async function getUserByOpenId(openId: string) {
       openId,
       name: "Profissional de SST",
       email: "usuario@tstbrasilhub.com.br",
-      role: "user",
-      loginMethod: "direct",
-      createdAt: new Date(),
+        role: "user" as const,
+        loginMethod: "direct",
+        accessStatus: "active" as const,
+        accessExpiresAt: null,
+        createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
     };
@@ -144,8 +147,10 @@ export async function getUserById(userId: number) {
       openId: userId === 1 ? "owner-master-openid-12345" : `user-${userId}`,
       name: userId === 1 ? "Santiago (Master Admin)" : "Profissional de SST",
       email: userId === 1 ? "santiagoocorretor@gmail.com" : "usuario@tstbrasilhub.com.br",
-      role: userId === 1 ? "admin" : "user",
+      role: userId === 1 ? ("admin" as const) : ("user" as const),
       loginMethod: "direct",
+      accessStatus: "active" as const,
+      accessExpiresAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),

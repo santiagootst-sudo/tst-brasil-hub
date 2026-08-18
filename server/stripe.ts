@@ -21,7 +21,7 @@ async function resolveRecurringPriceId(plan: NonNullable<ReturnType<typeof getSu
   const client = stripeClient();
   try {
     const [account, prices] = await Promise.all([
-      client.accounts.retrieve(),
+      client.accounts.retrieve(null),
       client.prices.list({ lookup_keys: [plan.lookupKey], active: true, limit: 1 }),
     ]);
     const resolvedPriceId = prices.data[0]?.id;
