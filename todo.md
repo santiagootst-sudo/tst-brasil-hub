@@ -695,5 +695,5 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Corrigir o estado de carregamento que permanece em “Abrindo TST Autônomo...” após a troca de ambiente.
 - [x] Cobrir e validar a alternância entre CLT e Autônomo somente na prévia, sem push ou deploy.
 
-- [ ] Revisar e sincronizar no GitHub as correções acumuladas de EPIs, Dashboard CLT e alternância de ambientes.
-- [ ] Confirmar o hash remoto do commit enviado, sem executar deploy manual no Render.
+- [x] Revisar e sincronizar no GitHub as correções acumuladas de EPIs, Dashboard CLT e alternância de ambientes.
+- [x] Confirmar o hash remoto do commit enviado, sem executar deploy manual no Render.
