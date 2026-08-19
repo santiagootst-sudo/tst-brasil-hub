@@ -34,8 +34,13 @@ import { Input } from "@/components/ui/input";
 import {
   certificateCatalog,
   certificateDescription,
+  getCertificateCourse,
+  getCertificateWatermarkKey,
   certificateNrs,
+  getSuggestedPracticalContent,
+  getSuggestedProgramContent,
   type CertificateNr,
+  type CertificateWatermarkKey,
 } from "@/lib/certificateCatalog";
 import { certificateWatermarkVariants, getCertificateWatermarkTheme, getCertificateWatermarkVariant, type CertificateWatermarkVariantId } from "@/lib/certificateWatermark";
 import { trpc } from "@/lib/trpc";
@@ -129,36 +134,39 @@ function getStoredTemplates(): ProgramTemplate[] {
   }
 }
 
-function getDefaultProgramContent(nr: CertificateNr, templates = getStoredTemplates()) {
-  return templates.find(template => template.nr === nr)?.content ?? certificateCatalog[nr].content.join("\n");
+function getDefaultProgramContent(nr: CertificateNr, courseName: string, templates = getStoredTemplates()) {
+  return templates.find(template => template.nr === nr)?.content ?? getSuggestedProgramContent(nr, courseName).join("\n");
 }
 
-const initialForm = (companies: Array<{ id: number; name: string }> = []): FormState => ({
-  companyId: companies.length === 1 ? companies[0].id : null,
-  participantName: "",
-  cpf: "",
-  company: companies.length === 1 ? companies[0].name : "",
-  nr: "NR-35",
-  course: certificateCatalog["NR-35"].courses[0].name,
-  validity: "24",
+const initialForm = (companies: Array<{ id: number; name: string }> = []): FormState => {
+  const nr: CertificateNr = "NR-35";
+  const course = certificateCatalog[nr].courses[0].name;
+  return {
+    companyId: companies.length === 1 ? companies[0].id : null,
+    participantName: "",
+    cpf: "",
+    company: companies.length === 1 ? companies[0].name : "",
+    nr,
+    course,
+    validity: "24",
     completionDate: new Date().toISOString().slice(0, 10),
-  location: "",
-  instructor: "",
-  instructorRegistration: "",
-
-  phone: "",
-  nr33Role: "Supervisor de entrada",
-  watermarkText: getCertificateWatermarkTheme("NR-35").label,
-  watermarkVariant: "photographic",
-  watermarkOpacity: 0.12,
-  customWatermarkDataUrl: null,
-  backgroundColor: "#f7f2e8",
-  accentColor: "#2b9a90",
-  watermarkEnabled: true,
-  programContent: getDefaultProgramContent("NR-35"),
-  signatureEnabled: true,
-  saveToArchive: true,
-});
+    location: "",
+    instructor: "",
+    instructorRegistration: "",
+    phone: "",
+    nr33Role: "Supervisor de entrada",
+    watermarkText: getCertificateWatermarkTheme(getCertificateWatermarkKey(nr, course)).label,
+    watermarkVariant: "photographic",
+    watermarkOpacity: 0.12,
+    customWatermarkDataUrl: null,
+    backgroundColor: "#f7f2e8",
+    accentColor: "#2b9a90",
+    watermarkEnabled: true,
+    programContent: getDefaultProgramContent(nr, course),
+    signatureEnabled: true,
+    saveToArchive: true,
+  };
+};
 
 function formatLongDate(isoDate: string) {
   if (!isoDate) return "Data não informada";
@@ -246,11 +254,12 @@ function addWatermarkArtwork(doc: jsPDF, nr: CertificateNr, color: string, opaci
   doc.setGState(new GState({ opacity: 1 }));
 }
 
-function addWatermark(doc: jsPDF, nr: CertificateNr, _text: string, opacity: number, enabled: boolean, imageDataUrl: string | null, variantId: CertificateWatermarkVariantId) {
+function addWatermark(doc: jsPDF, watermarkKey: CertificateWatermarkKey, _text: string, opacity: number, enabled: boolean, imageDataUrl: string | null, variantId: CertificateWatermarkVariantId) {
   if (!enabled) return;
-  const theme = getCertificateWatermarkTheme(nr);
+  const resolvedKey = watermarkKey === "NR-18" && _text === "Movimentação segura" ? "NR-18-EQUIPMENT" : watermarkKey;
+  const theme = getCertificateWatermarkTheme(resolvedKey);
   if (!imageDataUrl) {
-    addWatermarkArtwork(doc, nr, theme.color, opacity, true);
+    addWatermarkArtwork(doc, resolvedKey === "NR-18-EQUIPMENT" ? "NR-18" : resolvedKey, theme.color, opacity, true);
     return;
   }
   const variant = getCertificateWatermarkVariant(variantId);
@@ -310,13 +319,8 @@ async function fetchImageAsDataUrl(url: string) {
   });
 }
 
-function buildPracticalContent(nr: CertificateNr) {
-  if (nr === "NR-05") return ["Levantamento orientado dos riscos do ambiente de trabalho", "Dinâmica de reunião, registro em ata e encaminhamento de medidas preventivas"];
-  if (nr === "NR-35") return ["Procedimentos para realização de trabalhos em altura", "Simulação de uso dos EPIs e EPCs"];
-  if (nr === "NR-10") return ["Simulação de desenergização e aterramento", "Práticas de primeiros socorros e resgate"];
-  if (nr === "NR-33") return ["Simulação de entrada em espaço confinado", "Uso de equipamentos de detecção de gases e resgate"];
-  if (nr === "NR-20") return ["Uso de sistemas de segurança contra incêndio", "Simulação de controle de vazamentos"];
-  return ["Medições práticas com decibelímetro", "Avaliação de cenários de exposição"];
+function buildPracticalContent(nr: CertificateNr, courseName?: string) {
+  return courseName ? getSuggestedPracticalContent(nr, courseName) : certificateCatalog[nr].practicalContent ?? [];
 }
 
 async function generateCertificatePdf(form: FormState, logoDataUrl: string | null, signatureDataUrl: string | null, watermarkImageDataUrl: string | null) {
@@ -443,7 +447,7 @@ async function generateCertificatePdf(form: FormState, logoDataUrl: string | nul
   contentY += 7;
   doc.setFont("helvetica", "normal");
   doc.setTextColor(45, 59, 59);
-  buildPracticalContent(form.nr).forEach(item => {
+  buildPracticalContent(form.nr, selectedCourse.name).forEach(item => {
     doc.text(`• ${item}`, 35, contentY);
     contentY += 5.5;
   });
@@ -509,7 +513,7 @@ export default function CertificateGeneratorPanel({ workspaceId, workspaceName, 
   const selectedCourse = definition.courses.find(course => course.name === form.course) ?? definition.courses[0];
   const selectedCompany = companies.find(company => company.id === form.companyId) ?? null;
   const programItems = form.programContent.split(/\r?\n/).map(item => item.trim()).filter(Boolean);
-  const watermarkTheme = getCertificateWatermarkTheme(form.nr);
+  const watermarkTheme = getCertificateWatermarkTheme(getCertificateWatermarkKey(form.nr, selectedCourse.name));
   const watermarkAssetUrl = watermarkTheme.assetUrl;
   const watermarkVariant = getCertificateWatermarkVariant(form.watermarkVariant);
   const renderWatermarkPreview = () => {
@@ -582,13 +586,24 @@ export default function CertificateGeneratorPanel({ workspaceId, workspaceName, 
 
   const handleNrChange = (nr: CertificateNr) => {
     const nextDefinition = certificateCatalog[nr];
+    const firstCourse = nextDefinition.courses[0].name;
     setForm(current => ({
       ...current,
       nr,
-      course: nextDefinition.courses[0].name,
+      course: firstCourse,
       validity: nextDefinition.defaultValidityMonths,
-      programContent: getDefaultProgramContent(nr, templates),
+      programContent: getDefaultProgramContent(nr, firstCourse, templates),
+      watermarkText: getCertificateWatermarkTheme(getCertificateWatermarkKey(nr, firstCourse)).label,
       nr33Role: nr === "NR-33" ? current.nr33Role : "",
+    }));
+  };
+
+  const handleCourseChange = (courseName: string) => {
+    setForm(current => ({
+      ...current,
+      course: courseName,
+      programContent: getDefaultProgramContent(current.nr, courseName, templates),
+      watermarkText: getCertificateWatermarkTheme(getCertificateWatermarkKey(current.nr, courseName)).label,
     }));
   };
 
@@ -766,7 +781,7 @@ export default function CertificateGeneratorPanel({ workspaceId, workspaceName, 
             {companies.length > 0 && <label className="text-xs font-bold text-[#315158]">Vincular ao cliente <span className="font-normal text-[#78928d]">(opcional)</span><select value={form.companyId ?? ""} onChange={event => { const companyId = Number(event.target.value); const company = companies.find(item => item.id === companyId); setForm(current => ({ ...current, companyId: companyId > 0 ? companyId : null, company: company?.name ?? (companyId > 0 ? current.company : "") })); }} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]"><option value="">Sem vínculo com cliente</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>}
             <label className="text-xs font-bold text-[#315158]">Empresa / organização<Input value={form.company} onChange={event => setField("company", event.target.value)} className="mt-2 h-11 rounded-xl border-[#d5e8e2]" placeholder="Nome da empresa" /></label>
             <label className="text-xs font-bold text-[#315158]">Norma Regulamentadora<select value={form.nr} onChange={event => handleNrChange(event.target.value as CertificateNr)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{certificateNrs.map(nr => <option key={nr} value={nr}>{nr} · {certificateCatalog[nr].title}</option>)}</select></label>
-            <label className="text-xs font-bold text-[#315158]">Curso / capacitação<select value={form.course} onChange={event => setField("course", event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{definition.courses.map(course => <option key={course.name} value={course.name}>{course.name} · {course.workload}</option>)}</select></label>
+            <label className="text-xs font-bold text-[#315158]">Curso / capacitação<select value={form.course} onChange={event => handleCourseChange(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none transition focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10">{definition.courses.map(course => <option key={course.name} value={course.name}>{course.name} · {course.workload}</option>)}</select></label>
             <label className="text-xs font-bold text-[#315158] sm:col-span-2">Conteúdo programático mínimo sugerido <span className="text-[#c85e55]">*</span><span className="mt-1 block text-xs font-normal leading-5 text-[#78928d]">A lista é preenchida com a base recomendada da norma. Edite os tópicos e acrescente linhas conforme a carga horária e o conteúdo efetivamente ministrado.</span><textarea aria-label="Conteúdo programático editável" value={form.programContent} onChange={event => setField("programContent", event.target.value)} rows={8} className="mt-2 w-full resize-y rounded-xl border border-[#d5e8e2] bg-white px-3 py-3 text-sm font-medium leading-6 text-[#315158] outline-none transition placeholder:text-[#9ab4ae] focus:border-[#0c8c89] focus:ring-4 focus:ring-[#0c8c89]/10" /></label>
             <div className="sm:col-span-2 rounded-2xl border border-[#dcebe8] bg-[#f7fcfa] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold text-[#315158]">Modelos de conteúdo</p><p className="mt-1 text-xs leading-5 text-[#78928d]">Salve a versão editada como modelo padrão desta norma para reaproveitar em futuras emissões neste navegador.</p></div><Button type="button" variant="outline" onClick={saveProgramTemplate} className="h-10 rounded-xl border-[#b9dcd2] text-[#0c7474]">Salvar modelo</Button></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input value={templateName} onChange={event => setTemplateName(event.target.value)} className="h-10 rounded-xl border-[#d5e8e2] bg-white" placeholder={`Nome do modelo ${form.nr}`} /><select aria-label="Aplicar modelo de conteúdo" value={selectedTemplateId} onChange={event => applyProgramTemplate(event.target.value)} className="h-10 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]"><option value="">Aplicar modelo salvo…</option>{templates.filter(item => item.nr === form.nr).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></div>
             {form.nr === "NR-33" && <label className="text-xs font-bold text-[#315158] sm:col-span-2">Função no espaço confinado<select value={form.nr33Role} onChange={event => setField("nr33Role", event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-[#d5e8e2] bg-white px-3 text-sm font-medium text-[#315158] outline-none focus:border-[#0c8c89]">{["Supervisor de entrada", "Vigia", "Trabalhador autorizado", "Equipe de emergência e salvamento"].map(role => <option key={role}>{role}</option>)}</select></label>}
@@ -795,7 +810,7 @@ export default function CertificateGeneratorPanel({ workspaceId, workspaceName, 
                 <DialogTitle className="font-display text-xl font-bold text-[#102b32]">Confira o certificado antes de baixar</DialogTitle>
                 <DialogDescription className="mt-2 max-w-2xl leading-5 text-[#66827c]">Visualize as duas páginas do PDF A4, confira a marca d’água temática e baixe somente depois de validar os dados da emissão.</DialogDescription>
               </div>
-              {certificatePreview && <span className="shrink-0 rounded-full bg-[#e6f6f0] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#0c7474]">{getCertificateWatermarkTheme(certificatePreview.form.nr).label}</span>}
+              {certificatePreview && <span className="shrink-0 rounded-full bg-[#e6f6f0] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.14em] text-[#0c7474]">{getCertificateWatermarkTheme(getCertificateWatermarkKey(certificatePreview.form.nr, certificatePreview.form.course)).label}</span>}
             </div>
           </DialogHeader>
           <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_260px] lg:p-6">

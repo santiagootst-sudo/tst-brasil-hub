@@ -705,5 +705,13 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 
 - [x] Testar a emissão de certificado no portal publicado e verificar a abertura do documento gerado.
 - [x] Corrigir a falha “Não foi possível preparar a prévia” observada ao gerar um certificado de teste.
-- [ ] Substituir os riscos vetoriais da marca d’água por uma imagem temática adequada no PDF de certificado.
-- [ ] Validar a apresentação fotográfica da marca d’água na prévia e no arquivo baixado.
+- [x] Substituir os riscos vetoriais da marca d’água por uma imagem temática adequada no PDF de certificado.
+- [x] Validar a apresentação fotográfica da marca d’água na prévia e no arquivo baixado.
+
+- [x] Adicionar ao gerador certificações para NR-01, NR-06, NR-17, NR-18 e NR-23 com conteúdos programáticos sugeridos.
+- [x] Criar opções específicas para operação de empilhadeira, grua e equipamentos correlatos no contexto da NR-18.
+- [x] Associar a cada curso uma marca d’água fotográfica temática adequada e validada para o PDF.
+- [ ] Validar conteúdos, seleção de curso e geração de PDF das novas capacitações antes da publicação.
+
+- [ ] Sincronizar no GitHub o catálogo ampliado de cursos, conteúdos sugeridos e imagens temáticas aprovados.
+- [ ] Publicar no Render e confirmar a disponibilidade do gerador ampliado de certificados.

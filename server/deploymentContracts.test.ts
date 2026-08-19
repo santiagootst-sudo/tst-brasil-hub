@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const dbSource = readFileSync(resolve(process.cwd(), "server/db.ts"), "utf8");
 const storageProxySource = readFileSync(resolve(process.cwd(), "server/_core/storageProxy.ts"), "utf8");
 const watermarkSource = readFileSync(resolve(process.cwd(), "client/src/lib/certificateWatermark.ts"), "utf8");
+const publicAssetsSource = readFileSync(resolve(process.cwd(), "shared/publicAssets.ts"), "utf8");
 
 describe("contratos de deploy dos módulos publicados", () => {
   it("mantém os helpers usados pelos routers de calendário CIPA e vídeos", () => {
@@ -22,5 +23,8 @@ describe("contratos de deploy dos módulos publicados", () => {
     expect(storageProxySource).toContain('res.send(bytes)');
     expect(watermarkSource).toContain('inlineWatermarkUrl');
     expect(watermarkSource).toContain('?inline=1');
+    expect(publicAssetsSource).toContain("certificate-watermark-nr01_469fac80.jpg");
+    expect(publicAssetsSource).toContain("certificate-watermark-nr06_16be9632.jpg");
+    expect(publicAssetsSource).toContain("certificate-watermark-nr11_9b136328.jpg");
   });
 });

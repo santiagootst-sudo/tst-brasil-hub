@@ -8,6 +8,12 @@ export const publicAssetUrls = {
   watermarkNr20: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663066398548/wBloudQGlGayBedS.jpg",
   watermarkNr33: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663066398548/yCSjYqTsWedjyVjP.jpg",
   watermarkNr35: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663066398548/FvgaWGdCfWGopScW.jpg",
+  watermarkNr01: "https://tstportal-lhmdcupa.manus.space/manus-storage/certificate-watermark-nr01_469fac80.jpg",
+  watermarkNr06: "https://tstportal-lhmdcupa.manus.space/manus-storage/certificate-watermark-nr06_16be9632.jpg",
+  watermarkNr17: "https://tstportal-lhmdcupa.manus.space/manus-storage/certificate-watermark-nr17_1123a518.jpg",
+  watermarkNr18: "https://tstportal-lhmdcupa.manus.space/manus-storage/certificate-watermark-nr18_5377cf1a.jpg",
+  watermarkNr23: "https://tstportal-lhmdcupa.manus.space/manus-storage/certificate-watermark-nr23_e9c95ca7.jpg",
+  watermarkNrEquipment: "https://tstportal-lhmdcupa.manus.space/manus-storage/certificate-watermark-nr11_9b136328.jpg",
   pgrLegacyHtml: "https://tstportal-lhmdcupa.manus.space/manus-storage/pgr-pro-portal-integrado_dfb92040.html",
 } as const;
 
@@ -21,4 +27,10 @@ export const legacyPublicAssetUrls: Record<string, string> = {
   "certificate-watermark-nr20_db15a211.jpg": publicAssetUrls.watermarkNr20,
   "certificate-watermark-nr33_6aa5caf5.jpg": publicAssetUrls.watermarkNr33,
   "certificate-watermark-nr35_3d8a561b.jpg": publicAssetUrls.watermarkNr35,
+  "certificate-watermark-nr01_469fac80.jpg": publicAssetUrls.watermarkNr01,
+  "certificate-watermark-nr06_16be9632.jpg": publicAssetUrls.watermarkNr06,
+  "certificate-watermark-nr17_1123a518.jpg": publicAssetUrls.watermarkNr17,
+  "certificate-watermark-nr18_5377cf1a.jpg": publicAssetUrls.watermarkNr18,
+  "certificate-watermark-nr23_e9c95ca7.jpg": publicAssetUrls.watermarkNr23,
+  "certificate-watermark-nr11_9b136328.jpg": publicAssetUrls.watermarkNrEquipment,
 };
