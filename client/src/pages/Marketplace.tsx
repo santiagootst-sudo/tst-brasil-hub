@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { ModuleHeader, ModulePage } from "@/components/ModulePageLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -34,25 +35,8 @@ export default function Marketplace() {
 
   return (
     <DashboardLayout title="Marketplace SST">
-      <div className="mx-auto max-w-4xl space-y-8">
-        {/* Banner de Construção */}
-        <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#063b43] via-[#0c7474] to-[#123f69] p-8 text-white shadow-xl md:p-12">
-          <div className="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-            <div className="grid h-24 w-24 shrink-0 place-items-center rounded-3xl bg-white/15 text-4xl shadow-inner backdrop-blur-md">
-              😊
-            </div>
-            <div className="space-y-3 text-center md:text-left">
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#8edec7]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#8edec7]">
-                <Sparkles className="h-3.5 w-3.5" /> Em breve no TST Brasil Hub
-              </span>
-              <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Marketplace de Soluções SST</h2>
-              <p className="max-w-xl text-sm leading-6 text-[#d9eeea]">
-                Estamos construindo o maior ecossistema de fornecedores, EPIs, laudos especializados, exames e parceiros de segurança do trabalho do Brasil. Queremos criar essa ferramenta junto com você!
-              </p>
-            </div>
-          </div>
-        </section>
+      <ModulePage className="max-w-5xl space-y-6">
+        <ModuleHeader eyebrow="Soluções e fornecedores" title="Marketplace SST" description="Sugira fornecedores, serviços e integrações que tornariam sua operação de segurança do trabalho mais completa." icon={Store} />
 
         {/* Caixa de Feedback Interativa */}
         <section className="rounded-[2rem] border border-[#dcebe8] bg-white p-6 shadow-sm md:p-8">
@@ -129,7 +113,7 @@ export default function Marketplace() {
             </form>
           )}
         </section>
-      </div>
+      </ModulePage>
     </DashboardLayout>
   );
 }

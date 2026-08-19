@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
+import { ModuleHeader, ModulePage } from "@/components/ModulePageLayout";
 import PgrFullscreenOverlay from "@/components/PgrFullscreenOverlay";
 import { downloadPgrReportPdf, type PgrExportModules } from "@/lib/pdfReports";
 import { downloadProfessionalPgrWord, isPgrSnapshot } from "@/lib/pgrDocumentExport";
@@ -244,21 +245,8 @@ export default function PgrApp() {
 
   return (
     <DashboardLayout title="PGR Pro">
-      <div className="space-y-8 pb-12">
-        <section className="rounded-[2.5p] rounded-3xl bg-gradient-to-r from-[#063b43] to-[#0c7474] p-8 text-white shadow-xl lg:p-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.15em] text-[#8edec7]">Aplicativo integrado</p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight">PGR Pro · Gerenciamento de Riscos Ocupacionais</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/80">
-                Crie empresas, gerencie inventários, aplique a NR-01 e exporte relatórios técnicos completos com capa profissional, sumário, matriz de riscos e plano de ação.
-              </p>
-            </div>
-            <Link href="/app" className="inline-flex items-center gap-2 self-start rounded-2xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white backdrop-blur hover:bg-white/20">
-              <ArrowLeft className="h-4 w-4" /> Ambientes
-            </Link>
-          </div>
-        </section>
+      <ModulePage className="space-y-6 pb-12">
+        <ModuleHeader eyebrow="Aplicativo integrado" title="PGR Pro" description="Crie empresas, gerencie inventários, aplique a NR-01 e exporte relatórios técnicos completos com matriz de riscos e plano de ação." icon={ShieldCheck} actions={<Link href="/app" className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#cfe0df] bg-white px-3 text-xs font-bold text-[#087f78] transition hover:bg-[#f1f7f6]"><ArrowLeft className="h-4 w-4" /> Ambientes</Link>} />
 
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -742,7 +730,7 @@ export default function PgrApp() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+      </ModulePage>
     </DashboardLayout>
   );
 }

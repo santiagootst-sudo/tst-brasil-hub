@@ -221,8 +221,8 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
   };
 
   return (
-    <div className="min-h-screen bg-[#f6faf9] text-[#102b32]">
-      <aside className={`fixed inset-y-0 left-0 z-30 hidden w-72 flex-col px-3 py-5 text-[#d9eeea] shadow-2xl lg:flex ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
+    <div className="min-h-screen bg-[#f7f9fa] text-[#102b32]">
+      <aside className={`fixed inset-y-0 left-0 z-30 hidden w-64 flex-col px-3 py-5 text-[#d9eeea] shadow-[6px_0_24px_rgba(6,59,67,.10)] lg:flex ${isClt ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
         <div className="mb-7 flex items-center px-3">
           <BrandLockup inverse aria-label="TST Brasil Hub" />
         </div>
@@ -267,8 +267,8 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
         </SheetContent>
       </Sheet>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-[#deece9] bg-white/90 px-5 backdrop-blur lg:px-9">
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[#e5eaec] bg-white px-5 lg:px-8">
           <div className="flex items-center gap-3">
             <Button type="button" variant="ghost" size="icon" onClick={() => setMobileNavOpen(true)} className="lg:hidden" aria-label="Abrir menu">
               <Menu className="h-5 w-5" />
@@ -305,10 +305,8 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
           </div>
         </header>
 
-        <main className="relative overflow-hidden p-6 lg:p-9">
-          <div className="pointer-events-none absolute -left-24 top-8 h-72 w-72 rounded-full bg-[#8edec7]/10 blur-3xl" />
-          <div className="pointer-events-none absolute right-[-8rem] top-[-6rem] h-80 w-80 rounded-full bg-[#b9defc]/10 blur-3xl" />
-          <div className="relative">{children}</div>
+        <main className="min-h-[calc(100vh-4rem)] p-5 lg:p-7">
+          <div>{children}</div>
         </main>
       </div>
       <WhatsAppFloatingButton />

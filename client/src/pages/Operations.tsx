@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { ModuleHeader, ModulePage } from "@/components/ModulePageLayout";
 import { useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -424,13 +425,8 @@ export default function Operations() {
 
   return (
     <DashboardLayout title="Controle de EPIs">
-      <div className="-mx-6 w-[calc(100%+3rem)] max-w-[1600px] space-y-6 px-6 lg:-mx-9 lg:w-[calc(100%+4.5rem)] lg:px-9 xl:px-10">
-        <section className="border-b border-[#e5e7eb] bg-white px-1 pb-5 pt-1">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-            <div><p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Segurança do Trabalho / EPIs</p><h2 className="mt-1 text-xl font-semibold tracking-tight text-[#111827]">Controle de EPIs</h2><p className="mt-1 text-[13px] text-[#6b7280]">Estoque, certificados de aprovação e fichas de entrega em um só lugar.</p></div>
-            <div className="grid min-w-full grid-cols-3 divide-x divide-[#e5e7eb] rounded-lg border border-[#e5e7eb] bg-white sm:min-w-[420px]"><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Estoque</p><p className="mt-0.5 text-xl font-semibold text-[#111827]">{stockItems.reduce((acc: number, item: any) => acc + item.stockQuantity, 0)}</p></div><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Críticos</p><p className="mt-0.5 text-xl font-semibold text-[#b91c1c]">{lowStock.length}</p></div><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Fichas pendentes</p><p className="mt-0.5 text-xl font-semibold text-[#b45309]">{pendingDeliveries.length}</p></div></div>
-          </div>
-        </section>
+      <ModulePage className="space-y-5">
+        <ModuleHeader eyebrow="Segurança do Trabalho / EPIs" title="Controle de EPIs" description="Estoque, certificados de aprovação e fichas de entrega em um só lugar." icon={Package} actions={<div className="grid min-w-full grid-cols-3 divide-x divide-[#e5e7eb] rounded-lg border border-[#e5e7eb] bg-white sm:min-w-[420px]"><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Estoque</p><p className="mt-0.5 text-xl font-semibold text-[#111827]">{stockItems.reduce((acc: number, item: any) => acc + item.stockQuantity, 0)}</p></div><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Críticos</p><p className="mt-0.5 text-xl font-semibold text-[#b91c1c]">{lowStock.length}</p></div><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Fichas pendentes</p><p className="mt-0.5 text-xl font-semibold text-[#b45309]">{pendingDeliveries.length}</p></div></div>} />
 
         {/* Top Bar Contextual Navigation */}
         <div className="flex flex-col gap-3 border-b border-[#e5e7eb] bg-white py-3 md:flex-row md:items-center md:justify-between">
@@ -1014,7 +1010,7 @@ export default function Operations() {
             </div>
           </div>
         )}
-      </div>
+      </ModulePage>
 
       {/* Modal de Simulação de Assinatura via QR Code Mobile */}
       {activeQrDelivery && (

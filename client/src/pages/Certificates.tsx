@@ -18,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { ModuleHeader, ModulePage } from "@/components/ModulePageLayout";
 import CertificateGeneratorPanel, { type GeneratedCertificatePayload } from "@/components/CertificateGeneratorPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,11 +119,8 @@ export default function Certificates() {
 
   return (
     <DashboardLayout title="Certificados e Documentos">
-      <div className="mx-auto max-w-7xl space-y-5">
-        <div className="flex flex-col justify-between gap-3 border-b border-[#e5eeeb] pb-4 md:flex-row md:items-center">
-          <div className="flex min-w-0 flex-wrap items-center gap-2"><span className="mr-1 text-xs font-semibold text-[#688087]">{activeWorkspace.name}</span>{workspaces.data?.map(workspace => <button type="button" key={workspace.id} onClick={() => setLocation(`/app/certificados?workspace=${workspace.id}`)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${workspace.id === activeWorkspace.id ? "border-[#0c7474] bg-[#e8f6f1] text-[#0c7474]" : "border-[#dcebe8] bg-white text-[#668087] hover:border-[#a6d8ca]"}`}>{workspace.name}</button>)}</div>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row"><Button type="button" onClick={() => setGeneratorOpen(value => !value)} disabled={!canManage} title={!canManage ? "Seu perfil pode consultar o módulo, mas não emitir documentos" : undefined} className="h-9 rounded-lg bg-[#0c8c89] px-3 text-white shadow-sm hover:bg-[#08706f] disabled:cursor-not-allowed disabled:opacity-55"><WandSparkles className="mr-2 h-4 w-4" />{generatorOpen ? "Fechar gerador NR" : "Gerar certificado NR"}</Button>{canManage && <Button type="button" onClick={() => setFormOpen(value => !value)} variant="outline" className="h-9 rounded-lg border-[#b9dcd2] bg-white px-3 text-[#0c7474] hover:bg-[#eff9f4]"><Plus className="mr-2 h-4 w-4" />Novo documento legal</Button>}</div>
-        </div>
+      <ModulePage className="space-y-5">
+        <ModuleHeader eyebrow="Conformidade e documentos" title="Certificados e documentos" description="Emita certificados NR e acompanhe o acervo documental e suas validades no ambiente ativo." icon={Award} actions={<div className="flex flex-wrap items-center justify-end gap-2"><div className="flex max-w-full flex-wrap gap-1 rounded-lg border border-[#e1e7e8] bg-white p-1">{workspaces.data?.map(workspace => <button type="button" key={workspace.id} onClick={() => setLocation(`/app/certificados?workspace=${workspace.id}`)} className={`rounded-md px-2.5 py-2 text-xs font-bold transition ${workspace.id === activeWorkspace.id ? "bg-[#e7f7f4] text-[#087f78]" : "text-[#667a80] hover:bg-[#f2f6f5]"}`}>{workspace.name}</button>)}</div><Button type="button" onClick={() => setGeneratorOpen(value => !value)} disabled={!canManage} title={!canManage ? "Seu perfil pode consultar o módulo, mas não emitir documentos" : undefined} className="h-10 rounded-lg bg-[#087f78] px-3 text-white hover:bg-[#06635f] disabled:cursor-not-allowed disabled:opacity-55"><WandSparkles className="mr-2 h-4 w-4" />{generatorOpen ? "Fechar gerador NR" : "Gerar certificado NR"}</Button>{canManage && <Button type="button" onClick={() => setFormOpen(value => !value)} variant="outline" className="h-10 rounded-lg border-[#cfe0df] bg-white px-3 text-[#087f78] hover:bg-[#f1f7f6]"><Plus className="mr-2 h-4 w-4" />Novo documento</Button>}</div>} />
 
         {generatorOpen && <CertificateGeneratorPanel key={activeWorkspace.id} workspaceId={activeWorkspace.id} workspaceName={activeWorkspace.name} companies={activeWorkspaceDetail.data?.companies ?? []} canManage={canManage} isPersisting={createCertificate.isPending} onPersist={persistGeneratedCertificate} />}
 
@@ -382,7 +380,7 @@ export default function Certificates() {
             </div>
           </div>
         )}
-      </div>
+      </ModulePage>
     </DashboardLayout>
   );
 }

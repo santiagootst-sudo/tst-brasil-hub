@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { ModuleHeader, ModulePage } from "@/components/ModulePageLayout";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Search, ExternalLink, Sparkles, Star, History, Download, BookOpen, Filter, Upload, FileText, Building2, Plus, Trash2, ShieldCheck, Tag, CheckCircle2, WifiOff } from "lucide-react";
@@ -375,37 +376,14 @@ export default function Library() {
 
   return (
     <DashboardLayout title="Biblioteca Técnica e NRs">
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Banner principal */}
-        <section className="overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#063b43] via-[#0c7474] to-[#123f69] p-8 text-white shadow-xl md:p-10">
-          <div className="max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#8edec7]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#8edec7]">
-              <Sparkles className="h-3.5 w-3.5" /> Acervo oficial e documentos da empresa
-            </span>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Biblioteca Técnica e Normas Regulamentadoras</h2>
-            <p className="text-sm leading-6 text-[#d9eeea]">
-              Alterne entre a Biblioteca Oficial Global (NRs e manuais do MTE) e a Biblioteca Interna da Empresa para gerenciar procedimentos e POPs particulares com upload seguro.
-            </p>
-          </div>
-
-          {/* Abas de alternância principal */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setLibrarySection("global")}
-              className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3.5 text-xs font-bold transition shadow-md ${librarySection === "global" ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-white hover:bg-white/20"}`}
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>Biblioteca Oficial Global (NRs)</span>
-            </button>
-            <button
-              onClick={() => setLibrarySection("internal")}
-              className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3.5 text-xs font-bold transition shadow-md ${librarySection === "internal" ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-white hover:bg-white/20"}`}
-            >
-              <Building2 className="h-4 w-4" />
-              <span>Biblioteca Interna da Empresa ({internalDocs.length})</span>
-            </button>
-          </div>
-        </section>
+      <ModulePage className="space-y-6">
+        <ModuleHeader
+          eyebrow="Conhecimento técnico"
+          title="Biblioteca Técnica e NRs"
+          description="Normas, manuais, materiais publicados e documentos internos organizados para consulta diária."
+          icon={BookOpen}
+          actions={<div className="flex rounded-lg border border-[#e1e7e8] bg-white p-1 text-xs font-bold shadow-[0_1px_2px_rgba(16,43,50,.04)]"><button onClick={() => setLibrarySection("global")} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 transition ${librarySection === "global" ? "bg-[#087f78] text-white" : "text-[#587076] hover:bg-[#f1f6f5]"}`}><BookOpen className="h-3.5 w-3.5" /> Biblioteca oficial</button><button onClick={() => setLibrarySection("internal")} className={`inline-flex items-center gap-2 rounded-md px-3 py-2 transition ${librarySection === "internal" ? "bg-[#087f78] text-white" : "text-[#587076] hover:bg-[#f1f6f5]"}`}><Building2 className="h-3.5 w-3.5" /> Interna {internalDocs.length ? `(${internalDocs.length})` : ""}</button></div>}
+        />
 
         {librarySection === "global" ? (
           <>
@@ -829,7 +807,7 @@ export default function Library() {
             )}
           </section>
         )}
-      </div>
+      </ModulePage>
     </DashboardLayout>
   );
 }

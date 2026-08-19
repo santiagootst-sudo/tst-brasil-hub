@@ -773,3 +773,13 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Padronizar a barra de abas, o cabeçalho de painel, os cartões de indicadores e os estados vazios entre Resumo, CIPA, EPIs, Inspeções e Documentos no dashboard Prestador.
 - [x] Validar a navegação entre todas as abas do dashboard Prestador em desktop e telefone antes de nova apresentação na prévia.
 - [x] Sincronizar ao GitHub as evoluções aprovadas de Treinamentos e do dashboard Prestador para deploy manual no Render.
+- [x] Criar uma página inicial do ambiente Prestador com cards de acesso rápido para os módulos prioritários e indicadores calculados de dados reais.
+- [x] Preservar o dashboard de carteira detalhado como visão complementar e validar a página inicial em desktop e telefone antes de nova sincronização.
+- [x] Catalogar as telas de referência enviadas e definir um sistema visual único para o portal, preservando a barra lateral atual.
+- [x] Aplicar a primeira onda do novo padrão de layout aos módulos prioritários sem alterar seus dados, permissões ou fluxos funcionais.
+- [x] Aplicar progressivamente o padrão visual aos demais módulos do portal, incluindo CIPA, PGR, estrutura, suporte, marketplace e páginas administrativas.
+- [x] Validar a reformulação visual em desktop e telefone e submeter a prévia para aprovação antes de qualquer sincronização externa.
+- [x] Sincronizar ao GitHub a versão atual da reformulação visual conforme autorização explícita do usuário.
+- [ ] Reconstruir a linguagem visual dos módulos com fidelidade às referências enviadas, substituindo as superfícies claras/pastel por contraste, densidade e composição próximos aos exemplos.
+- [ ] Validar a nova direção visual em desktop e telefone e apresentar a prévia antes de novo envio ao GitHub ou Render.
+- [x] Validar a primeira etapa de reformulação em desktop e telefone, com typecheck, build de produção e 225 testes automatizados aprovados.
