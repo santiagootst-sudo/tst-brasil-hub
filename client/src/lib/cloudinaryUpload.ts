@@ -46,6 +46,33 @@ export async function uploadContentAsset(file: File, kind: "cover" | "pdf"): Pro
   };
 }
 
+export async function uploadPgrEvidenceAsset(file: File): Promise<UploadedContentAsset> {
+  const isPdf = file.type === "application/pdf" || file.name.toLocaleLowerCase().endsWith(".pdf");
+  const isImage = file.type.startsWith("image/");
+  if (!isPdf && !isImage) {
+    throw new Error("Envie um laudo ou certificado em PDF, PNG, JPEG ou WEBP.");
+  }
+  if (file.size > CONTENT_ASSET_MAX_BYTES) {
+    throw new Error("O arquivo ultrapassa o limite de 10 MB permitido para anexos do PGR.");
+  }
+
+  const payload = new FormData();
+  payload.append("file", file);
+  payload.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  payload.append("context", `alt=${file.name}|caption=Evidência técnica vinculada a PGR no TST Brasil Hub`);
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: "POST", body: payload });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || typeof body.secure_url !== "string") {
+    throw new Error(body?.error?.message || "Não foi possível enviar a evidência técnica do PGR.");
+  }
+  return {
+    url: body.secure_url,
+    fileName: file.name,
+    mimeType: file.type || (isPdf ? "application/pdf" : "image/*"),
+    bytes: Number(body.bytes ?? file.size),
+  };
+}
+
 export async function uploadCompanyLogo(file: File): Promise<UploadedCompanyLogo> {
   const supported = ["image/png", "image/jpeg", "image/webp"].includes(file.type);
   if (!supported) throw new Error("Selecione um logo em PNG, JPEG ou WEBP.");

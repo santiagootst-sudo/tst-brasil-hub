@@ -13,12 +13,13 @@ import {
   Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import PgrFullscreenOverlay from "@/components/PgrFullscreenOverlay";
 import { downloadPgrReportPdf, type PgrExportModules } from "@/lib/pdfReports";
+import { downloadProfessionalPgrWord, isPgrSnapshot } from "@/lib/pgrDocumentExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
-import { uploadCompanyLogo } from "@/lib/cloudinaryUpload";
+import { uploadCompanyLogo, uploadPgrEvidenceAsset } from "@/lib/cloudinaryUpload";
 
 function initials(name: string) {
   return name
@@ -62,13 +63,17 @@ export default function PgrApp() {
     gheInventory: true,
     riskMatrix: true,
     actionPlan: true,
+    attachments: true,
   });
 
   const [activityInput, setActivityInput] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState<Array<{ gheName: string; description: string; suggestedHazards: string[]; suggestedMeasures: string[] }>>([]);
   const [attachmentTitle, setAttachmentTitle] = useState("");
   const [attachmentCategory, setAttachmentCategory] = useState<"photo" | "laudo" | "art" | "certificate" | "other">("photo");
+  const [isUploadingPgrAttachment, setIsUploadingPgrAttachment] = useState(false);
+  const [isExportingPgr, setIsExportingPgr] = useState(false);
   const [uploadingLogoCompanyId, setUploadingLogoCompanyId] = useState<number | null>(null);
+  const [pgrSnapshot, setPgrSnapshot] = useState<unknown>(null);
 
   const suggestGhes = trpc.portal.suggestGhes.useMutation({
     onSuccess: data => {
@@ -131,6 +136,43 @@ export default function PgrApp() {
     { workspaceId, projectId: selectedProject?.id ?? 0 },
     { enabled: Boolean(selectedProject && billing.data?.hasPaidAccess && isPgrFullscreen) },
   );
+  const selectedCompanyForExport = workspace.data?.companies.find(company => company.id === selectedProject?.companyId) ?? null;
+
+  useEffect(() => {
+    if (!selectedProject) {
+      setPgrSnapshot(null);
+      return;
+    }
+    const storageKey = `tst-pgr-project-${workspaceId}-${selectedProject.legacyStorageKey}-pgrDadosV23`;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      setPgrSnapshot(saved ? JSON.parse(saved) : null);
+    } catch {
+      setPgrSnapshot(null);
+    }
+  }, [workspaceId, selectedProject?.id, selectedProject?.legacyStorageKey]);
+
+  useEffect(() => {
+    const receiveSnapshot = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const payload = event.data as { type?: string; action?: string; snapshot?: unknown } | null;
+      if (payload?.type !== "tst-pgr-document-snapshot" || !isPgrSnapshot(payload.snapshot)) return;
+      setPgrSnapshot(payload.snapshot);
+      if (payload.action === "word" && selectedProject) {
+        void downloadProfessionalPgrWord({
+          workspaceName: workspace.data?.name ?? "Ambiente",
+          companyName: selectedCompanyForExport?.name,
+          projectName: selectedProject.name,
+          projectId: selectedProject.id,
+          pgrData: payload.snapshot,
+          attachments: attachmentsQuery.data,
+        }).then(() => toast.success("Word profissional preparado com os dados reais deste PGR."))
+          .catch(() => toast.error("Não foi possível gerar o Word profissional deste PGR."));
+      }
+    };
+    window.addEventListener("message", receiveSnapshot);
+    return () => window.removeEventListener("message", receiveSnapshot);
+  }, [attachmentsQuery.data, selectedProject?.id, selectedProject?.name, selectedCompanyForExport?.name, workspace.data?.name]);
 
   const loading = workspace.isLoading || billing.isLoading || availableWorkspaces.isLoading;
   if (loading) {
@@ -162,23 +204,42 @@ export default function PgrApp() {
 
   const canManage = workspace.data.role === "owner" || workspace.data.role === "manager";
   const companies = workspace.data.companies;
-  const selectedCompany = companies.find(company => company.id === selectedProject?.companyId) ?? null;
+  const selectedCompany = selectedCompanyForExport;
   const orphanProjects = availableProjects.filter(project => !project.companyId);
   const iframeSource = selectedProject && iframeAccess.data
     ? `${iframeAccess.data.url}&workspace=portal-${workspace.data.id}-${selectedProject.legacyStorageKey}&portalAuth=1`
     : "";
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (!selectedProject) return;
-    downloadPgrReportPdf({
-      workspaceName: workspace.data?.name ?? "Ambiente",
-      companyName: selectedCompany?.name,
-      projectName: selectedProject.name,
-      projectId: selectedProject.id,
-      modules: exportModules,
-    });
-    setIsExportModalOpen(false);
-    toast.success("Relatório profissional do PGR exportado em PDF com sucesso!");
+    if (!isPgrSnapshot(pgrSnapshot)) {
+      toast.error("Abra o gerador e aguarde o carregamento dos dados antes de emitir o PDF.");
+      return;
+    }
+    setIsExportingPgr(true);
+    try {
+      const result = await downloadPgrReportPdf({
+        workspaceName: workspace.data?.name ?? "Ambiente",
+        companyName: selectedCompany?.name,
+        projectName: selectedProject.name,
+        projectId: selectedProject.id,
+        modules: exportModules,
+        pgrData: pgrSnapshot,
+        attachments: attachmentsQuery.data,
+      });
+      setIsExportModalOpen(false);
+      if (result.embedded > 0) {
+        toast.success(`PGR exportado com ${result.embedded} anexo(s) técnico(s) incorporado(s) ao PDF.`);
+      } else if (result.unavailable > 0) {
+        toast.warning("PGR exportado. Alguns anexos permanecem listados no relatório, mas não puderam ser incorporados ao arquivo.");
+      } else {
+        toast.success("Relatório profissional do PGR exportado em PDF com sucesso!");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível gerar o PDF do PGR.");
+    } finally {
+      setIsExportingPgr(false);
+    }
   };
 
   return (
@@ -451,7 +512,7 @@ export default function PgrApp() {
                               type="button"
                               size="sm"
                               onClick={() => {
-                                const storageKey = `tst-pgr-workspace-${workspaceId}-pgrDadosV23`;
+                                  const storageKey = `tst-pgr-project-${workspaceId}-${selectedProject.legacyStorageKey}-pgrDadosV23`;
                                 try {
                                   const raw = localStorage.getItem(storageKey);
                                   let data = raw ? JSON.parse(raw) : {};
@@ -464,12 +525,15 @@ export default function PgrApp() {
                                   }
                                   data.ghes.push({
                                     id: Date.now().toString(),
-                                    name: sug.gheName,
+                                    funcao: sug.gheName,
+                                    setor: "",
                                     description: sug.description,
-                                    hazards: sug.suggestedHazards.join(", "),
-                                    measures: sug.suggestedMeasures.join(", "),
+                                    descricao: sug.description,
+                                    perigosSugeridos: sug.suggestedHazards,
+                                    medidasSugeridas: sug.suggestedMeasures,
                                   });
                                   localStorage.setItem(storageKey, JSON.stringify(data));
+                                  setPgrSnapshot(data);
                                   toast.success(`GHE "${sug.gheName}" inserido com sucesso no inventário do PGR!`);
                                 } catch (e) {
                                   console.error("Erro ao inserir GHE no localStorage", e);
@@ -512,11 +576,11 @@ export default function PgrApp() {
                         <option value="photo">Foto do Local</option>
                         <option value="laudo">Laudo Técnico</option>
                         <option value="art">ART / RRT</option>
-                        <option value="certificate">Certificado</option>
+                        <option value="certificate">Certificado / Calibração</option>
                         <option value="other">Outro Documento</option>
                       </select>
                       <label className="cursor-pointer inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0c7474] px-4 py-2 text-xs font-bold text-white hover:bg-[#095c5c]">
-                        {uploadAttachment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Arquivo"}
+                        {uploadAttachment.isPending || isUploadingPgrAttachment ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Arquivo"}
                         <input
                           type="file"
                           accept="image/*,application/pdf"
@@ -528,17 +592,20 @@ export default function PgrApp() {
                               toast.error("Informe um título para o anexo.");
                               return;
                             }
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                              uploadAttachment.mutate({
+                            setIsUploadingPgrAttachment(true);
+                            void uploadPgrEvidenceAsset(file)
+                              .then(uploaded => uploadAttachment.mutate({
                                 workspaceId,
                                 projectId: selectedProject.id,
                                 title: attachmentTitle.trim(),
                                 category: attachmentCategory,
-                                dataUrl: reader.result as string,
+                                remoteUrl: uploaded.url,
+                              }))
+                              .catch(error => toast.error(error instanceof Error ? error.message : "Não foi possível enviar o anexo técnico."))
+                              .finally(() => {
+                                setIsUploadingPgrAttachment(false);
+                                e.currentTarget.value = "";
                               });
-                            };
-                            reader.readAsDataURL(file);
                           }}
                         />
                       </label>
@@ -654,14 +721,23 @@ export default function PgrApp() {
                 />
                 <Label htmlFor="mod-action" className="font-bold text-[#102b32] cursor-pointer">04. Plano de Ação e Medidas Preventivas</Label>
               </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="mod-attachments"
+                  checked={exportModules.attachments}
+                  onCheckedChange={checked => setExportModules(prev => ({ ...prev, attachments: Boolean(checked) }))}
+                />
+                <Label htmlFor="mod-attachments" className="font-bold text-[#102b32] cursor-pointer">Anexos, laudos e certificados de calibração vinculados</Label>
+              </div>
             </div>
 
             <DialogFooter className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsExportModalOpen(false)} className="rounded-xl">
                 Cancelar
               </Button>
-              <Button type="button" onClick={handleExportPdf} className="rounded-xl bg-[#0c7474] font-bold text-white hover:bg-[#095c5c]">
-                Baixar PDF Configurado
+              <Button type="button" onClick={handleExportPdf} disabled={isExportingPgr} className="rounded-xl bg-[#0c7474] font-bold text-white hover:bg-[#095c5c]">
+                {isExportingPgr ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparando anexos...</> : "Baixar PDF Configurado"}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -77,8 +77,9 @@ export const uploadPgrAttachmentInput = workspaceIdInput.extend({
   projectId: z.number().int().positive(),
   title: z.string().trim().min(2, "Informe o título do laudo ou foto.").max(128),
   category: z.enum(["photo", "laudo", "art", "certificate", "other"]).default("photo"),
-  dataUrl: z.string().min(15, "Envie o arquivo codificado em base64."),
-});
+  dataUrl: z.string().min(15, "Envie o arquivo codificado em base64.").optional(),
+  remoteUrl: z.string().url("O endereço do arquivo técnico é inválido.").max(2048).optional(),
+}).refine(input => Boolean(input.dataUrl || input.remoteUrl), { message: "Envie o arquivo técnico do PGR." });
 
 export const pgrAttachmentSchema = z.object({
   id: z.number().int().positive(),

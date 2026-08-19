@@ -1,15 +1,11 @@
 import { jsPDF } from "jspdf";
+import { PDFDocument } from "pdf-lib";
+import { buildProfessionalPgrReportPdf, type PgrDocumentAttachment, type PgrExportModules } from "./pgrDocumentExport";
+import { hydratePgrImageAttachments } from "./pgrAttachmentMedia";
 
 type PdfDate = Date | string | null | undefined;
 
-export type PgrExportModules = {
-  cover: boolean;
-  summary: boolean;
-  companyInfo: boolean;
-  gheInventory: boolean;
-  riskMatrix: boolean;
-  actionPlan: boolean;
-};
+export type { PgrExportModules } from "./pgrDocumentExport";
 
 type PgrReportInput = {
   workspaceName: string;
@@ -26,6 +22,8 @@ type PgrReportInput = {
     signatureDate: PdfDate;
     digitalStampCode: string;
   } | null;
+  pgrData?: unknown;
+  attachments?: PgrDocumentAttachment[];
 };
 
 type InspectionRecord = {
@@ -129,7 +127,7 @@ function statusLabel(status: string) {
   }[status] ?? status;
 }
 
-export function buildPgrReportPdf(input: PgrReportInput) {
+function buildLegacyPgrReportPdf(input: PgrReportInput) {
   const modules = input.modules ?? {
     cover: true,
     summary: true,
@@ -697,9 +695,67 @@ export function downloadEpiReceiptPdf(input: EpiReceiptInput) {
   document.save(`${safeFileName(name)}-ficha-epi.pdf`);
 }
 
-export function downloadPgrReportPdf(input: PgrReportInput) {
-  const document = buildPgrReportPdf(input);
-  document.save(`${safeFileName(input.projectName)}-relatorio-pgr.pdf`);
+export function buildPgrReportPdf(input: PgrReportInput) {
+  return buildProfessionalPgrReportPdf(input);
+}
+
+function attachmentFileName(attachment: PgrDocumentAttachment, index: number) {
+  const fallback = `${safeFileName(attachment.title || `anexo-${index + 1}`)}.pdf`;
+  try {
+    const pathname = decodeURIComponent(new URL(attachment.fileUrl).pathname);
+    const lastSegment = pathname.split("/").filter(Boolean).pop() ?? "";
+    const knownExtension = lastSegment.match(/\.(pdf|png|jpe?g|webp)$/i)?.[1];
+    return knownExtension ? `${safeFileName(attachment.title || `anexo-${index + 1}`)}.${knownExtension.toLowerCase().replace("jpeg", "jpg")}` : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function preparePgrPdfWithEmbeddedAttachments(report: jsPDF, input: PgrReportInput) {
+  const candidates = (input.attachments ?? []).filter(item => Boolean(item.fileUrl));
+  if (!candidates.length) return { bytes: new Uint8Array(report.output("arraybuffer")), embedded: 0, unavailable: 0 };
+
+  const output = report.output("arraybuffer");
+  const pgrPdf = await PDFDocument.load(output);
+  let embedded = 0;
+  let unavailable = 0;
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const attachment = candidates[index];
+    try {
+      const response = await fetch(attachment.fileUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const bytes = await response.arrayBuffer();
+      if (!bytes.byteLength || bytes.byteLength > 10 * 1024 * 1024) throw new Error("Tamanho do anexo fora do limite");
+      await pgrPdf.attach(bytes, attachmentFileName(attachment, index), {
+        mimeType: response.headers.get("content-type") || "application/octet-stream",
+        description: `${attachment.category}: ${attachment.title}`,
+        creationDate: attachment.createdAt ? new Date(attachment.createdAt) : new Date(),
+        modificationDate: new Date(),
+      });
+      embedded += 1;
+    } catch {
+      unavailable += 1;
+    }
+  }
+
+  return { bytes: await pgrPdf.save(), embedded, unavailable };
+}
+
+export async function downloadPgrReportPdf(input: PgrReportInput) {
+  const hydratedInput = await hydratePgrImageAttachments(input);
+  const report = buildPgrReportPdf(hydratedInput);
+  const prepared = await preparePgrPdfWithEmbeddedAttachments(report, hydratedInput);
+  const blob = new Blob([prepared.bytes as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${safeFileName(input.projectName)}-relatorio-pgr.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  return { embedded: prepared.embedded, unavailable: prepared.unavailable };
 }
 
 export { formatDate, safeFileName };

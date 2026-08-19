@@ -36,7 +36,7 @@ export const pgrRouter = router({
         projectId: input.projectId,
         userRole: ctx.user.role,
       });
-      return { url: `/api/apps/pgr/${input.workspaceId}?ticket=${encodeURIComponent(ticket)}` };
+      return { url: `/api/apps/pgr/${input.workspaceId}?ticket=${encodeURIComponent(ticket)}&projectId=${input.projectId}` };
     }),
   suggestGhes: protectedProcedure.input(suggestPgrGhesInput).output(suggestPgrGhesOutput).mutation(async ({ ctx, input }) => {
     const [workspace, subscription, project, accessUser] = await Promise.all([
@@ -150,21 +150,28 @@ export const pgrRouter = router({
     const project = await portalDb.getPgrProjectForWorkspace(input.projectId, input.workspaceId);
     if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto PGR não encontrado." });
 
-    const parsed = /^data:([a-zA-Z0-9]+\/[a-zA-Z0-9\-\+\.]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(input.dataUrl);
-    if (!parsed) throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de arquivo base64 inválido." });
-    const contentType = parsed[1];
-    const buffer = Buffer.from(parsed[2], "base64");
-    if (!buffer.length || buffer.length > 5_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "O arquivo deve ter no máximo 5 MB." });
-
-    const ext = contentType.includes("pdf") ? "pdf" : contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-    const stored = await storagePut(`pgr-attachments/workspace-${input.workspaceId}/project-${input.projectId}/file-${Date.now()}.${ext}`, buffer, contentType);
+    let fileKey = "";
+    let fileUrl = input.remoteUrl ?? "";
+    if (input.remoteUrl) {
+      fileKey = `remote-pgr-attachment-${crypto.randomUUID()}`;
+    } else {
+      const parsed = /^data:([a-zA-Z0-9]+\/[a-zA-Z0-9\-\+\.]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(input.dataUrl ?? "");
+      if (!parsed) throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de arquivo base64 inválido." });
+      const contentType = parsed[1];
+      const buffer = Buffer.from(parsed[2], "base64");
+      if (!buffer.length || buffer.length > 5_000_000) throw new TRPCError({ code: "BAD_REQUEST", message: "O arquivo deve ter no máximo 5 MB." });
+      const ext = contentType.includes("pdf") ? "pdf" : contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+      const stored = await storagePut(`pgr-attachments/workspace-${input.workspaceId}/project-${input.projectId}/file-${Date.now()}.${ext}`, buffer, contentType);
+      fileKey = stored.key;
+      fileUrl = stored.url;
+    }
     const created = await portalDb.createPgrAttachment({
       pgrProjectId: input.projectId,
       workspaceId: input.workspaceId,
       title: input.title,
       category: input.category,
-      fileKey: stored.key,
-      fileUrl: stored.url,
+      fileKey,
+      fileUrl,
     });
     if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Erro ao salvar anexo no banco de dados." });
     return {

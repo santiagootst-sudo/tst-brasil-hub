@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Express, Request, Response } from "express";
 
 const db = vi.hoisted(() => ({
+  getPgrProjectForWorkspace: vi.fn(),
   getSubscriptionForUser: vi.fn(),
   getUserById: vi.fn(),
   getWorkspaceForUser: vi.fn(),
@@ -92,6 +93,9 @@ describe("rota protegida do PGR", () => {
     expect(html).toContain("Voltar ao Portal TST");
     expect(html).toContain("max-width: none !important");
     expect(html).toContain("#pgrContainer .main-content { min-width: 0");
+    expect(html).toContain("tst-pgr-commandbar");
+    expect(html).toContain("Emitir Word");
+    expect(html).toContain("Ir à matriz");
   });
 
   it("entrega o PGR para acesso manual ativo mesmo sem assinatura Stripe", async () => {
@@ -111,6 +115,7 @@ describe("rota protegida do PGR", () => {
     sdk.authenticateRequest.mockRejectedValue(new Error("iframe sem cookie"));
     pgrTicket.verifyPgrIframeTicket.mockResolvedValue({ userId: 12, workspaceId: 7, projectId: 3, userRole: "user" });
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, role: "owner" });
+    db.getPgrProjectForWorkspace.mockResolvedValue({ id: 3, legacyStorageKey: "project-3" });
     db.getSubscriptionForUser.mockResolvedValue({ status: "active" });
     db.getUserById.mockResolvedValue({ id: 12, role: "user", accessStatus: "active", accessExpiresAt: null });
     storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
@@ -124,5 +129,7 @@ describe("rota protegida do PGR", () => {
     const html = response.send.mock.calls[0]?.[0] as string;
     expect(html).toContain("<html>PGR</html>");
     expect(html).toContain("portalBackUrl = '/app/pgr?workspace=7'");
+    expect(html).toContain("tst-pgr-project-7-project-3-");
+    expect(html).toContain("tst-pgr-document-snapshot");
   });
 });

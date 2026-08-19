@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { canUsePaidApps } from "./access";
-import { getSubscriptionForUser, getUserById, getWorkspaceForUser } from "./db";
+import { getPgrProjectForWorkspace, getSubscriptionForUser, getUserById, getWorkspaceForUser } from "./db";
 import { verifyPgrIframeTicket } from "./pgrIframeTicket";
 import { sdk } from "./_core/sdk";
 import { storageGetSignedUrl } from "./storage";
@@ -25,19 +25,59 @@ async function getPgrHtml() {
   return cachedPgrHtml;
 }
 
-function withPortalShell(html: string, workspaceId: number) {
+function withPortalShell(html: string, workspaceId: number, storageScope: string) {
   const portalScript = `<style>
 html.portal-tst-embedded #loginContainer { display: none !important; }
 html.portal-tst-embedded, html.portal-tst-embedded body { width: 100%; height: 100%; overflow: hidden; }
 html.portal-tst-embedded #pgrContainer { display: flex !important; width: 100% !important; max-width: none !important; height: 100vh !important; min-height: 100vh !important; margin: 0 !important; border-radius: 0 !important; }
 html.portal-tst-embedded #pgrContainer .sidebar { height: 100vh !important; max-height: 100vh !important; }
 html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100vh !important; max-height: 100vh !important; }
-#portal-tst-back-link { position: fixed; top: 14px; right: 18px; z-index: 2147483647; display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; background: #063b43; color: #ffffff; padding: 10px 14px; font: 700 13px/1.1 Arial, sans-serif; text-decoration: none; box-shadow: 0 8px 22px rgba(6, 59, 67, .24); }
+#portal-tst-back-link { position: fixed; top: 13px; right: 18px; z-index: 2147483647; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #0c7474; border-radius: 8px; background: #063b43; color: #ffffff; padding: 9px 12px; font: 700 12px/1.1 Inter, Arial, sans-serif; text-decoration: none; box-shadow: none; }
 #portal-tst-back-link:hover { background: #0c7474; }
+
+/* Camada visual operacional do Portal TST para o aplicativo legado. */
+html.portal-tst-embedded body { background: #f5f8f7 !important; color: #183238 !important; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important; }
+html.portal-tst-embedded #pgrContainer .sidebar { width: 250px !important; min-width: 250px !important; background: #063b43 !important; border-right: 1px solid #0a555e !important; box-shadow: none !important; }
+html.portal-tst-embedded #pgrContainer .sidebar-header { padding: 22px 20px 18px !important; border-bottom: 1px solid rgba(197, 237, 229, .16) !important; }
+html.portal-tst-embedded #pgrContainer .sidebar-header h2 { color: #ffffff !important; font-size: 15px !important; letter-spacing: -.01em !important; }
+html.portal-tst-embedded #pgrContainer .sidebar-header p { color: #b9d8d4 !important; font-size: 11px !important; }
+html.portal-tst-embedded #pgrContainer .menu-category { margin: 18px 14px 6px !important; padding: 0 4px !important; color: #8ec5bd !important; font-size: 10px !important; font-weight: 800 !important; letter-spacing: .1em !important; text-transform: uppercase !important; }
+html.portal-tst-embedded #pgrContainer .menu-item { margin: 2px 10px !important; padding: 9px 11px !important; border: 1px solid transparent !important; border-radius: 7px !important; color: #dceeea !important; font-size: 12px !important; font-weight: 600 !important; line-height: 1.25 !important; transition: background .16s ease, border-color .16s ease, color .16s ease !important; }
+html.portal-tst-embedded #pgrContainer .menu-item:hover { background: rgba(255,255,255,.08) !important; color: #ffffff !important; }
+html.portal-tst-embedded #pgrContainer .menu-item.active { background: #0c7474 !important; border-color: #2c9a96 !important; color: #ffffff !important; box-shadow: none !important; }
+html.portal-tst-embedded #pgrContainer .badge-count { min-width: 17px !important; height: 17px !important; margin-left: auto !important; border-radius: 999px !important; background: rgba(255,255,255,.16) !important; color: #ffffff !important; font-size: 10px !important; line-height: 17px !important; }
+html.portal-tst-embedded #pgrContainer .main-content { background: #f5f8f7 !important; }
+html.portal-tst-embedded #pgrContainer .header { min-height: 56px !important; padding: 10px 194px 10px 26px !important; border-bottom: 1px solid #dce8e4 !important; background: #ffffff !important; box-shadow: none !important; }
+html.portal-tst-embedded #pgrContainer .header-left .icon { display: none !important; }
+html.portal-tst-embedded #pgrContainer .header-left h1 { color: #16343a !important; font-size: 15px !important; font-weight: 750 !important; }
+html.portal-tst-embedded #pgrContainer .header .badge { border: 1px solid #cde5df !important; border-radius: 999px !important; background: #edf8f5 !important; color: #16635f !important; font-size: 10px !important; font-weight: 700 !important; }
+html.portal-tst-embedded #pgrContainer .user-info { gap: 8px !important; }
+html.portal-tst-embedded #pgrContainer #userNameDisplay, html.portal-tst-embedded #pgrContainer #userPlanDisplay, html.portal-tst-embedded #pgrContainer .btn-logout { display: none !important; }
+html.portal-tst-embedded #pgrContainer .save-indicator { padding: 4px 8px !important; border: 1px solid #d7ece6 !important; border-radius: 999px !important; background: #f5fcf9 !important; color: #277269 !important; font-size: 10px !important; }
+html.portal-tst-embedded #pgrContainer .btn-group.print-hidden { display: none !important; }
+html.portal-tst-embedded #pgrContainer .tab-content { padding: 24px 28px 44px !important; }
+html.portal-tst-embedded #pgrContainer .tab-content > h2 { color: #16343a !important; font-size: 22px !important; letter-spacing: -.025em !important; }
+html.portal-tst-embedded #pgrContainer .dashboard-card, html.portal-tst-embedded #pgrContainer .card, html.portal-tst-embedded #pgrContainer .form-section { border: 1px solid #dbe8e4 !important; border-radius: 10px !important; background: #ffffff !important; box-shadow: none !important; }
+html.portal-tst-embedded #pgrContainer input, html.portal-tst-embedded #pgrContainer select, html.portal-tst-embedded #pgrContainer textarea { border-color: #bfd8d2 !important; border-radius: 7px !important; color: #16343a !important; font: 500 13px/1.35 Inter, ui-sans-serif, system-ui, sans-serif !important; }
+html.portal-tst-embedded #pgrContainer input:focus, html.portal-tst-embedded #pgrContainer select:focus, html.portal-tst-embedded #pgrContainer textarea:focus { border-color: #0c7474 !important; box-shadow: 0 0 0 3px rgba(12,116,116,.12) !important; outline: none !important; }
+#tst-pgr-commandbar { position: sticky; top: 0; z-index: 102; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 26px; border-bottom: 1px solid #dce8e4; background: rgba(255,255,255,.97); backdrop-filter: blur(9px); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+#tst-pgr-commandbar .tst-pgr-context { display: flex; min-width: 0; align-items: center; gap: 10px; }
+#tst-pgr-commandbar .tst-pgr-context-mark { width: 9px; height: 9px; border-radius: 50%; background: #15803d; box-shadow: 0 0 0 4px #e7f5ed; }
+#tst-pgr-commandbar .tst-pgr-eyebrow { margin: 0 0 2px; color: #608078; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+#tst-pgr-commandbar .tst-pgr-title { overflow: hidden; color: #16343a; font-size: 13px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+#tst-pgr-commandbar .tst-pgr-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+#tst-pgr-commandbar button { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; border: 1px solid #c8ddd8; border-radius: 7px; background: #ffffff; color: #24464a; padding: 0 11px; cursor: pointer; font: 700 12px/1 Inter, ui-sans-serif, system-ui, sans-serif; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+#tst-pgr-commandbar button:hover { border-color: #7db8ae; background: #f2faf7; }
+#tst-pgr-commandbar button:active { transform: scale(.97); }
+#tst-pgr-commandbar button[data-action="save"] { border-color: #0c7474; background: #0c7474; color: #ffffff; }
+#tst-pgr-commandbar button[data-action="save"]:hover { background: #075d60; }
+#tst-pgr-commandbar button[data-action="clear"] { border-color: #ecc8c4; color: #a83930; }
+@media (max-width: 860px) { html.portal-tst-embedded #pgrContainer .sidebar { width: 212px !important; min-width: 212px !important; } html.portal-tst-embedded #pgrContainer .tab-content { padding: 18px !important; } #tst-pgr-commandbar { align-items: flex-start; flex-direction: column; padding: 10px 16px; } #tst-pgr-commandbar .tst-pgr-actions { justify-content: flex-start; } html.portal-tst-embedded #pgrContainer .header { padding-right: 18px !important; } #portal-tst-back-link { position: static; margin: 10px 12px 0 auto; width: max-content; } }
+@media (prefers-reduced-motion: reduce) { html.portal-tst-embedded #pgrContainer .menu-item, #tst-pgr-commandbar button { transition: none !important; } }
 </style><script>
 (function () {
   var portalBackUrl = '/app/pgr?workspace=${workspaceId}';
-  var portalStoragePrefix = 'tst-pgr-workspace-${workspaceId}-';
+  var portalStoragePrefix = 'tst-pgr-project-${workspaceId}-${storageScope}-';
   var portalStorage = window.localStorage;
   var nativeSetItem = portalStorage.setItem.bind(portalStorage);
   var nativeGetItem = portalStorage.getItem.bind(portalStorage);
@@ -73,6 +113,43 @@ html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100
   else activatePortalMode();
 
   window.addEventListener('DOMContentLoaded', function () {
+    var snapshotTimer = null;
+    function buildDocumentSnapshot() {
+      var snapshot = JSON.parse(JSON.stringify(typeof dados !== 'undefined' ? dados : {}));
+      snapshot.mapaRisco = snapshot.mapaRisco || {};
+      if (typeof mapaCirculos !== 'undefined' && mapaCirculos.length) snapshot.mapaRisco.circulos = mapaCirculos;
+      if (typeof mapaImagemData !== 'undefined' && mapaImagemData) snapshot.mapaRisco.imagem = mapaImagemData;
+      else if (typeof mapaImagemCache !== 'undefined' && mapaImagemCache) snapshot.mapaRisco.imagem = mapaImagemCache;
+      return snapshot;
+    }
+    function postDocumentSnapshot(action) {
+      try {
+        if (window.parent === window) return false;
+        window.parent.postMessage({ type: 'tst-pgr-document-snapshot', action: action, snapshot: buildDocumentSnapshot() }, window.location.origin);
+        if (action === 'word') showToast('info', 'O documento Word profissional está sendo preparado pelo Portal TST.');
+        return false;
+      } catch (error) {
+        console.error('Erro ao preparar documento do PGR:', error);
+        return false;
+      }
+    }
+    function scheduleDocumentSnapshot() {
+      if (snapshotTimer) clearTimeout(snapshotTimer);
+      snapshotTimer = setTimeout(function () { postDocumentSnapshot('sync'); }, 600);
+    }
+    window.addEventListener('message', function (event) {
+      if (event.origin !== window.location.origin || event.data?.type !== 'tst-pgr-request-document-snapshot') return;
+      postDocumentSnapshot('sync');
+    });
+    window.baixarComoWord = function () { return postDocumentSnapshot('word'); };
+    window.exportarWord = function () { return postDocumentSnapshot('word'); };
+    document.querySelectorAll('button[onclick*="exportarWord"], button[onclick*="baixarComoWord"]').forEach(function (button) {
+      button.onclick = function () { return postDocumentSnapshot('word'); };
+    });
+    document.addEventListener('input', scheduleDocumentSnapshot);
+    document.addEventListener('change', scheduleDocumentSnapshot);
+    setTimeout(function () { postDocumentSnapshot('sync'); }, 850);
+
     // Injetar estilos do modal e toast
     var style = document.createElement('style');
     style.textContent = '#tst-modal-overlay { position: fixed; inset: 0; background: rgba(9, 30, 34, 0.65); backdrop-filter: blur(4px); z-index: 2147483646; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }' +
@@ -118,6 +195,34 @@ html.portal-tst-embedded #pgrContainer .main-content { min-width: 0; height: 100
       mainContent.insertBefore(progressBarContainer, mainContent.firstChild);
     } else {
       mainContent.appendChild(progressBarContainer);
+    }
+
+    // Barra compacta de comandos: preserva as ações originais, mas prioriza o fluxo real do técnico.
+    if (!document.getElementById('tst-pgr-commandbar')) {
+      var commandBar = document.createElement('div');
+      commandBar.id = 'tst-pgr-commandbar';
+      commandBar.innerHTML = '<div class="tst-pgr-context">' +
+          '<span class="tst-pgr-context-mark" aria-hidden="true"></span>' +
+          '<div><p class="tst-pgr-eyebrow">Projeto em edição</p><div class="tst-pgr-title">Preencha, revise os riscos e emita o relatório</div></div>' +
+        '</div>' +
+        '<div class="tst-pgr-actions" aria-label="Comandos do PGR">' +
+          '<button type="button" data-action="save">Salvar agora</button>' +
+          '<button type="button" data-action="preview">Prévia PDF</button>' +
+          '<button type="button" data-action="word">Emitir Word</button>' +
+          '<button type="button" data-action="matrix">Ir à matriz</button>' +
+          '<button type="button" data-action="clear">Limpar</button>' +
+        '</div>';
+      if (progressBarContainer.nextSibling) mainContent.insertBefore(commandBar, progressBarContainer.nextSibling);
+      else mainContent.appendChild(commandBar);
+      commandBar.addEventListener('click', function(event) {
+        var action = event.target && event.target.getAttribute ? event.target.getAttribute('data-action') : null;
+        if (!action) return;
+        if (action === 'save' && typeof window.salvarDados === 'function') window.salvarDados();
+        if (action === 'preview' && typeof window.abrirPreviewPDF === 'function') window.abrirPreviewPDF();
+        if (action === 'word') postDocumentSnapshot('word');
+        if (action === 'matrix' && typeof window.mudarAba === 'function') window.mudarAba('matriz');
+        if (action === 'clear' && typeof window.limparDados === 'function') window.limparDados();
+      });
     }
 
     function updateProgress() {
@@ -243,12 +348,17 @@ export function registerPgrLegacyRoute(app: Express) {
       const userId = user?.id ?? ticket!.userId;
       const userRole = user?.role ?? ticket!.userRole;
 
-      const [workspace, subscription, accessUser] = await Promise.all([
+      const requestedProjectId = ticket?.projectId ?? Number(req.query?.projectId);
+      const [workspace, subscription, accessUser, project] = await Promise.all([
         getWorkspaceForUser(workspaceId, userId),
         getSubscriptionForUser(userId),
         getUserById(userId),
+        Number.isInteger(requestedProjectId) && requestedProjectId > 0
+          ? getPgrProjectForWorkspace(requestedProjectId, workspaceId)
+          : Promise.resolve(undefined),
       ]);
       if (!workspace) return res.status(403).send("Você não possui acesso a este ambiente.");
+      if (requestedProjectId && !project) return res.status(403).send("Projeto PGR inválido para este ambiente.");
       if (!canUsePaidApps({ userRole: accessUser?.role ?? userRole, accessStatus: accessUser?.accessStatus, accessExpiresAt: accessUser?.accessExpiresAt, subscriptionStatus: subscription?.status })) {
         return res.status(402).send("Uma assinatura ativa é necessária para usar o PGR Pro.");
       }
@@ -259,7 +369,7 @@ export function registerPgrLegacyRoute(app: Express) {
         "Cache-Control": "private, no-store",
         "X-Frame-Options": "SAMEORIGIN",
       });
-      return res.send(withPortalShell(html, workspaceId));
+      return res.send(withPortalShell(html, workspaceId, project?.legacyStorageKey ?? "legacy"));
     } catch (error) {
       console.error("[PGR] Falha ao abrir aplicativo legado", error);
       return res.status(500).send("Não foi possível carregar o Gerador de PGR.");

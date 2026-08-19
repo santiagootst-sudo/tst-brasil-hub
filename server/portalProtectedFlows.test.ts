@@ -170,7 +170,7 @@ describe("portal protected flows", () => {
     await caller.portal.createCompany({ workspaceId: 7, name: "Empresa Nova" });
     await caller.portal.uploadCompanyLogo({ workspaceId: 7, companyId: 51, dataUrl: "data:image/png;base64,aGVsbG8gd29ybGQgaGVsbG8gd29ybGQgaGVsbG8gd29ybGQ=" });
     await caller.portal.createPgrProject({ workspaceId: 7, companyId: 51, name: "PGR Empresa Nova" });
-    await expect(caller.portal.iframeAccess({ workspaceId: 7, projectId: 52 })).resolves.toEqual({ url: "/api/apps/pgr/7?ticket=ticket-seguro" });
+    await expect(caller.portal.iframeAccess({ workspaceId: 7, projectId: 52 })).resolves.toEqual({ url: "/api/apps/pgr/7?ticket=ticket-seguro&projectId=52" });
     expect(db.createPgrProjectForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ companyId: 51, workspaceId: 7 }));
     expect(db.updateCompanyLogoForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ companyId: 51, workspaceId: 7 }));
   });
@@ -181,7 +181,7 @@ describe("portal protected flows", () => {
     db.getPgrProjectForWorkspace.mockResolvedValue({ id: 3, workspaceId: 7, name: "PGR Unidade A" });
     pgrTicket.createPgrIframeTicket.mockResolvedValue("ticket-seguro");
 
-    await expect(appRouter.createCaller(createContext()).portal.iframeAccess({ workspaceId: 7, projectId: 3 })).resolves.toEqual({ url: "/api/apps/pgr/7?ticket=ticket-seguro" });
+    await expect(appRouter.createCaller(createContext()).portal.iframeAccess({ workspaceId: 7, projectId: 3 })).resolves.toEqual({ url: "/api/apps/pgr/7?ticket=ticket-seguro&projectId=3" });
     expect(db.getPgrProjectForWorkspace).toHaveBeenCalledWith(3, 7);
     expect(pgrTicket.createPgrIframeTicket).toHaveBeenCalledWith(expect.objectContaining({ userId: 12, workspaceId: 7, projectId: 3 }));
   });

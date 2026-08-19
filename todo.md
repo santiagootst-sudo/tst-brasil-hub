@@ -720,5 +720,43 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Ajustar o espaçamento para iniciar o gerador e suas ações úteis no topo da área de conteúdo.
 - [x] Validar a página simplificada sem prejudicar geração, histórico ou ações de documento.
 
-- [ ] Sincronizar no GitHub a remoção aprovada do cabeçalho redundante da página de certificados.
-- [ ] Confirmar o commit remoto sem acionar novo deploy manual.
+- [x] Sincronizar no GitHub a remoção aprovada do cabeçalho redundante da página de certificados.
+- [x] Confirmar o commit remoto sem acionar novo deploy manual.
+
+- [x] Mapear o fluxo, a interface e a geração atual de documentos do módulo PGR.
+- [x] Definir e implementar os aprimoramentos prioritários do gerador de PGR após a revisão.
+- [x] Validar a geração de PGR na prévia, incluindo estados de acesso e de erro.
+
+- [x] Auditar a geração Word do PGR e eliminar espaçamentos, quebras e hierarquia desconfigurados.
+- [x] Ampliar a exportação PDF do PGR com dados reais, matriz de riscos e mapa de risco visual.
+- [x] Validar a estrutura e a apresentação dos documentos PGR gerados na prévia.
+
+- [x] Mapear a navegação, a barra superior e os comandos visuais do gerador PGR interno.
+- [x] Redesenhar a interface interna do PGR com hierarquia operacional, sem remover etapas ou recursos técnicos.
+- [x] Validar o novo layout do gerador e suas ações de emissão na prévia antes da sincronização.
+
+- [x] Analisar o PGR de referência enviado, registrando estrutura, seções, tabelas e anexos necessários.
+- [x] Confrontar o relatório atual com os requisitos documentais aplicáveis da NR-01 e registrar lacunas.
+- [x] Reconstruir a exportação PGR com o nível técnico mínimo demonstrado no modelo aprovado.
+- [x] Comparar visualmente a nova emissão com o modelo de referência antes de solicitar novo push.
+
+- [x] Estruturar a abertura do PGR com apresentação do ambiente e caracterização dos processos cadastrados.
+- [x] Incluir uma descrição técnica dos métodos, critérios e fontes de evidência utilizados na avaliação dos riscos.
+- [x] Validar a nova abertura no PDF e no Word antes de solicitar sincronização.
+
+- [x] Extrair a estrutura e os elementos de apresentação dos dois modelos complementares de PGR.
+- [x] Comparar os três modelos com a emissão atual, identificando padrões recorrentes e lacunas objetivas.
+- [x] Incorporar os complementos técnicos e visuais aprovados ao gerador de PGR.
+
+- [x] Mapear os registros existentes de responsabilidades, medições, inspeções, mudanças, treinamentos, documentos, laudos e emergências no PGR.
+- [x] Criar anexos rastreáveis de laudos e certificados de calibração vinculados ao projeto PGR.
+- [x] Incluir responsabilidades, monitoramento, anexos operacionais e cronograma consolidado na emissão PDF e Word.
+- [x] Validar a persistência, a listagem e a exportação dos anexos técnicos na prévia.
+
+- [x] Mapear formatos de anexos e identificar as imagens que podem ser renderizadas dentro do relatório PGR.
+- [x] Renderizar imagens anexadas com legenda e identificação diretamente no PDF e no Word exportados.
+- [x] Preservar a relação rastreável de laudos em PDF e certificados não visuais, sem simulá-los como imagens.
+- [x] Validar a paginação e a qualidade das evidências visuais em PDF e Word antes da sincronização.
+
+- [ ] Sincronizar ao GitHub a emissão PGR aprovada com anexos técnicos e evidências visuais incorporadas.
+- [ ] Confirmar o commit remoto para o teste prático no Render.

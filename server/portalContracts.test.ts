@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { billingStatusSchema, certificateCreatedSchema, companyCreatedSchema, materialCreatedSchema, pgrProjectCreatedSchema, subscriptionPlanSchema, supportTicketCreatedSchema, trainingCreatedSchema, workspaceCreatedSchema, workspaceDetailSchema } from "@shared/contracts/portal";
+import { billingStatusSchema, certificateCreatedSchema, companyCreatedSchema, materialCreatedSchema, pgrProjectCreatedSchema, subscriptionPlanSchema, supportTicketCreatedSchema, trainingCreatedSchema, uploadPgrAttachmentInput, workspaceCreatedSchema, workspaceDetailSchema } from "@shared/contracts/portal";
 
 const fixtureDate = new Date("2026-08-11T12:00:00.000Z");
 
@@ -28,5 +28,17 @@ describe("contratos de resposta do Portal TST", () => {
 
   it("rejeita estado de cobrança incompatível", () => {
     expect(() => billingStatusSchema.parse({ subscription: null, plan: null, hasPaidAccess: "sim" })).toThrow();
+  });
+
+  it("aceita um laudo ou certificado remoto vinculado ao projeto PGR sem depender de arquivo base64", () => {
+    const attachment = uploadPgrAttachmentInput.parse({
+      workspaceId: 7,
+      projectId: 9,
+      title: "Certificado de calibração do dosímetro",
+      category: "certificate",
+      remoteUrl: "https://res.cloudinary.com/er2184wh/raw/upload/v1/tst-brasil-hub/calibracao-dosimetro.pdf",
+    });
+    expect(attachment.remoteUrl).toContain("cloudinary.com");
+    expect(attachment.dataUrl).toBeUndefined();
   });
 });
