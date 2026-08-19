@@ -666,7 +666,34 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Rastrear e corrigir a autorização do iframe PGR em produção até confirmar a abertura com a conta mestre.
 - [x] Comparar os modelos CIPA reenviados com os documentos atuais e reproduzir fielmente sua estrutura, redação, tabelas e campos no portal.
 - [x] Validar a geração documental CIPA pelos modelos aprovados, enviar ao GitHub e publicar no Render.
-- [x] Criar calendário persistente de reuniões CIPA, com cadastro, edição, status e visualização na gestão correspondente.
-- [x] Gerar amostras de todos os documentos PDF CIPA usando registros reais disponíveis e disponibilizá-las para validação final.
-- [x] Criar módulo de vídeos YouTube para assinantes, com galeria de miniaturas e gestão administrativa de links, títulos, categorias e publicação.
-- [ ] Publicar no GitHub e Render o calendário CIPA e o módulo de vídeos YouTube após a validação técnica.
+- [x] Revisar integralmente o módulo de EPIs do ambiente CLT e reproduzir os defeitos reportados, sem push ou deploy.
+- [x] Restaurar o cadastro de EPIs em estoque e validar a persistência por empresa e ambiente.
+- [x] Corrigir o comando de recolher todas as pastas e eliminar a duplicação do botão de adicionar funcionário.
+- [x] Restaurar fichas de EPI, assinatura de funcionário e exportações de fichas, com cobertura automatizada e testes de interface.
+- [x] Corrigir o comando de recolher todas as pastas de fichas de EPI no fluxo de uso real.
+- [x] Permitir editar um EPI já cadastrado, incluindo dados de estoque, CA, validade e fabricante.
+- [x] Permitir enviar, visualizar e persistir uma foto do EPI por empresa, sem publicar as alterações antes da aprovação.
+- [x] Adicionar alternância Tabela / Kanban ao estoque de EPIs, preservando a tabela detalhada existente.
+- [x] Organizar o Kanban de conformidade em Prontas, Vencendo em 30 dias, Vencidas e A renovar, com cartões de urgência e dados reais do EPI.
+- [x] Adicionar uma ação operacional de renovação do CA e validar a nova visão somente na prévia.
+- [x] Adicionar alternância Setores / Colaboradores ao Arquivo de Fichas, preservando a organização por setor atual.
+- [x] Criar cards individuais de colaboradores com setor, progresso de assinaturas, criticidade e ação contextual de EPI.
+- [x] Validar a visão individual de fichas na prévia sem realizar push ou deploy.
+- [x] Renovar a hierarquia visual do Controle de EPIs com padrão SaaS operacional, sem remover funcionalidades aprovadas.
+- [x] Substituir hero decorativo por cabeçalho compacto, KPIs discretos, status por ponto colorido e controles densos.
+- [x] Validar a nova linguagem visual em desktop e telefone somente na prévia, sem push ou deploy.
+- [x] Corrigir o dimensionamento do Controle de EPIs no desktop para eliminar a aparência de conteúdo cortado ou comprimido.
+- [x] Redistribuir cabeçalho, métricas e barra de ações para aproveitar a largura disponível preservando a responsividade.
+- [x] Validar o novo dimensionamento somente na prévia, sem push ou deploy.
+
+- [x] Redesenhar apenas o Dashboard CLT seguindo a referência Centro de Comando enviada pelo usuário.
+- [x] Substituir o hero promocional por cabeçalho compacto, faixa de alerta acionável e navegação em pills.
+- [x] Implementar prioridades do dia, ações em aberto, KPIs com deltas, tendência e atividade recente usando dados reais disponíveis.
+- [x] Validar o Dashboard CLT em desktop e telefone sem push, checkpoint ou deploy.
+
+- [x] Remover a duplicidade do ambiente Autônomo no seletor contextual da barra lateral.
+- [x] Corrigir o estado de carregamento que permanece em “Abrindo TST Autônomo...” após a troca de ambiente.
+- [x] Cobrir e validar a alternância entre CLT e Autônomo somente na prévia, sem push ou deploy.
+
+- [ ] Revisar e sincronizar no GitHub as correções acumuladas de EPIs, Dashboard CLT e alternância de ambientes.
+- [ ] Confirmar o hash remoto do commit enviado, sem executar deploy manual no Render.

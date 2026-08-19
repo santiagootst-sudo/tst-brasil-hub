@@ -67,7 +67,7 @@ function WorkspaceOverviewSkeleton() {
 
 export default function WorkspaceOverview() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardView>("resumo");
-  const [globalPeriod, setGlobalPeriod] = useState<GlobalPeriod>("all");
+  const [globalPeriod, setGlobalPeriod] = useState<GlobalPeriod>("30");
   const [readAlertKeys, setReadAlertKeys] = useState<string[]>([]);
   const [isCustomizingSummary, setIsCustomizingSummary] = useState(false);
   const [summaryOrder, setSummaryOrder] = useState<SummaryWidgetId[]>(defaultSummaryOrder);
@@ -402,6 +402,88 @@ export default function WorkspaceOverview() {
       tone: "coral" as const,
     },
   ].filter(Boolean) as Priority[];
+
+  if (!isAutonomo && activeDashboard === "resumo") {
+    const primaryEpiAlert = [...epiItems]
+      .filter(item => item.stockQuantity <= item.minimumStock || (item.expiresAt && (daysUntil(item.expiresAt) ?? Number.POSITIVE_INFINITY) <= 30))
+      .sort((left, right) => {
+        const leftDays = left.expiresAt ? daysUntil(left.expiresAt) ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY;
+        const rightDays = right.expiresAt ? daysUntil(right.expiresAt) ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY;
+        return leftDays - rightDays || (left.stockQuantity - left.minimumStock) - (right.stockQuantity - right.minimumStock);
+      })[0];
+    const primaryEpiDays = primaryEpiAlert?.expiresAt ? daysUntil(primaryEpiAlert.expiresAt) : null;
+    const alertTitle = primaryEpiAlert
+      ? primaryEpiDays !== null
+        ? primaryEpiDays < 0
+          ? `CA vencido — ${primaryEpiAlert.name}${primaryEpiAlert.caNumber ? ` (CA ${primaryEpiAlert.caNumber})` : ""}`
+          : `CA vence em ${primaryEpiDays} dia${primaryEpiDays === 1 ? "" : "s"} — ${primaryEpiAlert.name}${primaryEpiAlert.caNumber ? ` (CA ${primaryEpiAlert.caNumber})` : ""}`
+        : `Estoque crítico — ${primaryEpiAlert.name}`
+      : null;
+    const alertDetail = primaryEpiAlert
+      ? primaryEpiDays !== null
+        ? `Validade ${new Date(primaryEpiAlert.expiresAt!).toLocaleDateString("pt-BR")} · Estoque ${primaryEpiAlert.stockQuantity}`
+        : `${primaryEpiAlert.stockQuantity} unidade(s) em estoque · mínimo ${primaryEpiAlert.minimumStock}`
+      : null;
+    const actionItemsForDashboard = [...openActionItems]
+      .sort((left, right) => (left.dueAt ? new Date(left.dueAt).getTime() : Number.POSITIVE_INFINITY) - (right.dueAt ? new Date(right.dueAt).getTime() : Number.POSITIVE_INFINITY))
+      .slice(0, 3);
+    const recentActivity = [
+      ...(operations.data?.epiDeliveries ?? []).map(item => ({ id: `delivery-${item.id}`, title: "Entrega de EPI registrada", detail: "Uma ficha de entrega foi incluída no controle de EPIs.", date: item.createdAt, icon: ShieldCheck })),
+      ...allInspections.map(item => ({ id: `inspection-${item.id}`, title: item.status === "completed" ? "Inspeção concluída" : "Inspeção planejada", detail: item.title, date: item.updatedAt ?? item.createdAt, icon: ClipboardCheck })),
+      ...filteredActionItems.map(item => ({ id: `action-${item.id}`, title: item.status === "completed" ? "Ação preventiva concluída" : "Ação preventiva atualizada", detail: item.title, date: item.updatedAt ?? item.createdAt, icon: CheckSquare2 })),
+    ]
+      .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+      .slice(0, 4);
+    const commandMetrics = [
+      { label: "Pessoas ativas", value: activeEmployees.length, delta: activeEmployees.length ? `${activeEmployees.length} cadastrada${activeEmployees.length === 1 ? "" : "s"}` : "Cadastre a equipe", icon: UsersRound, href: appHref("/app/estrutura"), tone: "blue" },
+      { label: "Setores ativos", value: activeDepartments.length, delta: activeDepartments.length ? `${activeJobRoles.length} função(ões) ativa(s)` : "Estruture a empresa", icon: Building2, href: appHref("/app/estrutura"), tone: "slate" },
+      { label: "Alertas de EPI", value: epiAlerts, delta: epiAlerts ? `${epiStockCritical} estoque · ${epiExpiring} CA` : "Tudo regular por aqui", icon: CircleAlert, href: appHref("/app/operacao"), tone: "amber" },
+      { label: "Ocorrências abertas", value: openOccurrences, delta: openOccurrences ? "Exigem acompanhamento" : "Nenhuma pendência", icon: ShieldCheck, href: appHref("/app/operacao"), tone: openOccurrences ? "amber" : "green" },
+    ] as const;
+    const visiblePriorities = priorities.slice(0, 3);
+
+    return <DashboardLayout title="Dashboard"><div className="dashboard-readable mx-auto max-w-[1440px] space-y-4">
+      <section className="flex flex-col gap-4 border-b border-[#e5e7eb] pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-medium text-[#6b7280]">TST CLT <span className="mx-1.5 text-[#cbd5d1]">/</span> {current.name}</p>
+          <h2 className="mt-1 text-[26px] font-bold tracking-[-.035em] text-[#111827]">Dashboard</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-[#e5e7eb] bg-white p-1" role="group" aria-label="Período do dashboard">
+            {(["30", "90", "365"] as const).map(value => <button key={value} type="button" onClick={() => setGlobalPeriod(value)} aria-pressed={globalPeriod === value} className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${globalPeriod === value ? "bg-[#f1f5f3] text-[#166534] shadow-sm" : "text-[#667085] hover:bg-[#f8faf9] hover:text-[#1f2937]"}`}>{value === "365" ? "12 meses" : `${value} dias`}</button>)}
+          </div>
+          <button type="button" onClick={() => setIsCustomizingSummary(previous => !previous)} className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition ${isCustomizingSummary ? "border-[#15803d] bg-[#15803d] text-white" : "border-[#b7d8c1] bg-white text-[#166534] hover:bg-[#f4fbf6]"}`}><Settings2 className="h-3.5 w-3.5" />{isCustomizingSummary ? "Concluir" : "Personalizar"}</button>
+        </div>
+      </section>
+
+      <section className="flex gap-2 overflow-x-auto pb-1" aria-label="Seções do dashboard">
+        {dashboardTabs.map(({ id, label, icon: Icon }) => {
+          const badge = badgeCountFor(id);
+          return <button key={id} type="button" onClick={() => setActiveDashboard(id)} aria-pressed={activeDashboard === id} className={`relative inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition ${activeDashboard === id ? "border-[#111827] bg-[#111827] text-white shadow-sm" : "border-[#e5e7eb] bg-white text-[#374151] hover:border-[#cbd5d1] hover:bg-[#f8faf9]"}`}><Icon className="h-4 w-4" />{label}{badge.count > 0 && <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-bold ${activeDashboard === id ? "bg-[#22c55e] text-[#052e16]" : "bg-[#ecfdf3] text-[#15803d]"}`}>{badge.count > 99 ? "99+" : badge.count}</span>}</button>;
+        })}
+      </section>
+
+      {isCustomizingSummary && <section className="flex flex-col gap-3 rounded-xl border border-[#dcebe3] bg-[#f7fbf8] px-4 py-3 text-xs text-[#4b6358] sm:flex-row sm:items-center sm:justify-between"><p>O painel usa dados registrados em EPIs, estrutura, inspeções, plano de ação e CIPA. O período altera os indicadores e a lista de atividade.</p><button type="button" onClick={resetSummaryLayout} className="inline-flex w-fit items-center gap-1.5 font-semibold text-[#166534] hover:text-[#14532d]"><RotateCcw className="h-3.5 w-3.5" />Restaurar preferências</button></section>}
+
+      {alertTitle ? <section className="flex flex-col gap-3 rounded-xl border border-[#fde0de] border-l-4 border-l-[#dc2626] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(17,24,39,.04)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3"><CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-[#dc2626]" /><div><p className="text-sm font-semibold text-[#1f2937]">{alertTitle}</p><p className="mt-0.5 text-xs text-[#6b7280]">{alertDetail}</p></div></div>
+        <div className="flex shrink-0 items-center gap-2"><Link href={appHref("/app/operacao")} className="inline-flex h-8 items-center rounded-lg bg-[#15803d] px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-[#166534]">Resolver agora</Link>{isAlertUnread("epi") ? <button type="button" onClick={() => markAlertAsRead("epi")} className="inline-flex h-8 items-center rounded-lg border border-[#e5e7eb] bg-white px-3 text-xs font-semibold text-[#4b5563] hover:bg-[#f9fafb]">Marcar como lida</button> : <span className="inline-flex h-8 items-center rounded-lg bg-[#f0fdf4] px-3 text-xs font-semibold text-[#15803d]">Lida</span>}</div>
+      </section> : <section className="flex items-center gap-3 rounded-xl border border-[#bbdfc4] bg-[#f6fcf7] px-4 py-3"><CheckCircle2 className="h-5 w-5 text-[#15803d]" /><p className="text-sm font-semibold text-[#166534]">Tudo regular por aqui. Não há alertas críticos de EPI ou CA para este período.</p></section>}
+
+      <section className="grid gap-4 xl:grid-cols-[.94fr_1.06fr]">
+        <div className="space-y-4">
+          <article className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(17,24,39,.03)]"><div className="border-b border-[#eef0ef] px-4 py-3"><h3 className="text-sm font-bold text-[#1f2937]">Prioridades de hoje</h3></div><div className="divide-y divide-[#eef0ef]">{visiblePriorities.length ? visiblePriorities.map(({ href, title, detail, tone }) => <Link key={title} href={href} className="group flex items-center gap-3 px-4 py-3 transition hover:bg-[#fafcfb]"><span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${tone === "coral" ? "border-[#fbbf24]" : "border-[#a7cdb2]"}`} aria-hidden="true"><span className={`h-2 w-2 rounded-full ${tone === "coral" ? "bg-[#f59e0b]" : "bg-[#15803d]"}`} /></span><span className="min-w-0 flex-1"><strong className="block text-sm text-[#30363f]">{title}</strong><small className="mt-0.5 block truncate text-xs text-[#737b86]">{detail}</small></span><ArrowRight className="h-4 w-4 shrink-0 text-[#a3aaa5] transition group-hover:translate-x-0.5 group-hover:text-[#15803d]" /></Link>) : <div className="flex items-center gap-3 px-4 py-6 text-sm text-[#587066]"><CheckCircle2 className="h-5 w-5 text-[#15803d]" />Nenhuma prioridade calculada a partir dos registros deste ambiente.</div>}</div></article>
+          <article className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(17,24,39,.03)]"><div className="flex items-center justify-between border-b border-[#eef0ef] px-4 py-3"><h3 className="text-sm font-bold text-[#1f2937]">Ações em aberto</h3><Link href={appHref("/app/inspecoes")} className="text-xs font-semibold text-[#15803d] hover:text-[#166534]">Ver todas</Link></div><div className="divide-y divide-[#eef0ef]">{actionItemsForDashboard.length ? actionItemsForDashboard.map(item => { const days = item.dueAt ? daysUntil(item.dueAt) : null; return <Link key={item.id} href={appHref("/app/inspecoes")} className="group flex items-center gap-3 px-4 py-3 transition hover:bg-[#fafcfb]"><span className="h-5 w-5 shrink-0 rounded-full border border-[#cbd5d1]" /><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-[#30363f]">{item.title}</strong><small className={`mt-0.5 block text-xs ${days !== null && days < 0 ? "text-[#b91c1c]" : "text-[#737b86]"}`}>{days === null ? "Sem prazo definido" : days < 0 ? `Prazo vencido há ${Math.abs(days)} dia(s)` : days === 0 ? "Vence hoje" : `Prazo em ${days} dia(s)`}</small></span><ArrowRight className="h-4 w-4 shrink-0 text-[#a3aaa5] transition group-hover:translate-x-0.5 group-hover:text-[#15803d]" /></Link>; }) : <div className="flex items-center gap-3 px-4 py-6 text-sm text-[#587066]"><CheckCircle2 className="h-5 w-5 text-[#15803d]" />Nenhuma ação preventiva em aberto.</div>}</div></article>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">{commandMetrics.map(({ label, value, delta, icon: Icon, href, tone }) => <Link key={label} href={href} className="group rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-[0_2px_8px_rgba(17,24,39,.03)] transition hover:border-[#c9d9cf] hover:shadow-[0_6px_16px_rgba(17,24,39,.06)]"><div className="flex items-start justify-between gap-3"><span className={`grid h-9 w-9 place-items-center rounded-full ${tone === "amber" ? "bg-[#fff8e7] text-[#d97706]" : tone === "green" ? "bg-[#f0fdf4] text-[#15803d]" : tone === "blue" ? "bg-[#eff6ff] text-[#2563eb]" : "bg-[#f3f4f6] text-[#59636d]"}`}><Icon className="h-4 w-4" /></span><ArrowRight className="h-4 w-4 text-[#bdc5c0] transition group-hover:translate-x-0.5 group-hover:text-[#15803d]" /></div><p className="mt-4 text-3xl font-bold tracking-[-.04em] text-[#1f2937]">{value}</p><p className="mt-1 text-xs font-semibold text-[#4b5563]">{label}</p><p className={`mt-1 text-[11px] ${tone === "amber" ? "text-[#b45309]" : tone === "green" ? "text-[#15803d]" : "text-[#7b8490]"}`}>{delta}</p></Link>)}</div>
+          <article className="rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-[0_2px_8px_rgba(17,24,39,.03)]"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-bold text-[#1f2937]">Execução do período</h3><p className="mt-0.5 text-xs text-[#737b86]">Leitura atual de inspeções e ações registradas em {periodLabel.toLowerCase()}.</p></div><span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#597063]"><span className="h-2 w-2 rounded-full bg-[#15803d]" />Concluídas <span className="ml-2 h-2 w-2 rounded-full bg-[#d6a700]" />Pendentes</span></div><div className="mt-5 grid h-32 grid-cols-5 items-end gap-2 border-b border-l border-[#edf0ee] px-3 pb-2">{[completedInspections, completedActionItems, plannedInspections, openActionItems.length, overdueActionItems].map((value, index) => { const maximum = Math.max(completedInspections, completedActionItems, plannedInspections, openActionItems.length, overdueActionItems, 1); const height = Math.max(10, Math.round((value / maximum) * 100)); const critical = index === 4; const pending = index === 2 || index === 3; return <div key={index} className="flex h-full flex-col justify-end"><span className="mb-1 text-center text-[10px] font-semibold text-[#667085]">{value}</span><div className={`rounded-t-md ${critical ? "bg-[#dc2626]" : pending ? "bg-[#d6a700]" : "bg-[#15803d]"}`} style={{ height: `${height}%` }} /></div>; })}</div><div className="mt-2 grid grid-cols-5 gap-2 text-center text-[10px] font-medium text-[#838b96]"><span>Insp. concl.</span><span>Ações concl.</span><span>Insp. plan.</span><span>Em aberto</span><span>Atrasadas</span></div></article>
+          <article className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-[0_2px_8px_rgba(17,24,39,.03)]"><div className="flex items-center justify-between border-b border-[#eef0ef] px-4 py-3"><h3 className="text-sm font-bold text-[#1f2937]">Atividade recente</h3><span className="text-[11px] text-[#7b8490]">Registros do ambiente</span></div><div className="divide-y divide-[#eef0ef]">{recentActivity.length ? recentActivity.map(({ id, title, detail, date, icon: Icon }) => <div key={id} className="flex items-center gap-3 px-4 py-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#f1f5f3] text-[#4b6358]"><Icon className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-[#374151]">{title}</strong><small className="mt-0.5 block truncate text-[11px] text-[#7b8490]">{detail}</small></span><time className="shrink-0 text-[11px] text-[#8b949e]">{new Date(date).toLocaleDateString("pt-BR")}</time></div>) : <div className="px-4 py-6 text-center text-sm text-[#737b86]">As atualizações aparecerão aqui à medida que a operação for registrada.</div>}</div></article>
+        </div>
+      </section>
+    </div></DashboardLayout>;
+  }
 
   return <DashboardLayout title="Dashboard"><div className="dashboard-readable mx-auto max-w-7xl space-y-5">
     <section className="sticky top-3 z-20 rounded-2xl border border-[#dcebe8] bg-white/95 p-2 shadow-[0_12px_32px_rgba(16,43,50,.08)] backdrop-blur-xl" aria-label="Painéis do ambiente">

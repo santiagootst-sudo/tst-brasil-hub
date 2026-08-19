@@ -1,0 +1,1 @@
+ALTER TABLE `epi_items` ADD `imageUrl` varchar(2048);

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { createEpiDeliveryInput, createEpiItemInput, createEpiRequirementInput, createEpiReturnInput, createSstOccurrenceInput, epiDeliveryCreatedSchema, epiItemCreatedSchema, epiRequirementCreatedSchema, epiReturnCreatedSchema, operationalSafetySnapshotSchema, sstOccurrenceCreatedSchema, workspaceIdInput } from "@shared/contracts/portal";
+import { createEpiDeliveryInput, createEpiItemInput, createEpiRequirementInput, createEpiReturnInput, createSstOccurrenceInput, epiDeliveryCreatedSchema, epiDeliverySchema, epiItemCreatedSchema, epiItemSchema, epiRequirementCreatedSchema, epiReturnCreatedSchema, operationalSafetySnapshotSchema, signEpiDeliveryInput, sstOccurrenceCreatedSchema, updateEpiItemInput, workspaceIdInput } from "@shared/contracts/portal";
 import * as portalDb from "../db";
 import { canManageWorkspace } from "../workspaceAccess";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -33,6 +33,16 @@ export const operationsRouter = router({
     if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
     return portalDb.createEpiItemForWorkspace(input);
   }),
+  updateEpiItem: protectedProcedure.input(updateEpiItemInput).output(epiItemSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    const [company, epiItem] = await Promise.all([
+      portalDb.getCompanyForWorkspace(input.companyId, input.workspaceId),
+      portalDb.getEpiItemForWorkspace(input.epiItemId, input.workspaceId),
+    ]);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
+    if (!epiItem || epiItem.companyId !== input.companyId) throw new TRPCError({ code: "BAD_REQUEST", message: "O EPI informado não pertence à empresa selecionada." });
+    return portalDb.updateEpiItemForWorkspace(input);
+  }),
   createEpiDelivery: protectedProcedure.input(createEpiDeliveryInput).output(epiDeliveryCreatedSchema).mutation(async ({ ctx, input }) => {
     await requireManagedWorkspace(ctx.user.id, input.workspaceId);
     const [company, employee, epiItem] = await Promise.all([
@@ -45,6 +55,12 @@ export const operationsRouter = router({
     if (!epiItem || epiItem.companyId !== input.companyId) throw new TRPCError({ code: "BAD_REQUEST", message: "O item de EPI não pertence à empresa selecionada." });
     if (epiItem.stockQuantity < input.quantity) throw new TRPCError({ code: "BAD_REQUEST", message: "O estoque disponível não atende à quantidade informada." });
     return portalDb.createEpiDeliveryForWorkspace({ ...input, createdByUserId: ctx.user.id });
+  }),
+  signEpiDelivery: protectedProcedure.input(signEpiDeliveryInput).output(epiDeliverySchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    const delivery = await portalDb.getEpiDeliveryForWorkspace(input.deliveryId, input.workspaceId);
+    if (!delivery) throw new TRPCError({ code: "NOT_FOUND", message: "Ficha de EPI não encontrada neste ambiente." });
+    return portalDb.signEpiDeliveryForWorkspace(input);
   }),
   createEpiRequirement: protectedProcedure.input(createEpiRequirementInput).output(epiRequirementCreatedSchema).mutation(async ({ ctx, input }) => {
     await requireManagedWorkspace(ctx.user.id, input.workspaceId);

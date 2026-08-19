@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2, Video } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -132,22 +132,22 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
 
 
 
-  useEffect(() => {
-    if (!switchingWorkspaceId || currentWorkspace?.id !== switchingWorkspaceId) return;
-    const label = currentWorkspace.kind === "autonomo" ? "TST Autônomo" : "TST CLT";
-    toast.success(`${label} aberto com sucesso.`, { id: switchingToastId });
-    setSwitchingWorkspaceId(null);
-    setSwitchingToastId(undefined);
-  }, [currentWorkspace?.id, currentWorkspace?.kind, switchingToastId, switchingWorkspaceId]);
-
   const switchWorkspace = (workspaceId: number, kind: "autonomo" | "clt") => {
     if (workspaceId === currentWorkspace?.id) return;
+    const label = kind === "autonomo" ? "TST Autônomo" : "TST CLT";
+    const toastId = toast.loading(`Abrindo ${label}...`);
     setSwitchingWorkspaceId(workspaceId);
-    setSwitchingToastId(toast.loading(`Abrindo TST ${kind === "autonomo" ? "Autônomo" : "CLT"}...`));
+    setSwitchingToastId(toastId);
     setLocation(`/app/visao?workspace=${workspaceId}`);
+    window.setTimeout(() => {
+      toast.success(`${label} aberto com sucesso.`, { id: toastId });
+      setSwitchingWorkspaceId(null);
+      setSwitchingToastId(undefined);
+    }, 280);
   };
   const isAutonomo = currentWorkspace?.kind === "autonomo";
   const isClt = currentWorkspace?.kind === "clt";
+  const selectableWorkspaces = (developmentWorkspaces.data ?? []).filter((workspace, index, all) => all.findIndex(candidate => candidate.kind === workspace.kind) === index);
   const workspaceNotifications: WorkspaceNotification[] = !currentWorkspace
     ? [{ id: "workspace", title: "Selecione um ambiente", description: "Abra o contexto de trabalho para ver dados e tarefas vinculadas.", path: "/app" }]
     : [
@@ -173,11 +173,10 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Controle de EPIs por cliente", icon: HardHat, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
     ] },
-      { label: "Conhecimento", items: [
-        { label: "Cursos e treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
-        { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
-        { label: "Vídeos do canal", icon: Video, path: "/app/videos" },
-        { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+    { label: "Conhecimento", items: [
+      { label: "Cursos e treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
+      { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
       { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
     ] },
   ] : isClt ? [
@@ -196,10 +195,9 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Riscos Psicossociais (COPSOQ)", icon: ShieldAlert, path: "/app/copsoq" },
       { label: "Procedimentos internos", icon: FolderKanban, path: "/app/materiais" },
     ] },
-      { label: "Conhecimento", items: [
-        { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
-        { label: "Vídeos do canal", icon: Video, path: "/app/videos" },
-        { label: "Suporte", icon: Headphones, path: "/app/suporte" },
+    { label: "Conhecimento", items: [
+      { label: "Biblioteca técnica", icon: Library, path: "/app/biblioteca" },
+      { label: "Suporte", icon: Headphones, path: "/app/suporte" },
       { label: "Marketplace SST", icon: Store, path: "/app/marketplace" },
     ] },
   ] : [{ label: "Aplicativos", items: [
@@ -212,7 +210,6 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
       { label: "Treinamentos", icon: GraduationCap, path: "/app/treinamentos" },
       { label: "Biblioteca", icon: Library, path: "/app/biblioteca" },
-      { label: "Vídeos do canal", icon: Video, path: "/app/videos" },
       { label: "Materiais", icon: FolderKanban, path: "/app/materiais" },
       { label: "Suporte", icon: Headphones, path: "/app/suporte" },
       { label: "Certificados", icon: Trophy, path: "/app/certificados" },
@@ -243,7 +240,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
             <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">{isAutonomo ? "TST Autônomo" : "TST CLT"}</p>
             <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
             <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
-            {developmentWorkspaces.data && developmentWorkspaces.data.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{developmentWorkspaces.data.map(item => <button key={item.id} type="button" onClick={() => switchWorkspace(item.id, item.kind)} disabled={switchingWorkspaceId !== null} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition disabled:cursor-wait disabled:opacity-70 ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.id === switchingWorkspaceId ? "Abrindo..." : item.kind === "autonomo" ? "Autônomo" : "CLT"}</button>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
+            {selectableWorkspaces.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{selectableWorkspaces.map(item => <button key={item.id} type="button" onClick={() => switchWorkspace(item.id, item.kind)} disabled={switchingWorkspaceId !== null} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition disabled:cursor-wait disabled:opacity-70 ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.id === switchingWorkspaceId ? "Abrindo..." : item.kind === "autonomo" ? "Autônomo" : "CLT"}</button>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
             <button type="button" onClick={goToProfilePicker} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-[#d9eeea] transition hover:-translate-y-0.5 hover:bg-white/12 hover:text-white active:scale-[.98]"><ArrowLeftRight className="h-3.5 w-3.5" />Trocar perfil</button>
           </> : <>
             <p className="text-xs font-semibold text-white">Ambiente protegido</p>

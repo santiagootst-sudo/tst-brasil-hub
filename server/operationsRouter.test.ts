@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   getCompanyForWorkspace: vi.fn(),
   getDepartmentForWorkspace: vi.fn(),
   getEmployeeForWorkspace: vi.fn(),
+  getEpiDeliveryForWorkspace: vi.fn(),
   getEpiItemForWorkspace: vi.fn(),
   getJobRoleForWorkspace: vi.fn(),
   getWorkspaceForUser: vi.fn(),
@@ -17,6 +18,8 @@ const db = vi.hoisted(() => ({
   listEpiReturnsForWorkspace: vi.fn(),
   listEpiRequirementsForWorkspace: vi.fn(),
   listSstOccurrencesForWorkspace: vi.fn(),
+  signEpiDeliveryForWorkspace: vi.fn(),
+  updateEpiItemForWorkspace: vi.fn(),
 }));
 
 vi.mock("./db", () => db);
@@ -52,6 +55,16 @@ describe("operationsRouter", () => {
     await expect(operationsRouter.createCaller(context()).createEpiItem({ workspaceId: 9, companyId: 4, name: "Capacete", stockQuantity: 0, minimumStock: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("atualiza dados e foto do EPI apenas quando o item pertence à empresa", async () => {
+    const item = { id: 11, workspaceId: 9, companyId: 4, name: "Capacete", imageUrl: null, responsibleName: null, renewalRequested: false, caNumber: "123", manufacturer: null, stockQuantity: 5, minimumStock: 2, expiresAt: null, active: true, createdAt: date, updatedAt: date };
+    db.getWorkspaceForUser.mockResolvedValue(workspace("owner"));
+    db.getCompanyForWorkspace.mockResolvedValue({ id: 4, workspaceId: 9, name: "Empresa A" });
+    db.getEpiItemForWorkspace.mockResolvedValue(item);
+    db.updateEpiItemForWorkspace.mockResolvedValue({ ...item, imageUrl: "https://res.cloudinary.com/demo/image/upload/capacete.jpg", responsibleName: "Ana Martins", renewalRequested: true, manufacturer: "Fornecedor", stockQuantity: 8 });
+    await expect(operationsRouter.createCaller(context()).updateEpiItem({ workspaceId: 9, companyId: 4, epiItemId: 11, name: "Capacete", imageUrl: "https://res.cloudinary.com/demo/image/upload/capacete.jpg", responsibleName: "Ana Martins", renewalRequested: true, caNumber: "123", manufacturer: "Fornecedor", stockQuantity: 8, minimumStock: 2, expiresAt: null })).resolves.toMatchObject({ id: 11, stockQuantity: 8, renewalRequested: true });
+    expect(db.updateEpiItemForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ epiItemId: 11, imageUrl: "https://res.cloudinary.com/demo/image/upload/capacete.jpg", responsibleName: "Ana Martins", renewalRequested: true }));
+  });
+
   it("bloqueia entrega quando o estoque disponível não atende à quantidade", async () => {
     db.getWorkspaceForUser.mockResolvedValue(workspace("owner"));
     db.getCompanyForWorkspace.mockResolvedValue({ id: 4, workspaceId: 9, name: "Empresa A" });
@@ -69,6 +82,15 @@ describe("operationsRouter", () => {
     db.createEpiDeliveryForWorkspace.mockResolvedValue({ id: 31, workspaceId: 9, companyId: 4, epiItemId: 11, employeeId: 12, quantity: 1, deliveryKind: "replacement", deliveredAt: date, replacementDueAt: null, notes: null, createdByUserId: 7 });
     await expect(operationsRouter.createCaller(context()).createEpiDelivery({ workspaceId: 9, companyId: 4, epiItemId: 11, employeeId: 12, quantity: 1, deliveredAt: date, deliveryKind: "replacement" })).resolves.toMatchObject({ id: 31, deliveryKind: "replacement" });
     expect(db.createEpiDeliveryForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ createdByUserId: 7, employeeId: 12, epiItemId: 11 }));
+  });
+
+  it("persiste a assinatura do trabalhador na ficha de EPI", async () => {
+    const signedDelivery = { id: 31, workspaceId: 9, companyId: 4, epiItemId: 11, employeeId: 12, quantity: 1, deliveryKind: "initial" as const, deliveredAt: date, replacementDueAt: null, notes: null, signedByName: "Pessoa Real", digitalSignature: "TST-ACEITE-31-ABC123", returnStatus: "delivered" as const, createdByUserId: 7, createdAt: date, updatedAt: date };
+    db.getWorkspaceForUser.mockResolvedValue(workspace("owner"));
+    db.getEpiDeliveryForWorkspace.mockResolvedValue({ ...signedDelivery, signedByName: null, digitalSignature: null });
+    db.signEpiDeliveryForWorkspace.mockResolvedValue(signedDelivery);
+    await expect(operationsRouter.createCaller(context()).signEpiDelivery({ workspaceId: 9, deliveryId: 31, signedByName: "Pessoa Real", digitalSignature: "TST-ACEITE-31-ABC123" })).resolves.toMatchObject({ id: 31, signedByName: "Pessoa Real" });
+    expect(db.signEpiDeliveryForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ deliveryId: 31, signedByName: "Pessoa Real" }));
   });
 
   it("impede requisito quando item e função pertencem a empresas diferentes", async () => {

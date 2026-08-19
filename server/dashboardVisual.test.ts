@@ -28,4 +28,13 @@ describe("direção visual do dashboard", () => {
     expect(chartsSource).toContain('title="Central de Pendências"');
     expect(chartsSource).toContain('Prioridade operacional');
   });
+
+  it("estrutura o resumo CLT como Centro de Comando com decisões acionáveis", () => {
+    expect(source).toContain('if (!isAutonomo && activeDashboard === "resumo")');
+    expect(source).toContain("Prioridades de hoje");
+    expect(source).toContain("Ações em aberto");
+    expect(source).toContain("Execução do período");
+    expect(source).toContain("Atividade recente");
+    expect(source).toContain("Resolver agora");
+  });
 });

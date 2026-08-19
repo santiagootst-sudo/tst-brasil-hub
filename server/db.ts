@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -523,12 +523,6 @@ export async function listCipaDocumentsForWorkspace(workspaceId: number) {
   return db.select().from(cipaDocuments).where(eq(cipaDocuments.workspaceId, workspaceId)).orderBy(desc(cipaDocuments.createdAt));
 }
 
-export async function listCipaMeetingsForWorkspace(workspaceId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(cipaMeetings).where(eq(cipaMeetings.workspaceId, workspaceId)).orderBy(cipaMeetings.scheduledAt);
-}
-
 export async function getCipaCommissionForWorkspace(commissionId: number, workspaceId: number) {
   const db = await getDb();
   if (!db) return undefined;
@@ -545,12 +539,6 @@ export async function getCipaMemberForWorkspace(memberId: number, workspaceId: n
   const db = await getDb();
   if (!db) return undefined;
   return (await db.select().from(cipaMembers).where(and(eq(cipaMembers.id, memberId), eq(cipaMembers.workspaceId, workspaceId))).limit(1))[0];
-}
-
-export async function getCipaMeetingForWorkspace(meetingId: number, workspaceId: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  return (await db.select().from(cipaMeetings).where(and(eq(cipaMeetings.id, meetingId), eq(cipaMeetings.workspaceId, workspaceId))).limit(1))[0];
 }
 
 export async function createCipaCommissionForWorkspace(input: {
@@ -599,73 +587,6 @@ export async function createCipaDocumentForWorkspace(input: { workspaceId: numbe
   const inserted = await db.insert(cipaDocuments).values({ ...input, companyLogoUrl: input.companyLogoUrl ?? null });
   const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
   return (await db.select().from(cipaDocuments).where(eq(cipaDocuments.id, id)).limit(1))[0];
-}
-
-export async function createCipaMeetingForWorkspace(input: {
-  workspaceId: number; commissionId: number; termId: number; title: string; meetingType: "ordinary" | "extraordinary";
-  scheduledAt: Date; location?: string | null; agenda?: string | null; minutesSummary?: string | null;
-  status: "scheduled" | "completed" | "cancelled"; createdByUserId: number;
-}) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível.");
-  const inserted = await db.insert(cipaMeetings).values({
-    ...input,
-    location: input.location ?? null,
-    agenda: input.agenda ?? null,
-    minutesSummary: input.minutesSummary ?? null,
-  });
-  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
-  return (await db.select().from(cipaMeetings).where(eq(cipaMeetings.id, id)).limit(1))[0];
-}
-
-export async function updateCipaMeetingForWorkspace(input: {
-  meetingId: number; workspaceId: number; title: string; meetingType: "ordinary" | "extraordinary"; scheduledAt: Date;
-  location?: string | null; agenda?: string | null; minutesSummary?: string | null; status: "scheduled" | "completed" | "cancelled";
-}) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível.");
-  await db.update(cipaMeetings).set({
-    title: input.title,
-    meetingType: input.meetingType,
-    scheduledAt: input.scheduledAt,
-    location: input.location ?? null,
-    agenda: input.agenda ?? null,
-    minutesSummary: input.minutesSummary ?? null,
-    status: input.status,
-    updatedAt: new Date(),
-  }).where(and(eq(cipaMeetings.id, input.meetingId), eq(cipaMeetings.workspaceId, input.workspaceId)));
-  return getCipaMeetingForWorkspace(input.meetingId, input.workspaceId);
-}
-
-export async function listPublishedYouTubeVideos() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(youtubeVideos).where(eq(youtubeVideos.status, "published")).orderBy(desc(youtubeVideos.featured), desc(youtubeVideos.publishedAt), desc(youtubeVideos.updatedAt));
-}
-
-export async function listYouTubeVideosForAdmin() {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(youtubeVideos).orderBy(desc(youtubeVideos.updatedAt));
-}
-
-export async function createYouTubeVideo(input: { title: string; description: string; category: string; youtubeUrl: string; youtubeVideoId: string; thumbnailUrl: string; status: "draft" | "published" | "hidden"; featured: boolean; createdByUserId: number }) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível.");
-  const now = new Date();
-  const inserted = await db.insert(youtubeVideos).values({ ...input, publishedAt: input.status === "published" ? now : null });
-  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
-  return (await db.select().from(youtubeVideos).where(eq(youtubeVideos.id, id)).limit(1))[0];
-}
-
-export async function updateYouTubeVideo(id: number, input: { title: string; description: string; category: string; youtubeUrl: string; youtubeVideoId: string; thumbnailUrl: string; status: "draft" | "published" | "hidden"; featured: boolean }) {
-  const db = await getDb();
-  if (!db) throw new Error("Banco de dados indisponível.");
-  const existing = (await db.select().from(youtubeVideos).where(eq(youtubeVideos.id, id)).limit(1))[0];
-  if (!existing) return undefined;
-  const publishedAt = input.status === "published" ? existing.publishedAt ?? new Date() : null;
-  await db.update(youtubeVideos).set({ ...input, publishedAt, updatedAt: new Date() }).where(eq(youtubeVideos.id, id));
-  return (await db.select().from(youtubeVideos).where(eq(youtubeVideos.id, id)).limit(1))[0];
 }
 
 export async function listMaterialsForWorkspace(workspaceId: number) {
@@ -879,12 +800,21 @@ export async function getEpiItemForWorkspace(epiItemId: number, workspaceId: num
   return (await db.select().from(epiItems).where(and(eq(epiItems.id, epiItemId), eq(epiItems.workspaceId, workspaceId))).limit(1))[0];
 }
 
-export async function createEpiItemForWorkspace(input: { workspaceId: number; companyId: number; name: string; caNumber?: string | null; manufacturer?: string | null; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
+export async function createEpiItemForWorkspace(input: { workspaceId: number; companyId: number; name: string; imageUrl?: string | null; responsibleName?: string | null; renewalRequested?: boolean; caNumber?: string | null; manufacturer?: string | null; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const values = { ...input, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, expiresAt: input.expiresAt ?? null };
+  const values = { ...input, imageUrl: input.imageUrl ?? null, responsibleName: input.responsibleName ?? null, renewalRequested: input.renewalRequested ?? false, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, expiresAt: input.expiresAt ?? null };
   const inserted = await db.insert(epiItems).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values, active: true as const };
+}
+
+export async function updateEpiItemForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; name: string; imageUrl?: string | null; responsibleName?: string | null; renewalRequested?: boolean; caNumber?: string | null; manufacturer?: string | null; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(epiItems).set({ name: input.name, imageUrl: input.imageUrl ?? null, responsibleName: input.responsibleName ?? null, renewalRequested: input.renewalRequested ?? false, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, stockQuantity: input.stockQuantity, minimumStock: input.minimumStock, expiresAt: input.expiresAt ?? null }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId), eq(epiItems.companyId, input.companyId)));
+  const updated = await getEpiItemForWorkspace(input.epiItemId, input.workspaceId);
+  if (!updated) throw new Error("EPI não encontrado após a atualização.");
+  return updated;
 }
 
 export async function listEpiDeliveriesForWorkspace(workspaceId: number) {
@@ -899,8 +829,8 @@ export async function createEpiDeliveryForWorkspace(input: { workspaceId: number
     ...input,
     replacementDueAt: input.replacementDueAt ?? null,
     notes: input.notes ?? null,
-    signedByName: input.signedByName ?? "Responsável SST",
-    digitalSignature: input.digitalSignature ?? `TST-ACEITE-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+    signedByName: input.signedByName ?? null,
+    digitalSignature: input.digitalSignature ?? null,
     returnStatus: "delivered" as const,
   };
   return db.transaction(async tx => {
@@ -908,6 +838,21 @@ export async function createEpiDeliveryForWorkspace(input: { workspaceId: number
     const inserted = await tx.insert(epiDeliveries).values(values);
     return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
   });
+}
+
+export async function getEpiDeliveryForWorkspace(deliveryId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(epiDeliveries).where(and(eq(epiDeliveries.id, deliveryId), eq(epiDeliveries.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function signEpiDeliveryForWorkspace(input: { workspaceId: number; deliveryId: number; signedByName: string; digitalSignature: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(epiDeliveries).set({ signedByName: input.signedByName, digitalSignature: input.digitalSignature }).where(and(eq(epiDeliveries.id, input.deliveryId), eq(epiDeliveries.workspaceId, input.workspaceId)));
+  const delivery = await getEpiDeliveryForWorkspace(input.deliveryId, input.workspaceId);
+  if (!delivery) throw new Error("Ficha de EPI não encontrada após a assinatura.");
+  return delivery;
 }
 
 export async function listEpiReturnsForWorkspace(workspaceId: number) {

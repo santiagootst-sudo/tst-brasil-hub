@@ -11,6 +11,13 @@ describe("dashboard interaction contracts", () => {
     expect(layoutSource).toContain("setLocation(\"/app\")");
   });
 
+  it("deduplicates selectable contexts and resolves the loading toast from the requested URL", () => {
+    expect(layoutSource).toContain("const selectableWorkspaces");
+    expect(layoutSource).toContain("all.findIndex(candidate => candidate.kind === workspace.kind) === index");
+    expect(layoutSource).toContain("const toastId = toast.loading(`Abrindo ${label}...`)");
+    expect(layoutSource).toContain("toast.success(`${label} aberto com sucesso.`, { id: toastId })");
+  });
+
   it("keeps the dashboard pulse based on real execution and alert aggregates", () => {
     expect(chartsSource).toContain("Pulso do ambiente");
     expect(chartsSource).toContain("safeCompletionRate(completedExecution, totalExecution)");

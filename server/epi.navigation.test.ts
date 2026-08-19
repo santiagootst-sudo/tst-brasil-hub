@@ -19,12 +19,13 @@ describe("navegação do Controle de EPIs", () => {
 
   it("identifica a página aberta como Centro Operacional de EPIs", () => {
     expect(operationsPage).toContain('<DashboardLayout title="Controle de EPIs">');
-    expect(operationsPage).toContain("Centro Operacional de EPIs");
+    expect(operationsPage).toContain("Controle de EPIs");
   });
 
   it("permite abrir diretamente a aba de fichas por funcionário e evita retry em acesso negado", () => {
     expect(operationsPage).toContain('new URLSearchParams(search).get("tab")');
     expect(operationsPage).toContain('requestedTab === "employee_profile"');
+    expect(operationsPage).toContain('requestedTab === "stock"');
     expect(operationsPage).toContain("retry: false");
     expect(operationsPage).toContain("Não foi possível abrir este ambiente.");
   });
@@ -48,5 +49,52 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage).toContain('openingArchiveEmployeeId === employee.id');
     expect(operationsPage).toContain('Abrindo arquivo...');
     expect(operationsPage).toContain('aria-busy={openingArchiveEmployeeId === employee.id}');
+  });
+
+  it("restaura o cadastro de estoque, a criação de ficha e a exportação com dados persistidos", () => {
+    expect(operationsPage).toContain("Cadastrar EPI");
+    expect(operationsPage).toContain("createEpiItemMutation");
+    expect(operationsPage).toContain("Registrar entrega");
+    expect(operationsPage).toContain("createEpiDeliveryMutation");
+    expect(operationsPage).toContain("Exportar ficha PDF");
+    expect(operationsPage).toContain("epiById.get(delivery.epiItemId)?.caNumber");
+  });
+
+  it("recolhe a pasta e a ficha aberta, evita botão duplicado e persiste o aceite", () => {
+    expect(operationsPage).toContain('setFolderSearchQuery("")');
+    expect(operationsPage).toContain("setOpeningArchiveEmployeeId(0)");
+    expect(operationsPage).toContain("collapseAllArchiveFolders");
+    expect(operationsPage).not.toContain("!d.isSigned");
+    expect(operationsPage.match(/Novo Funcionário/g)).toHaveLength(1);
+    expect(operationsPage).toContain("isDeliverySigned");
+    expect(operationsPage).toContain("signEpiDeliveryMutation");
+    expect(operationsPage).toContain("Registrar aceite na ficha");
+  });
+
+  it("oferece edição persistente e foto por item de EPI", () => {
+    expect(operationsPage).toContain("openEditEpiForm");
+    expect(operationsPage).toContain("updateEpiItemMutation");
+    expect(operationsPage).toContain("handleEpiImageUpload");
+    expect(operationsPage).toContain("Foto do EPI");
+    expect(operationsPage).toContain("item.imageUrl");
+    expect(operationsPage).toContain("Salvar alterações");
+  });
+
+  it("organiza a conformidade de CA em tabela e Kanban com ação de renovação", () => {
+    expect(operationsPage).toContain('setStockView("kanban")');
+    expect(operationsPage).toContain("Vencendo em 30 dias");
+    expect(operationsPage).toContain("A renovar");
+    expect(operationsPage).toContain("classifyEpiCompliance");
+    expect(operationsPage).toContain("Encaminhar para renovar");
+    expect(operationsPage).toContain("responsibleName");
+  });
+
+  it("alterna o arquivo de fichas para cartões de colaboradores com ações contextuais", () => {
+    expect(operationsPage).toContain('setArchiveView("employees")');
+    expect(operationsPage).toContain("collaboratorCards");
+    expect(operationsPage).toContain("handleCollaboratorCardAction");
+    expect(operationsPage).toContain("Entregar EPI");
+    expect(operationsPage).toContain("Assinar ficha");
+    expect(operationsPage).toContain("Ver fichas");
   });
 });

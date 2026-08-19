@@ -42,12 +42,15 @@ import {
 } from "lucide-react";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadConsolidatedEpiReportPdf, downloadEpiReceiptPdf } from "@/lib/pdfReports";
+import { uploadContentAsset } from "@/lib/cloudinaryUpload";
 
 export default function Operations() {
   const utils = trpc.useUtils();
   const search = useSearch();
   const requestedTab = new URLSearchParams(search).get("tab");
-  const workspaceId = workspaceIdFromSearch(search) ?? 1;
+  const requestedStockView = new URLSearchParams(search).get("view");
+  const requestedArchiveView = new URLSearchParams(search).get("archive");
+  const workspaceId = workspaceIdFromSearch(search) ?? 0;
   const workspace = trpc.portal.workspace.useQuery({ workspaceId }, { enabled: workspaceId > 0, retry: false });
   const organization = trpc.portal.organization.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
   const operations = trpc.portal.operations.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
@@ -57,6 +60,8 @@ export default function Operations() {
   // Global & Module Search state
   const [globalSearch, setGlobalSearch] = useState("");
   const [stockFilterMode, setStockFilterMode] = useState<"all" | "alerts" | "critical" | "expired">("all");
+  const [stockView, setStockView] = useState<"table" | "kanban">(requestedStockView === "kanban" ? "kanban" : "table");
+  const [archiveView, setArchiveView] = useState<"sectors" | "employees">(requestedArchiveView === "employees" ? "employees" : "sectors");
   const [selectedFolderSectorId, setSelectedFolderSectorId] = useState<number | null>(null);
   const [folderSearchQuery, setFolderSearchQuery] = useState("");
   const [expandedArchiveEmployeeId, setExpandedArchiveEmployeeId] = useState(0);
@@ -72,32 +77,36 @@ export default function Operations() {
   const [quickDeptName, setQuickDeptName] = useState("");
   const [quickRoleName, setQuickRoleName] = useState("");
   const [importCsvText, setImportCsvText] = useState("");
+  const [isEpiModalOpen, setIsEpiModalOpen] = useState(false);
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
+  const [newEpiName, setNewEpiName] = useState("");
+  const [newEpiCaNumber, setNewEpiCaNumber] = useState("");
+  const [newEpiManufacturer, setNewEpiManufacturer] = useState("");
+  const [newEpiStockQuantity, setNewEpiStockQuantity] = useState("0");
+  const [newEpiMinimumStock, setNewEpiMinimumStock] = useState("0");
+  const [newEpiExpiresAt, setNewEpiExpiresAt] = useState("");
+  const [newEpiImageUrl, setNewEpiImageUrl] = useState("");
+  const [newEpiResponsibleName, setNewEpiResponsibleName] = useState("");
+  const [newEpiRenewalRequested, setNewEpiRenewalRequested] = useState(false);
+  const [editingEpiId, setEditingEpiId] = useState(0);
+  const [isUploadingEpiImage, setIsUploadingEpiImage] = useState(false);
+  const [deliveryEmployeeId, setDeliveryEmployeeId] = useState(0);
+  const [deliveryEpiItemId, setDeliveryEpiItemId] = useState(0);
+  const [deliveryQuantity, setDeliveryQuantity] = useState("1");
+  const [deliveryKind, setDeliveryKind] = useState<"initial" | "replacement">("initial");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Active QR code delivery modal
   const [activeQrDelivery, setActiveQrDelivery] = useState<any | null>(null);
   const [isSigningQr, setIsSigningQr] = useState(false);
   const [qrSignedSuccess, setQrSignedSuccess] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
 
   const [currentCompanyId, setCurrentCompanyId] = useState<number>(0);
 
-  if (workspace.isLoading || organization.isLoading || operations.isLoading) {
-    return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
-  }
-
-  if (!workspaceId || !workspace.data) {
-    return (
-      <DashboardLayout title="Controle de EPIs">
-        <section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center">
-          <ClipboardList className="mx-auto h-10 w-10 text-[#0c7474]" />
-          <h2 className="mt-4 text-xl font-bold">Selecione um ambiente para gerenciar EPIs.</h2>
-          <a href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</a>
-        </section>
-      </DashboardLayout>
-    );
-  }
-
   const currentWs = workspace.data;
-  const companies = currentWs.companies;
+  const companies = currentWs?.companies ?? [];
   const activeCompanyId = currentCompanyId || companies[0]?.id || 0;
   const currentCompany = companies.find(c => c.id === activeCompanyId) || companies[0];
 
@@ -137,27 +146,72 @@ export default function Operations() {
       setIsEmployeeModalOpen(false);
       setNewEmployeeName("");
       setNewEmployeeCpf("");
-      toast.success("Funcionário cadastrado e 1ª Ficha de EPI gerada automaticamente!");
+      toast.success("Funcionário cadastrado. Registre uma entrega de EPI para gerar a primeira ficha.");
     },
     onError: (err) => {
       toast.error(err.message || "Erro ao cadastrar funcionário.");
     }
   });
 
+  const createEpiItemMutation = trpc.portal.createEpiItem.useMutation({
+    onSuccess: async () => {
+      await utils.portal.operations.invalidate({ workspaceId });
+      setIsEpiModalOpen(false);
+      setNewEpiName(""); setNewEpiCaNumber(""); setNewEpiManufacturer(""); setNewEpiStockQuantity("0"); setNewEpiMinimumStock("0"); setNewEpiExpiresAt(""); setNewEpiImageUrl(""); setNewEpiResponsibleName(""); setNewEpiRenewalRequested(false); setEditingEpiId(0);
+      toast.success("EPI cadastrado no estoque da empresa.");
+    },
+    onError: error => toast.error(error.message || "Não foi possível cadastrar o EPI."),
+  });
+
+  const updateEpiItemMutation = trpc.portal.updateEpiItem.useMutation({
+    onSuccess: async () => {
+      await utils.portal.operations.invalidate({ workspaceId });
+      setIsEpiModalOpen(false);
+      setNewEpiName(""); setNewEpiCaNumber(""); setNewEpiManufacturer(""); setNewEpiStockQuantity("0"); setNewEpiMinimumStock("0"); setNewEpiExpiresAt(""); setNewEpiImageUrl(""); setNewEpiResponsibleName(""); setNewEpiRenewalRequested(false); setEditingEpiId(0);
+      toast.success("EPI atualizado com sucesso.");
+    },
+    onError: error => toast.error(error.message || "Não foi possível atualizar o EPI."),
+  });
+
+  const createEpiDeliveryMutation = trpc.portal.createEpiDelivery.useMutation({
+    onSuccess: async () => {
+      await utils.portal.operations.invalidate({ workspaceId });
+      setIsDeliveryModalOpen(false);
+      setDeliveryEmployeeId(0); setDeliveryEpiItemId(0); setDeliveryQuantity("1"); setDeliveryKind("initial"); setDeliveryNotes(""); setDeliveryDate(new Date().toISOString().slice(0, 10));
+      toast.success("Entrega registrada. A ficha de EPI está disponível no arquivo do funcionário.");
+    },
+    onError: error => toast.error(error.message || "Não foi possível registrar a entrega de EPI."),
+  });
+
+  const signEpiDeliveryMutation = trpc.portal.signEpiDelivery.useMutation({
+    onSuccess: async () => {
+      await utils.portal.operations.invalidate({ workspaceId });
+      setIsSigningQr(false);
+      setQrSignedSuccess(true);
+      toast.success("Aceite do trabalhador registrado na ficha de EPI.");
+    },
+    onError: error => {
+      setIsSigningQr(false);
+      toast.error(error.message || "Não foi possível registrar a assinatura da ficha.");
+    },
+  });
+
   // Mappings
   const employeeNameById = useMemo(() => new Map<number, string>(employees.map((e: any) => [e.id, e.fullName])), [employees]);
   const epiNameById = useMemo(() => new Map<number, string>(stockItems.map((i: any) => [i.id, i.name])), [stockItems]);
+  const epiById = useMemo(() => new Map<number, any>(stockItems.map((item: any) => [item.id, item])), [stockItems]);
 
   // Alarms and Statistics
-  const lowStock = stockItems.filter((item: any) => item.stockQuantity <= item.minStock);
+  const lowStock = stockItems.filter((item: any) => item.stockQuantity <= item.minimumStock);
   const now = Date.now();
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
   const expiringOrExpired = stockItems.filter((item: any) => {
-    if (!item.caExpiresAt) return false;
-    return item.caExpiresAt <= now + thirtyDays;
+    if (!item.expiresAt) return false;
+    return new Date(item.expiresAt).getTime() <= now + thirtyDays;
   });
 
-  const pendingDeliveries = deliveries.filter((d: any) => !d.isSigned);
+  const isDeliverySigned = (delivery: any) => Boolean(delivery.signedByName || delivery.digitalSignature);
+  const pendingDeliveries = deliveries.filter((delivery: any) => !isDeliverySigned(delivery));
 
   const [profileDepartmentFilter, setProfileDepartmentFilter] = useState(0);
   const [profileRoleFilter, setProfileRoleFilter] = useState(0);
@@ -170,10 +224,24 @@ export default function Operations() {
     return true;
   });
   const expandedArchiveEmployee = expandedArchiveEmployeeId > 0 && profileEmployees.filter(emp => emp.id === expandedArchiveEmployeeId)[0];
+  const collaboratorCards = profileEmployees
+    .filter((employee: any) => employee.fullName.toLowerCase().includes(folderSearchQuery.toLowerCase()))
+    .map((employee: any) => {
+      const employeeDeliveries = deliveries.filter((delivery: any) => delivery.employeeId === employee.id);
+      const signedCount = employeeDeliveries.filter(isDeliverySigned).length;
+      const pendingCount = employeeDeliveries.length - signedCount;
+      const progress = employeeDeliveries.length ? Math.round((signedCount / employeeDeliveries.length) * 100) : 0;
+      const action = employeeDeliveries.length === 0 ? "deliver" : pendingCount > 0 ? "sign" : "view";
+      const tone = action === "view" ? "emerald" : action === "sign" && signedCount === 0 ? "rose" : "amber";
+      return { employee, employeeDeliveries, signedCount, pendingCount, progress, action, tone, department: departments.find((department: any) => department.id === employee.departmentId) };
+    });
 
   useEffect(() => {
     if (requestedTab === "employee_profile") setCurrentTab("deliveries");
-  }, [requestedTab]);
+    if (requestedTab === "overview" || requestedTab === "stock" || requestedTab === "deliveries" || requestedTab === "employees") setCurrentTab(requestedTab);
+    if (requestedStockView === "table" || requestedStockView === "kanban") setStockView(requestedStockView);
+    if (requestedArchiveView === "sectors" || requestedArchiveView === "employees") setArchiveView(requestedArchiveView);
+  }, [requestedTab, requestedStockView, requestedArchiveView]);
 
   useEffect(() => {
     try {
@@ -198,13 +266,36 @@ export default function Operations() {
   // Filtered stock list
   const filteredStock = stockItems.filter((item: any) => {
     const matchesSearch = item.name.toLowerCase().includes(globalSearch.toLowerCase()) || 
-                          item.caNumber.toLowerCase().includes(globalSearch.toLowerCase());
+                          (item.caNumber ?? "").toLowerCase().includes(globalSearch.toLowerCase());
     if (!matchesSearch) return false;
-    if (stockFilterMode === "alerts") return item.stockQuantity <= item.minStock || (item.caExpiresAt && item.caExpiresAt <= now + thirtyDays);
-    if (stockFilterMode === "critical") return item.stockQuantity <= item.minStock;
-    if (stockFilterMode === "expired") return item.caExpiresAt && item.caExpiresAt <= now;
+    if (stockFilterMode === "alerts") return item.stockQuantity <= item.minimumStock || (item.expiresAt && new Date(item.expiresAt).getTime() <= now + thirtyDays);
+    if (stockFilterMode === "critical") return item.stockQuantity <= item.minimumStock;
+    if (stockFilterMode === "expired") return item.expiresAt && new Date(item.expiresAt).getTime() <= now;
     return true;
   });
+
+  type ComplianceColumnId = "ready" | "expiring" | "expired" | "renewal";
+  const complianceColumns: Array<{ id: ComplianceColumnId; title: string; empty: string; accent: string; badge: string }> = [
+    { id: "ready", title: "Prontas", empty: "Nenhum EPI regular", accent: "border-t-4 border-emerald-500", badge: "bg-emerald-100 text-emerald-700" },
+    { id: "expiring", title: "Vencendo em 30 dias", empty: "Nenhum CA vencendo", accent: "border-t-4 border-amber-400", badge: "bg-amber-100 text-amber-800" },
+    { id: "expired", title: "Vencidas", empty: "Nenhum CA vencido", accent: "border-t-4 border-rose-500", badge: "bg-rose-100 text-rose-700" },
+    { id: "renewal", title: "A renovar", empty: "Nenhuma renovação encaminhada", accent: "border-t-4 border-[#123f69]", badge: "bg-[#e8eef8] text-[#123f69]" },
+  ];
+  const classifyEpiCompliance = (item: any): ComplianceColumnId => {
+    if (item.renewalRequested) return "renewal";
+    if (!item.expiresAt) return "ready";
+    const expiration = new Date(item.expiresAt).getTime();
+    if (expiration < now) return "expired";
+    if (expiration <= now + thirtyDays) return "expiring";
+    return "ready";
+  };
+  const kanbanItemsByColumn = complianceColumns.reduce((acc, column) => {
+    acc[column.id] = filteredStock.filter((item: any) => classifyEpiCompliance(item) === column.id);
+    return acc;
+  }, {} as Record<ComplianceColumnId, any[]>);
+  const setEpiRenewalRequested = (item: any, renewalRequested: boolean) => {
+    updateEpiItemMutation.mutate({ workspaceId, companyId: activeCompanyId, epiItemId: item.id, name: item.name, imageUrl: item.imageUrl || null, responsibleName: item.responsibleName || null, renewalRequested, caNumber: item.caNumber || null, manufacturer: item.manufacturer || null, stockQuantity: item.stockQuantity, minimumStock: item.minimumStock, expiresAt: item.expiresAt ? new Date(item.expiresAt) : null });
+  };
 
   // Consolidated PDF export handler
   const handleExportConsolidatedPdf = () => {
@@ -215,8 +306,8 @@ export default function Operations() {
         name: item.name,
         caNumber: item.caNumber,
         stockQuantity: item.stockQuantity,
-        minimumStock: item.minStock,
-        expiresAt: item.caExpiresAt ? new Date(item.caExpiresAt) : null,
+        minimumStock: item.minimumStock,
+        expiresAt: item.expiresAt ? new Date(item.expiresAt) : null,
       })),
       deliveriesCount: deliveries.length,
     });
@@ -224,13 +315,75 @@ export default function Operations() {
   };
 
   const handleMobileSign = () => {
-    if (!activeQrDelivery) return;
+    if (!activeQrDelivery || signatureName.trim().length < 2) return;
     setIsSigningQr(true);
-    setTimeout(() => {
-      setIsSigningQr(false);
-      setQrSignedSuccess(true);
-      toast.success("Assinatura digital registrada com sucesso via QR Code!");
-    }, 1200);
+    signEpiDeliveryMutation.mutate({ workspaceId, deliveryId: activeQrDelivery.id, signedByName: signatureName.trim(), digitalSignature: `TST-ACEITE-${activeQrDelivery.id}-${Date.now().toString(36).toUpperCase()}` });
+  };
+
+  const openSignatureDialog = (delivery: any) => {
+    setActiveQrDelivery(delivery);
+    setSignatureName(employeeNameById.get(delivery.employeeId) || "");
+    setQrSignedSuccess(false);
+  };
+
+  const collapseAllArchiveFolders = () => {
+    setSelectedFolderSectorId(null);
+    setExpandedArchiveEmployeeId(0);
+    setOpeningArchiveEmployeeId(0);
+    setFolderSearchQuery("");
+    setProfileDepartmentFilter(0);
+    setProfileRoleFilter(0);
+  };
+
+  const handleCollaboratorCardAction = (card: (typeof collaboratorCards)[number]) => {
+    if (card.action === "deliver") {
+      setDeliveryEmployeeId(card.employee.id);
+      setIsDeliveryModalOpen(true);
+      return;
+    }
+    if (card.action === "sign") {
+      const pendingDelivery = card.employeeDeliveries.find((delivery: any) => !isDeliverySigned(delivery));
+      if (pendingDelivery) openSignatureDialog(pendingDelivery);
+      return;
+    }
+    setArchiveView("sectors");
+    setSelectedFolderSectorId(card.employee.departmentId || null);
+    setExpandedArchiveEmployeeId(card.employee.id);
+    setOpeningArchiveEmployeeId(card.employee.id);
+  };
+
+  const openNewEpiForm = () => {
+    setEditingEpiId(0);
+    setNewEpiName(""); setNewEpiCaNumber(""); setNewEpiManufacturer(""); setNewEpiStockQuantity("0"); setNewEpiMinimumStock("0"); setNewEpiExpiresAt(""); setNewEpiImageUrl(""); setNewEpiResponsibleName(""); setNewEpiRenewalRequested(false);
+    setIsEpiModalOpen(true);
+  };
+
+  const openEditEpiForm = (item: any) => {
+    setEditingEpiId(item.id);
+    setNewEpiName(item.name || "");
+    setNewEpiCaNumber(item.caNumber || "");
+    setNewEpiManufacturer(item.manufacturer || "");
+    setNewEpiStockQuantity(String(item.stockQuantity ?? 0));
+    setNewEpiMinimumStock(String(item.minimumStock ?? 0));
+    setNewEpiExpiresAt(item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 10) : "");
+    setNewEpiImageUrl(item.imageUrl || "");
+    setNewEpiResponsibleName(item.responsibleName || "");
+    setNewEpiRenewalRequested(Boolean(item.renewalRequested));
+    setIsEpiModalOpen(true);
+  };
+
+  const handleEpiImageUpload = async (file?: File) => {
+    if (!file) return;
+    setIsUploadingEpiImage(true);
+    try {
+      const uploaded = await uploadContentAsset(file, "cover");
+      setNewEpiImageUrl(uploaded.url);
+      toast.success("Foto enviada. Salve o formulário para vinculá-la ao EPI.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar a foto do EPI.");
+    } finally {
+      setIsUploadingEpiImage(false);
+    }
   };
 
   const handleDownloadReceipt = (delivery: any) => {
@@ -239,52 +392,55 @@ export default function Operations() {
       companyName: currentCompany?.name || "Empresa Ativa",
       employeeName: employeeNameById.get(delivery.employeeId) || "Funcionário",
       workerDocument: "CPF verificado",
+      deliveryId: delivery.id,
+      deliveryKind: delivery.deliveryKind,
+      signedByName: delivery.signedByName,
       quantity: delivery.quantity,
       deliveredAt: new Date(delivery.deliveredAt),
       items: [
         {
           epiName: epiNameById.get(delivery.epiItemId) || "EPI",
-          caNumber: "CA 44.120",
+          caNumber: epiById.get(delivery.epiItemId)?.caNumber || "Não informado",
+          quantity: delivery.quantity,
           deliveryDate: new Date(delivery.deliveredAt),
-          condition: "Novo",
+          condition: delivery.deliveryKind === "replacement" ? "Reposição" : "Entrega inicial",
         }
       ],
     });
     toast.success("Comprovante digital em PDF baixado com sucesso!");
   };
 
-  if (workspace.error) {
-    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Não foi possível abrir este ambiente.</h2><p className="mt-2 text-sm text-[#668087]">Verifique o ambiente ativo e tente novamente.</p></section></DashboardLayout>;
+  if (!workspaceId) {
+    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><ClipboardList className="mx-auto h-10 w-10 text-[#0c7474]" /><h2 className="mt-4 text-xl font-bold">Selecione um ambiente para gerenciar EPIs.</h2><a href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</a></section></DashboardLayout>;
+  }
+
+  if (workspace.isLoading || organization.isLoading || operations.isLoading) {
+    return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
+  }
+
+  if (workspace.error || organization.error || operations.error || !workspace.data) {
+    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Não foi possível abrir este ambiente.</h2><p className="mt-2 text-sm text-[#668087]">Verifique o ambiente selecionado e tente novamente pela tela principal.</p><a href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</a></section></DashboardLayout>;
   }
 
   return (
     <DashboardLayout title="Controle de EPIs">
-      <div className="mx-auto max-w-7xl space-y-6">
-        {/* Banner principal */}
-        <section className={`rounded-[2rem] p-7 text-white shadow-lg lg:p-9 ${current.kind === "clt" ? "bg-[#123f69]" : "bg-[#063b43]"}`}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#8edec7]">Centro Operacional de EPIs</p>
-              <h2 className="mt-2 text-3xl font-bold">Controle Avançado de EPIs e CA</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">Gerenciamento inteligente de estoque, Certificados de Aprovação (CA), fichas de entrega com assinatura digital via QR Code e histórico por trabalhador.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-center text-xs lg:grid-cols-3">
-              <div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{lowStock.length}</b>estoque crítico</div>
-              <div className="rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{expiringOrExpired.length}</b>validade a tratar</div>
-              <div className="col-span-2 lg:col-span-1 rounded-xl bg-white/10 px-3 py-3"><b className="block text-lg">{pendingDeliveries.length}</b>fichas pendentes</div>
-            </div>
+      <div className="-mx-6 w-[calc(100%+3rem)] max-w-[1600px] space-y-6 px-6 lg:-mx-9 lg:w-[calc(100%+4.5rem)] lg:px-9 xl:px-10">
+        <section className="border-b border-[#e5e7eb] bg-white px-1 pb-5 pt-1">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+            <div><p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Segurança do Trabalho / EPIs</p><h2 className="mt-1 text-xl font-semibold tracking-tight text-[#111827]">Controle de EPIs</h2><p className="mt-1 text-[13px] text-[#6b7280]">Estoque, certificados de aprovação e fichas de entrega em um só lugar.</p></div>
+            <div className="grid min-w-full grid-cols-3 divide-x divide-[#e5e7eb] rounded-lg border border-[#e5e7eb] bg-white sm:min-w-[420px]"><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Estoque</p><p className="mt-0.5 text-xl font-semibold text-[#111827]">{stockItems.reduce((acc: number, item: any) => acc + item.stockQuantity, 0)}</p></div><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Críticos</p><p className="mt-0.5 text-xl font-semibold text-[#b91c1c]">{lowStock.length}</p></div><div className="px-4 py-2.5"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#6b7280]">Fichas pendentes</p><p className="mt-0.5 text-xl font-semibold text-[#b45309]">{pendingDeliveries.length}</p></div></div>
           </div>
         </section>
 
         {/* Top Bar Contextual Navigation */}
-        <div className="flex flex-col gap-4 rounded-2xl border border-[#dcebe8] bg-white p-4 shadow-xs md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 border-b border-[#e5e7eb] bg-white py-3 md:flex-row md:items-center md:justify-between">
           {/* Seletor de Empresa e Abas */}
           <div className="flex flex-wrap items-center gap-2">
             {companies.length > 0 && (
               <select
                 value={activeCompanyId}
                 onChange={e => setCurrentCompanyId(Number(e.target.value))}
-                className="h-10 rounded-xl border border-[#cfe3de] bg-[#f8fbfa] px-3 text-xs font-bold text-[#102b32] outline-none"
+                className="h-9 rounded-md border border-[#e5e7eb] bg-white px-3 text-xs font-semibold text-[#111827] outline-none"
               >
                 {companies.map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -292,16 +448,16 @@ export default function Operations() {
               </select>
             )}
 
-            <div className="flex flex-wrap items-center gap-1 bg-[#f2faf8] p-1 rounded-xl border border-[#dcebe8]">
+            <div className="flex flex-wrap items-center gap-1">
               <button
                 onClick={() => setCurrentTab("overview")}
-                className={`rounded-lg px-3 py-2 text-xs font-bold transition-all ${currentTab === "overview" ? "bg-[#0c7474] text-white shadow-xs" : "text-[#5d7479] hover:bg-white"}`}
+                className={`border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${currentTab === "overview" ? "border-[#15803d] text-[#15803d]" : "border-transparent text-[#6b7280] hover:text-[#111827]"}`}
               >
                 Visão Geral
               </button>
               <button
                 onClick={() => setCurrentTab("stock")}
-                className={`rounded-lg px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 ${currentTab === "stock" ? "bg-[#0c7474] text-white shadow-xs" : "text-[#5d7479] hover:bg-white"}`}
+                className={`border-b-2 px-3 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 ${currentTab === "stock" ? "border-[#15803d] text-[#15803d]" : "border-transparent text-[#6b7280] hover:text-[#111827]"}`}
               >
                 Estoque & CAs
                 {(lowStock.length > 0 || expiringOrExpired.length > 0) && (
@@ -312,7 +468,7 @@ export default function Operations() {
               </button>
               <button
                 onClick={() => setCurrentTab("deliveries")}
-                className={`rounded-lg px-3 py-2 text-xs font-bold transition-all flex items-center gap-1.5 ${currentTab === "deliveries" ? "bg-[#0c7474] text-white shadow-xs" : "text-[#5d7479] hover:bg-white"}`}
+                className={`border-b-2 px-3 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 ${currentTab === "deliveries" ? "border-[#15803d] text-[#15803d]" : "border-transparent text-[#6b7280] hover:text-[#111827]"}`}
               >
                 Arquivo de Fichas
                 {pendingDeliveries.length > 0 && (
@@ -323,7 +479,7 @@ export default function Operations() {
               </button>
               <button
                 onClick={() => setCurrentTab("employees")}
-                className={`rounded-lg px-3 py-2 text-xs font-bold transition-all ${currentTab === "employees" ? "bg-[#0c7474] text-white shadow-xs" : "text-[#5d7479] hover:bg-white"}`}
+                className={`border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${currentTab === "employees" ? "border-[#15803d] text-[#15803d]" : "border-transparent text-[#6b7280] hover:text-[#111827]"}`}
               >
                 Funcionários
               </button>
@@ -429,7 +585,7 @@ export default function Operations() {
                   </Button>
                 </div>
                 {lowStock.length === 0 && expiringOrExpired.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#668087]">Nenhum alerta crítico de estoque ou CA no momento.</div>
+                  <div className="py-8 text-center text-xs text-[#668087]">Tudo regular por aqui — nenhum alerta crítico de estoque ou CA no momento.</div>
                 ) : (
                   <div className="space-y-2.5">
                     {lowStock.map((item: any) => (
@@ -476,8 +632,7 @@ export default function Operations() {
                         <Button
                           size="sm"
                           onClick={() => {
-                            setActiveQrDelivery(d);
-                            setQrSignedSuccess(false);
+                            openSignatureDialog(d);
                           }}
                           className="h-8 rounded-lg bg-[#0c7474] text-white text-[11px] font-bold hover:bg-[#063b43]"
                         >
@@ -517,12 +672,26 @@ export default function Operations() {
                   CA Vencido ({expiringOrExpired.length})
                 </button>
               </div>
-              <p className="text-xs text-[#668087]">Exibindo {filteredStock.length} equipamentos</p>
+              <div className="flex flex-wrap items-center gap-3"><div className="inline-flex rounded-xl border border-[#cfe3de] bg-[#f8fbfa] p-1" aria-label="Alternar a visualização de estoque"><Button type="button" size="sm" variant={stockView === "table" ? "default" : "ghost"} onClick={() => setStockView("table")} className={`h-8 rounded-lg px-3 text-xs font-bold ${stockView === "table" ? "bg-[#0c7474] text-white hover:bg-[#063b43]" : "text-[#5d7479]"}`}>Tabela</Button><Button type="button" size="sm" variant={stockView === "kanban" ? "default" : "ghost"} onClick={() => setStockView("kanban")} className={`h-8 rounded-lg px-3 text-xs font-bold ${stockView === "kanban" ? "bg-[#0c7474] text-white hover:bg-[#063b43]" : "text-[#5d7479]"}`}>Kanban</Button></div><p className="text-xs text-[#668087]">Exibindo {filteredStock.length} equipamentos</p><Button type="button" onClick={openNewEpiForm} disabled={!activeCompanyId} className="h-9 rounded-xl bg-[#0c7474] px-3 text-xs font-bold text-white hover:bg-[#063b43]"><Plus className="mr-1.5 h-4 w-4" />Cadastrar EPI</Button></div>
             </div>
 
             <div className="rounded-2xl border border-[#dcebe8] bg-white shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                {stockView === "kanban" && (
+                  <div className="grid gap-4 p-4 xl:grid-cols-4">
+                    {complianceColumns.map(column => {
+                      const items = kanbanItemsByColumn[column.id];
+                      return (
+                        <section key={column.id} className={`min-h-[310px] rounded-2xl border border-[#dcebe8] bg-[#f8fbfa] p-3 shadow-xs ${column.accent}`}>
+                          <div className="mb-3 flex items-center justify-between gap-2"><h3 className="text-sm font-extrabold text-[#102b32]">{column.title}</h3><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${column.badge}`}>{items.length}</span></div>
+                          <div className="space-y-3">{items.map((item: any) => <article key={item.id} className="overflow-hidden rounded-xl border border-[#dcebe8] bg-white shadow-sm"><div className="flex gap-3 p-3"><div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#e8f6f1] text-[10px] text-[#0c7474]">{item.imageUrl ? <img src={item.imageUrl} alt={`Foto do EPI ${item.name}`} className="h-full w-full object-cover" /> : "EPI"}</div><div className="min-w-0"><p className="truncate text-sm font-bold text-[#102b32]">{item.name}</p><p className="mt-0.5 text-xs text-[#3173a8]">CA {item.caNumber || "não informado"}</p></div></div><div className="grid grid-cols-2 gap-2 border-y border-[#edf4f1] px-3 py-2 text-[11px] text-[#5d7479]"><span>Estoque <b className="text-[#102b32]">{item.stockQuantity} un.</b></span><span>Validade <b className="text-[#102b32]">{item.expiresAt ? new Date(item.expiresAt).toLocaleDateString("pt-BR") : "sem data"}</b></span></div><div className="flex items-center justify-between gap-2 p-3"><span className="truncate text-[11px] text-[#668087]">Resp.: <b className="text-[#315158]">{item.responsibleName || "não definido"}</b></span><Button type="button" size="sm" variant="outline" onClick={() => openEditEpiForm(item)} className="h-7 rounded-lg px-2 text-[10px] font-bold text-[#0c7474]">Editar</Button></div><div className="border-t border-[#edf4f1] px-3 py-2">{column.id === "renewal" ? <Button type="button" disabled={updateEpiItemMutation.isPending} onClick={() => setEpiRenewalRequested(item, false)} variant="ghost" className="h-7 w-full text-[10px] font-bold text-[#123f69]">Retomar monitoramento</Button> : <Button type="button" disabled={updateEpiItemMutation.isPending} onClick={() => setEpiRenewalRequested(item, true)} className="h-7 w-full rounded-lg bg-[#123f69] text-[10px] font-bold text-white hover:bg-[#0b2d4d]">Encaminhar para renovar</Button>}</div></article>)}</div>
+                  {items.length === 0 && <p className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[#cfe3de] px-4 text-center text-xs text-[#668087]">{column.id === "ready" ? "Tudo regular por aqui — nenhum EPI requer ação imediata." : column.empty}</p>}
+                        </section>
+                      );
+                    })}
+                  </div>
+                )}
+                <table hidden={stockView !== "table"} className="w-full text-left text-xs">
                   <thead className="bg-[#f8fbfa] text-[#668087] border-b border-[#dcebe8]">
                     <tr>
                       <th className="p-4 font-bold">Equipamento (EPI)</th>
@@ -531,28 +700,30 @@ export default function Operations() {
                       <th className="p-4 font-bold">Estoque Mínimo</th>
                       <th className="p-4 font-bold">Validade CA</th>
                       <th className="p-4 font-bold text-right">Status</th>
+                      <th className="p-4 font-bold text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f0f5f4]">
                     {filteredStock.map((item: any) => {
-                      const isLow = item.stockQuantity <= item.minStock;
-                      const isCaExpired = item.caExpiresAt && item.caExpiresAt <= now;
+                      const isLow = item.stockQuantity <= item.minimumStock;
+                      const isCaExpired = item.expiresAt && new Date(item.expiresAt).getTime() <= now;
                       return (
                         <tr key={item.id} className="hover:bg-[#fcfdfd]">
-                          <td className="p-4 font-bold text-[#102b32]">{item.name}</td>
+                          <td className="p-4 font-bold text-[#102b32]"><div className="flex items-center gap-3">{item.imageUrl ? <img src={item.imageUrl} alt={`Foto do EPI ${item.name}`} className="h-10 w-10 rounded-lg border border-[#dcebe8] object-cover" /> : <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#e8f6f1] text-[10px] text-[#0c7474]">Sem foto</span>}<span>{item.name}</span></div></td>
                           <td className="p-4 font-mono text-[#3173a8]">CA {item.caNumber}</td>
                           <td className="p-4 font-bold text-[#102b32]">{item.stockQuantity} un.</td>
-                          <td className="p-4 text-[#668087]">{item.minStock} un.</td>
-                          <td className="p-4 text-[#668087]">{item.caExpiresAt ? new Date(item.caExpiresAt).toLocaleDateString("pt-BR") : "Indeterminado"}</td>
+                          <td className="p-4 text-[#668087]">{item.minimumStock} un.</td>
+                          <td className="p-4 text-[#668087]">{item.expiresAt ? new Date(item.expiresAt).toLocaleDateString("pt-BR") : "Indeterminado"}</td>
                           <td className="p-4 text-right">
                             {isLow ? (
-                              <span className="rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-[10px] font-bold">Estoque Baixo</span>
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#b45309]"><span className="h-2 w-2 rounded-full bg-amber-500" />Atenção</span>
                             ) : isCaExpired ? (
-                              <span className="rounded-full bg-rose-100 text-rose-800 px-2.5 py-1 text-[10px] font-bold">CA Vencido</span>
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#b91c1c]"><span className="h-2 w-2 rounded-full bg-rose-600" />Crítico</span>
                             ) : (
-                              <span className="rounded-full bg-[#e8f6f1] text-[#0c7474] px-2.5 py-1 text-[10px] font-bold">Regular</span>
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#15803d]"><span className="h-2 w-2 rounded-full bg-[#15803d]" />Regular</span>
                             )}
                           </td>
+                          <td className="p-4 text-right"><Button type="button" size="sm" variant="outline" onClick={() => openEditEpiForm(item)} className="h-8 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#0c7474]">Editar</Button></td>
                         </tr>
                       );
                     })}
@@ -569,30 +740,35 @@ export default function Operations() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-2xl border border-[#dcebe8] shadow-xs">
               <div>
                 <h3 className="text-sm font-bold text-[#102b32] flex items-center gap-2">
-                  <Folder className="h-5 w-5 text-[#0c7474]" /> Arquivo Setorial de Fichas de EPI
+                  <Folder className="h-5 w-5 text-[#0c7474]" /> {archiveView === "sectors" ? "Arquivo Setorial de Fichas de EPI" : "Acompanhamento de Fichas por Colaborador"}
                 </h3>
-                <p className="text-xs text-[#668087]">Selecione um setor abaixo para abrir a pasta de arquivos dos colaboradores e verificar fichas e entregas.</p>
+                <p className="text-xs text-[#668087]">{archiveView === "sectors" ? "Selecione um setor abaixo para abrir a pasta de arquivos dos colaboradores e verificar fichas e entregas." : "Acompanhe o progresso individual e trate cada pendência diretamente pelo card."}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedFolderSectorId(null)}
-                  className="rounded-xl border-[#dcebe8] text-xs font-bold text-[#5d7479]"
-                >
-                  Recolher Todas as Pastas
-                </Button>
-              </div>
+              <div className="flex flex-wrap items-center gap-2"><div className="inline-flex rounded-xl border border-[#cfe3de] bg-[#f8fbfa] p-1"><Button type="button" size="sm" variant={archiveView === "sectors" ? "default" : "ghost"} onClick={() => setArchiveView("sectors")} className={`h-8 rounded-lg px-3 text-xs font-bold ${archiveView === "sectors" ? "bg-[#0c7474] text-white hover:bg-[#063b43]" : "text-[#5d7479]"}`}>Setores</Button><Button type="button" size="sm" variant={archiveView === "employees" ? "default" : "ghost"} onClick={() => setArchiveView("employees")} className={`h-8 rounded-lg px-3 text-xs font-bold ${archiveView === "employees" ? "bg-[#0c7474] text-white hover:bg-[#063b43]" : "text-[#5d7479]"}`}>Colaboradores</Button></div>{archiveView === "sectors" && <Button variant="outline" size="sm" onClick={collapseAllArchiveFolders} className="rounded-xl border-[#dcebe8] text-xs font-bold text-[#5d7479]">Recolher Todas as Pastas</Button>}</div>
             </div>
 
+            {archiveView === "employees" && (
+              <section className="space-y-4">
+                <div className="flex flex-col gap-3 rounded-2xl border border-[#dcebe8] bg-white p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between"><div className="relative w-full sm:max-w-sm"><Search className="absolute left-3 top-2.5 h-4 w-4 text-[#668087]" /><Input value={folderSearchQuery} onChange={event => setFolderSearchQuery(event.target.value)} placeholder="Buscar por nome do colaborador..." className="h-9 rounded-xl border-[#cfe3de] pl-9 text-xs" /></div><div className="text-xs text-[#668087]">{collaboratorCards.length} colaboradores exibidos</div></div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{collaboratorCards.map(card => {
+                  const color = card.tone === "emerald" ? "#059669" : card.tone === "rose" ? "#e24a5c" : "#d98716";
+                  const actionLabel = card.action === "deliver" ? "Entregar EPI" : card.action === "sign" ? "Assinar ficha" : "Ver fichas";
+                  const actionClass = card.tone === "emerald" ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50" : card.tone === "rose" ? "border-rose-300 text-rose-700 hover:bg-rose-50" : "border-amber-300 text-amber-700 hover:bg-amber-50";
+                  const initial = card.employee.fullName.split(" ").filter(Boolean).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase();
+                  return <article key={card.employee.id} className={`rounded-2xl border bg-white p-5 text-center shadow-xs ${card.tone === "emerald" ? "border-emerald-100" : card.tone === "rose" ? "border-rose-100" : "border-amber-100"}`}><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#e8f6f1] text-lg font-bold text-[#0c7474]">{initial}</div><h4 className="mt-3 truncate text-sm font-extrabold text-[#102b32]">{card.employee.fullName}</h4><p className="mt-1 inline-flex rounded-full bg-[#f2f6f5] px-2.5 py-1 text-[11px] font-semibold text-[#5d7479]">{card.department?.name || "Sem setor"}</p><div className="mx-auto mt-4 grid h-28 w-28 place-items-center rounded-full" style={{ background: `conic-gradient(${color} ${card.progress * 3.6}deg, #e7efed 0deg)` }}><div className="grid h-20 w-20 place-items-center rounded-full bg-white"><strong className="text-2xl" style={{ color }}>{card.progress}%</strong><span className="-mt-1 text-[10px] text-[#668087]">assinadas</span></div></div><p className={`mt-4 text-xs font-bold ${card.tone === "emerald" ? "text-emerald-700" : card.tone === "rose" ? "text-rose-700" : "text-amber-700"}`}>{card.action === "deliver" ? "Nenhuma ficha gerada" : card.pendingCount > 0 ? `${card.pendingCount} ficha${card.pendingCount > 1 ? "s" : ""} pendente${card.pendingCount > 1 ? "s" : ""}` : `${card.signedCount} ficha${card.signedCount !== 1 ? "s" : ""} em dia`}</p><Button type="button" variant="outline" onClick={() => handleCollaboratorCardAction(card)} className={`mt-4 h-9 w-full rounded-xl text-xs font-bold ${actionClass}`}>{actionLabel}</Button></article>;
+                })}</div>
+                {collaboratorCards.length === 0 && <p className="rounded-2xl border border-dashed border-[#cfe3de] bg-white px-6 py-12 text-center text-sm text-[#668087]">Nenhum colaborador encontrado com os filtros atuais.</p>}
+              </section>
+            )}
+
             {/* Armário de Pastas por Setor */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div hidden={archiveView !== "sectors"} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {departments.map((dept: any) => {
                 const isOpen = selectedFolderSectorId === dept.id;
                 const deptEmployees = employees.filter((e: any) => e.departmentId === dept.id);
-                const pendingCount = deliveries.filter((d: any) => {
-                  const emp = employees.find((e: any) => e.id === d.employeeId);
-                  return emp?.departmentId === dept.id && !d.isSigned;
+                  const pendingCount = deliveries.filter((d: any) => {
+                    const emp = employees.find((e: any) => e.id === d.employeeId);
+                    return emp?.departmentId === dept.id && !isDeliverySigned(d);
                 }).length;
 
                 return (
@@ -652,7 +828,7 @@ export default function Operations() {
             </div>
 
             {/* Conteúdo da Pasta Aberta */}
-            {selectedFolderSectorId !== null && (
+            {archiveView === "sectors" && selectedFolderSectorId !== null && (
               <div className="rounded-3xl border-2 border-[#0c7474] bg-white p-6 shadow-lg space-y-6 animate-in fade-in-95 duration-300">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#f0f5f4] pb-4">
                   <div className="flex items-center gap-3">
@@ -686,7 +862,7 @@ export default function Operations() {
                     </div>
                     <Button
                       variant="outline"
-                      onClick={() => setSelectedFolderSectorId(null)}
+                      onClick={collapseAllArchiveFolders}
                       className="rounded-xl border-[#dcebe8] text-xs font-bold text-[#5d7479]"
                     >
                       Fechar Gaveta
@@ -738,6 +914,9 @@ export default function Operations() {
                               >
                                 {openingArchiveEmployeeId === employee.id ? "Abrindo arquivo..." : expandedArchiveEmployeeId === employee.id ? "Fechar gaveta" : "Abrir ficha"}
                               </Button>
+                              <Button type="button" size="sm" onClick={() => { setDeliveryEmployeeId(employee.id); setDeliveryEpiItemId(0); setIsDeliveryModalOpen(true); }} className="h-8 rounded-lg bg-[#3173a8] px-3 text-[11px] font-bold text-white hover:bg-[#235882]">
+                                <Plus className="mr-1 h-3.5 w-3.5" /> Registrar entrega
+                              </Button>
                             </div>
                           </div>
 
@@ -747,7 +926,7 @@ export default function Operations() {
                               <div key={d.id} className="rounded-xl border border-[#cfe3de] bg-white p-3 space-y-2 text-xs">
                                 <div className="flex items-center justify-between">
                                   <b className="text-[#102b32]">{epiNameById.get(d.epiItemId) || "Equipamento"}</b>
-                                  {d.isSigned ? (
+                                  {isDeliverySigned(d) ? (
                                     <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">Assinado</span>
                                   ) : (
                                     <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold">Pendente</span>
@@ -755,27 +934,20 @@ export default function Operations() {
                                 </div>
                                 <p className="text-[11px] text-[#668087]">Qtde: {d.quantity} un. • {new Date(d.deliveredAt).toLocaleDateString("pt-BR")}</p>
                                 <div className="flex items-center gap-2 pt-1">
-                                  {!d.isSigned ? (
+                                  {!isDeliverySigned(d) ? (
                                     <Button
                                       size="sm"
                                       onClick={() => {
-                                        setActiveQrDelivery(d);
-                                        setQrSignedSuccess(false);
+                                        openSignatureDialog(d);
                                       }}
                                       className="w-full h-7 rounded-lg bg-[#0c7474] text-white text-[11px] font-bold hover:bg-[#063b43]"
                                     >
                                       <QrCode className="h-3 w-3 mr-1" /> Assinar QR Code
                                     </Button>
-                                  ) : (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleDownloadReceipt(d)}
-                                      className="w-full h-7 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#3173a8]"
-                                    >
-                                      <Download className="h-3 w-3 mr-1" /> Baixar Comprovante
-                                    </Button>
-                                  )}
+                                  ) : null}
+                                  <Button size="sm" variant="outline" onClick={() => handleDownloadReceipt(d)} className="w-full h-7 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#3173a8]">
+                                    <Download className="mr-1 h-3 w-3" /> Exportar ficha PDF
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -800,12 +972,6 @@ export default function Operations() {
                 <h3 className="text-sm font-bold text-[#102b32]">Colaboradores Cadastrados</h3>
                 <p className="text-xs text-[#668087]">Lista completa de funcionários da empresa ativa com suas respectivas fichas de EPI.</p>
               </div>
-              <Button
-                onClick={() => setIsEmployeeModalOpen(true)}
-                className="rounded-xl bg-[#0c7474] text-white text-xs font-bold hover:bg-[#063b43] gap-1.5"
-              >
-                <Plus className="h-4 w-4" /> Cadastrar Funcionário
-              </Button>
             </div>
 
             <div className="rounded-2xl border border-[#dcebe8] bg-white shadow-xs overflow-hidden">
@@ -818,6 +984,7 @@ export default function Operations() {
                       <th className="p-4 font-bold">Setor</th>
                       <th className="p-4 font-bold">Função / Cargo</th>
                       <th className="p-4 font-bold text-right">Fichas de EPI</th>
+                      <th className="p-4 font-bold text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f0f5f4]">
@@ -837,6 +1004,7 @@ export default function Operations() {
                           <td className="p-4 text-[#668087]">{deptName}</td>
                           <td className="p-4 text-[#668087]">{roleName}</td>
                           <td className="p-4 text-right font-bold text-[#0c7474]">{empDeliveries.length} entregas</td>
+                          <td className="p-4 text-right"><Button type="button" size="sm" onClick={() => { setDeliveryEmployeeId(emp.id); setDeliveryEpiItemId(0); setIsDeliveryModalOpen(true); }} className="h-8 rounded-lg bg-[#3173a8] text-[11px] font-bold text-white hover:bg-[#235882]"><Plus className="mr-1 h-3.5 w-3.5" /> Entregar EPI</Button></td>
                         </tr>
                       );
                     })}
@@ -887,10 +1055,11 @@ export default function Operations() {
                     <div className="mx-auto w-24 h-24 bg-white p-2 rounded-xl shadow-xs border border-slate-200 flex items-center justify-center">
                       <QrCode className="w-full h-full text-[#102b32]" />
                     </div>
-                    <p className="text-[11px] text-[#668087]">Aponte a câmera do celular ou clique para simular a assinatura digital do EPI.</p>
+                    <p className="text-[11px] text-[#668087]">Confirme o nome do trabalhador para registrar o aceite na ficha de EPI.</p>
                   </div>
+                  <label className="block text-xs font-bold text-[#315158]">Nome do trabalhador que confirmou o recebimento<Input value={signatureName} onChange={event => setSignatureName(event.target.value)} className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label>
                   <Button 
-                    disabled={isSigningQr}
+                    disabled={isSigningQr || signEpiDeliveryMutation.isPending || signatureName.trim().length < 2}
                     onClick={handleMobileSign}
                     className="w-full rounded-xl bg-[#0c7474] text-white py-3 font-bold text-sm hover:bg-[#063b43] shadow-lg shadow-[#0c7474]/20 flex items-center justify-center gap-2"
                   >
@@ -900,7 +1069,7 @@ export default function Operations() {
                       </>
                     ) : (
                       <>
-                        <Check className="h-4 w-4" /> Assinar Ficha de EPI no Celular
+                        <Check className="h-4 w-4" /> Registrar aceite na ficha
                       </>
                     )}
                   </Button>
@@ -933,6 +1102,22 @@ export default function Operations() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {isEpiModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-[#edf4f1] pb-4"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#0c8c89]">Estoque da empresa</p><h4 className="mt-1 text-lg font-bold text-[#102b32]">{editingEpiId ? "Editar EPI" : "Cadastrar EPI"}</h4><p className="mt-1 text-xs text-[#668087]">Empresa: <strong>{currentCompany?.name || "não selecionada"}</strong></p></div><button type="button" onClick={() => setIsEpiModalOpen(false)} className="rounded-full p-2 text-[#668087] hover:bg-[#f2faf8]"><X className="h-4 w-4" /></button></div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="sm:col-span-2 flex flex-col gap-3 rounded-2xl border border-[#dcebe8] bg-[#f8fbfa] p-4 sm:flex-row sm:items-center"><div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-[#cfe3de] bg-white text-center text-[10px] text-[#668087]">{newEpiImageUrl ? <img src={newEpiImageUrl} alt="Prévia da foto do EPI" className="h-full w-full object-cover" /> : "Sem foto"}</div><div className="min-w-0 flex-1"><p className="text-xs font-bold text-[#315158]">Foto do EPI</p><p className="mt-1 text-[11px] leading-4 text-[#668087]">PNG, JPEG ou WEBP de até 10 MB. A foto será vinculada apenas a este EPI.</p><div className="mt-2 flex flex-wrap items-center gap-2"><Input type="file" accept="image/png,image/jpeg,image/webp" disabled={isUploadingEpiImage} onChange={event => handleEpiImageUpload(event.target.files?.[0])} className="h-9 max-w-[220px] cursor-pointer text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-[#e8f6f1] file:px-2 file:py-1 file:text-xs file:font-bold file:text-[#0c7474]" />{isUploadingEpiImage && <Loader2 className="h-4 w-4 animate-spin text-[#0c7474]" />}{newEpiImageUrl && <Button type="button" variant="ghost" onClick={() => setNewEpiImageUrl("")} className="h-8 px-2 text-xs text-[#b85c36]">Remover foto</Button>}</div></div></div><label className="text-xs font-bold text-[#315158] sm:col-span-2">Nome do EPI *<Input value={newEpiName} onChange={event => setNewEpiName(event.target.value)} placeholder="Ex.: Capacete de segurança" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158] sm:col-span-2">Responsável pelo CA<Input value={newEpiResponsibleName} onChange={event => setNewEpiResponsibleName(event.target.value)} placeholder="Ex.: Ana Martins" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158]">Número do CA<Input value={newEpiCaNumber} onChange={event => setNewEpiCaNumber(event.target.value)} placeholder="Ex.: 12345" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158]">Fabricante<Input value={newEpiManufacturer} onChange={event => setNewEpiManufacturer(event.target.value)} placeholder="Ex.: Marca do fabricante" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158]">Quantidade em estoque *<Input value={newEpiStockQuantity} onChange={event => setNewEpiStockQuantity(event.target.value)} type="number" min="0" inputMode="numeric" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158]">Estoque mínimo *<Input value={newEpiMinimumStock} onChange={event => setNewEpiMinimumStock(event.target.value)} type="number" min="0" inputMode="numeric" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158] sm:col-span-2">Validade do CA<Input value={newEpiExpiresAt} onChange={event => setNewEpiExpiresAt(event.target.value)} type="date" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="sm:col-span-2 flex cursor-pointer items-center gap-2 rounded-xl border border-[#cfe3de] bg-[#f8fbfa] px-3 py-2 text-xs font-bold text-[#315158]"><input type="checkbox" checked={newEpiRenewalRequested} onChange={event => setNewEpiRenewalRequested(event.target.checked)} className="h-4 w-4 accent-[#123f69]" />Encaminhar este CA para renovação</label></div>
+            <div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setIsEpiModalOpen(false)} className="rounded-xl border-[#dcebe8]">Cancelar</Button><Button type="button" disabled={createEpiItemMutation.isPending || updateEpiItemMutation.isPending || isUploadingEpiImage || !newEpiName.trim() || !activeCompanyId} onClick={() => { const quantity = Number(newEpiStockQuantity); const minimum = Number(newEpiMinimumStock); if (!Number.isInteger(quantity) || quantity < 0 || !Number.isInteger(minimum) || minimum < 0) { toast.error("Informe quantidades inteiras iguais ou maiores que zero."); return; } const values = { workspaceId, companyId: activeCompanyId, name: newEpiName.trim(), imageUrl: newEpiImageUrl || null, responsibleName: newEpiResponsibleName.trim() || null, renewalRequested: newEpiRenewalRequested, caNumber: newEpiCaNumber.trim() || null, manufacturer: newEpiManufacturer.trim() || null, stockQuantity: quantity, minimumStock: minimum, expiresAt: newEpiExpiresAt ? new Date(`${newEpiExpiresAt}T12:00:00`) : null }; if (editingEpiId) updateEpiItemMutation.mutate({ ...values, epiItemId: editingEpiId }); else createEpiItemMutation.mutate(values); }} className="rounded-xl bg-[#0c7474] text-white hover:bg-[#063b43]">{createEpiItemMutation.isPending || updateEpiItemMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Package className="mr-2 h-4 w-4" />}{editingEpiId ? "Salvar alterações" : "Salvar no estoque"}</Button></div>
+          </div>
+        </div>
+      )}
+
+      {isDeliveryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-3xl border border-[#dcebe8] bg-white p-6 shadow-2xl"><div className="flex items-start justify-between border-b border-[#edf4f1] pb-4"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#3173a8]">Ficha de EPI</p><h4 className="mt-1 text-lg font-bold text-[#102b32]">Registrar entrega</h4><p className="mt-1 text-xs text-[#668087]">A entrega cria uma ficha individual exportável para o colaborador.</p></div><button type="button" onClick={() => setIsDeliveryModalOpen(false)} className="rounded-full p-2 text-[#668087] hover:bg-[#f2faf8]"><X className="h-4 w-4" /></button></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="text-xs font-bold text-[#315158] sm:col-span-2">Funcionário *<select value={deliveryEmployeeId} onChange={event => setDeliveryEmployeeId(Number(event.target.value))} className="mt-1.5 h-10 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecione o funcionário</option>{employees.map((employee: any) => <option key={employee.id} value={employee.id}>{employee.fullName}</option>)}</select></label><label className="text-xs font-bold text-[#315158] sm:col-span-2">EPI em estoque *<select value={deliveryEpiItemId} onChange={event => setDeliveryEpiItemId(Number(event.target.value))} className="mt-1.5 h-10 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value={0}>Selecione o EPI</option>{stockItems.filter((item: any) => item.stockQuantity > 0).map((item: any) => <option key={item.id} value={item.id}>{item.name} · CA {item.caNumber || "N/I"} · {item.stockQuantity} disponível(is)</option>)}</select></label><label className="text-xs font-bold text-[#315158]">Quantidade *<Input value={deliveryQuantity} onChange={event => setDeliveryQuantity(event.target.value)} type="number" min="1" inputMode="numeric" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158]">Tipo de entrega<select value={deliveryKind} onChange={event => setDeliveryKind(event.target.value as "initial" | "replacement")} className="mt-1.5 h-10 w-full rounded-xl border border-[#cfe3de] bg-white px-3 text-sm"><option value="initial">Entrega inicial</option><option value="replacement">Reposição</option></select></label><label className="text-xs font-bold text-[#315158] sm:col-span-2">Data da entrega *<Input value={deliveryDate} onChange={event => setDeliveryDate(event.target.value)} type="date" className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label><label className="text-xs font-bold text-[#315158] sm:col-span-2">Observações<Textarea value={deliveryNotes} onChange={event => setDeliveryNotes(event.target.value)} rows={3} placeholder="Orientações de uso, troca ou condição de entrega." className="mt-1.5 rounded-xl border-[#cfe3de]" /></label></div><div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setIsDeliveryModalOpen(false)} className="rounded-xl border-[#dcebe8]">Cancelar</Button><Button type="button" disabled={createEpiDeliveryMutation.isPending || !deliveryEmployeeId || !deliveryEpiItemId} onClick={() => { const quantity = Number(deliveryQuantity); const item = epiById.get(deliveryEpiItemId); if (!Number.isInteger(quantity) || quantity < 1) { toast.error("Informe uma quantidade inteira maior que zero."); return; } if (!item || item.stockQuantity < quantity) { toast.error("O estoque disponível não atende a quantidade informada."); return; } createEpiDeliveryMutation.mutate({ workspaceId, companyId: activeCompanyId, employeeId: deliveryEmployeeId, epiItemId: deliveryEpiItemId, quantity, deliveryKind, deliveredAt: new Date(`${deliveryDate}T12:00:00`), notes: deliveryNotes.trim() || null }); }} className="rounded-xl bg-[#3173a8] text-white hover:bg-[#235882]">{createEpiDeliveryMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}Criar ficha de EPI</Button></div></div>
         </div>
       )}
 

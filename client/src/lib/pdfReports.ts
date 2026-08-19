@@ -66,7 +66,7 @@ type EpiReceiptInput = {
   replacementDueAt?: PdfDate;
   signedByName?: string | null;
   deliveryId?: number;
-  items?: Array<{ epiName: string; caNumber: string; deliveryDate: PdfDate; condition?: string | null }>;
+  items?: Array<{ epiName: string; caNumber: string; quantity?: number; deliveryDate: PdfDate; condition?: string | null }>;
   generatedAt?: PdfDate;
 };
 
@@ -647,6 +647,7 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
   const itemsList = input.items?.length ? input.items : [{
     epiName: input.epiName || "EPI Geral",
     caNumber: input.caNumber || "Não informado",
+    quantity: input.quantity || 1,
     deliveryDate: input.deliveredAt || new Date(),
     condition: input.deliveryKind || "Nova entrega"
   }];
@@ -661,7 +662,7 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
     document.text(`${index + 1}. ${item.epiName}`, 19, y + 5);
     document.setFont("helvetica", "normal");
     document.text(String(item.caNumber || "N/I"), 110, y + 5);
-    document.text("1 un.", 135, y + 5);
+    document.text(`${item.quantity ?? input.quantity ?? 1} un.`, 135, y + 5);
     document.text(`${item.condition || "Novo"} (${formatDate(item.deliveryDate)})`, 150, y + 5);
     y += 8;
   });
