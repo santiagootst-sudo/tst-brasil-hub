@@ -36,7 +36,7 @@ import { appRouter } from "./routers";
 
 const fixtureDate = new Date("2026-08-11T12:00:00.000Z");
 const certificateFixture = () => certificateSchema.parse({ id: 1, workspaceId: 7, companyId: null, category: "certificate", participantName: "Ana", trainingName: "NR-35", issuedAt: fixtureDate, expiresAt: null, referenceUrl: null, notes: null, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
-const trainingFixture = () => trainingSchema.parse({ id: 2, workspaceId: 7, companyId: null, title: "Integração", status: "planned", scheduledAt: null, participantCount: 0, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
+const trainingFixture = () => trainingSchema.parse({ id: 2, workspaceId: 7, companyId: null, title: "Integração", status: "planned", scheduledAt: null, scheduledDates: [], instructorName: null, location: null, participantCount: 0, participants: [], createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const materialFixture = () => materialSchema.parse({ id: 3, workspaceId: 7, title: "Checklist de EPI", category: "checklist", description: null, referenceUrl: null, createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const supportTicketFixture = () => supportTicketSchema.parse({ id: 4, workspaceId: 7, subject: "Dúvida sobre PGR", message: "Preciso de orientação sobre o ambiente de trabalho.", status: "open", createdByUserId: 12, createdAt: fixtureDate, updatedAt: fixtureDate });
 const subscriptionFixture = (status: "active" | "past_due") => subscriptionSchema.parse({ id: 1, userId: 12, stripeCustomerId: null, stripeSubscriptionId: null, stripePriceId: null, planCode: "autonomo", status, currentPeriodEnd: null, cancelAtPeriodEnd: false, updatedAt: fixtureDate });

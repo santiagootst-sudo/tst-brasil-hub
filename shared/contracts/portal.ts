@@ -109,6 +109,10 @@ export const createTrainingInput = workspaceIdInput.extend({
   companyId: z.number().int().positive().optional(),
   title: z.string().trim().min(2).max(255),
   scheduledAt: z.coerce.date().nullable().optional(),
+  scheduledDates: z.array(z.coerce.date()).max(30).optional(),
+  instructorName: z.string().trim().min(2).max(255).nullable().optional(),
+  location: z.string().trim().min(2).max(255).nullable().optional(),
+  participantIds: z.array(z.number().int().positive()).max(500).optional(),
   participantCount: z.number().int().min(0).max(100_000).default(0),
 });
 
@@ -243,7 +247,11 @@ export const trainingSchema = z.object({
   title: z.string(),
   status: z.enum(["planned", "completed"]),
   scheduledAt: z.date().nullable(),
+  scheduledDates: z.array(z.date()).default([]),
+  instructorName: z.string().nullable(),
+  location: z.string().nullable(),
   participantCount: z.number().int().nonnegative(),
+  participants: z.array(z.object({ employeeId: z.number().int().positive(), fullName: z.string(), companyId: z.number().int().positive() })).default([]),
   createdByUserId: z.number().int().positive(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -395,6 +403,9 @@ export const trainingCreatedSchema = z.object({
   companyId: z.number().int().positive().nullable().optional(),
   title: z.string(),
   scheduledAt: z.date().nullable().optional(),
+  scheduledDates: z.array(z.date()).optional(),
+  instructorName: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
   participantCount: z.number().int().nonnegative(),
   createdByUserId: z.number().int().positive(),
 });

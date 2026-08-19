@@ -23,6 +23,11 @@ export const learningRouter = router({
   createTraining: protectedProcedure.input(createTrainingInput).output(trainingCreatedSchema).mutation(async ({ ctx, input }) => {
     const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);
     if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode registrar treinamentos neste ambiente." });
-    return portalDb.createTrainingForWorkspace({ ...input, createdByUserId: ctx.user.id });
+    const participantIds = Array.from(new Set(input.participantIds ?? []));
+    if (participantIds.length) {
+      const selected = await Promise.all(participantIds.map(employeeId => portalDb.getEmployeeForWorkspace(employeeId, input.workspaceId)));
+      if (selected.some(employee => !employee)) throw new TRPCError({ code: "BAD_REQUEST", message: "Um ou mais participantes não pertencem ao ambiente selecionado." });
+    }
+    return portalDb.createTrainingForWorkspace({ ...input, participantIds, participantCount: participantIds.length || input.participantCount, createdByUserId: ctx.user.id });
   }),
 });

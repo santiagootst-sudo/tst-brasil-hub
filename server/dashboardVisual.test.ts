@@ -37,4 +37,33 @@ describe("direção visual do dashboard", () => {
     expect(source).toContain("Atividade recente");
     expect(source).toContain("Resolver agora");
   });
+
+  it("estrutura o resumo Prestador como uma carteira operacional ampla e orientada por dados reais", () => {
+    expect(source).toContain('if (isAutonomo && activeDashboard === "resumo")');
+    expect(source).toContain('max-w-[1600px]');
+    expect(source).toContain("Visão da carteira");
+    expect(source).toContain("Comando da carteira");
+    expect(source).toContain("Prioridades de hoje");
+    expect(source).toContain("Linha do tempo da carteira");
+    expect(source).toContain("Documentação em dia para o período selecionado.");
+  });
+
+  it("não inventa agenda comercial e usa visitas, retornos e projetos PGR vinculados", () => {
+    expect(source).toContain("const nextVisit");
+    expect(source).toContain("const nextFollowUp");
+    expect(source).toContain("const nextPgrProject");
+    expect(source).toContain("companiesById");
+    expect(source).toContain("Nenhuma visita agendada");
+    expect(source).toContain("Nenhum retorno programado");
+  });
+
+  it("mantém o mesmo shell visual ao alternar entre as abas do Prestador", () => {
+    expect(source).toContain("function PrestadorDashboardShell");
+    expect(source).toContain('activeDashboard === "cipa"');
+    expect(source).toContain('activeDashboard === "epis"');
+    expect(source).toContain('activeDashboard === "inspecoes"');
+    expect(source).toContain('activeDashboard === "documentos"');
+    expect(source).toContain("Seções do dashboard Prestador");
+    expect(source).toContain("border-b-[3px]");
+  });
 });

@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -478,7 +478,26 @@ export async function createCertificateForWorkspace(input: {
 export async function listTrainingsForWorkspace(workspaceId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(trainings).where(eq(trainings.workspaceId, workspaceId)).orderBy(desc(trainings.scheduledAt), desc(trainings.updatedAt));
+  const records = await db.select().from(trainings).where(eq(trainings.workspaceId, workspaceId)).orderBy(desc(trainings.scheduledAt), desc(trainings.updatedAt));
+  const trainingIds = records.map(record => record.id);
+  const participants = trainingIds.length
+    ? await db.select({ trainingId: trainingParticipants.trainingId, employeeId: employees.id, fullName: employees.fullName, companyId: employees.companyId })
+      .from(trainingParticipants)
+      .innerJoin(employees, eq(trainingParticipants.employeeId, employees.id))
+      .where(and(eq(trainingParticipants.workspaceId, workspaceId), inArray(trainingParticipants.trainingId, trainingIds)))
+    : [];
+  const byTraining = new Map<number, typeof participants>();
+  participants.forEach(participant => byTraining.set(participant.trainingId, [...(byTraining.get(participant.trainingId) ?? []), participant]));
+  return records.map(record => {
+    let scheduledDates: Date[] = [];
+    try {
+      const parsed = record.scheduledDatesJson ? JSON.parse(record.scheduledDatesJson) : [];
+      scheduledDates = Array.isArray(parsed) ? parsed.map(value => new Date(value)).filter(value => !Number.isNaN(value.getTime())) : [];
+    } catch { scheduledDates = []; }
+    if (!scheduledDates.length && record.scheduledAt) scheduledDates = [record.scheduledAt];
+    const linkedParticipants = (byTraining.get(record.id) ?? []).map(({ employeeId, fullName, companyId }) => ({ employeeId, fullName, companyId }));
+    return { ...record, scheduledDates, instructorName: record.instructorName ?? null, location: record.location ?? null, participants: linkedParticipants, participantCount: linkedParticipants.length || record.participantCount };
+  });
 }
 
 export async function createTrainingForWorkspace(input: {
@@ -486,17 +505,32 @@ export async function createTrainingForWorkspace(input: {
   companyId?: number | null;
   title: string;
   scheduledAt?: Date | null;
+  scheduledDates?: Date[];
+  instructorName?: string | null;
+  location?: string | null;
+  participantIds?: number[];
   participantCount: number;
   createdByUserId: number;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
+  const scheduledDates = Array.from(new Map((input.scheduledDates ?? []).map(date => [date.toISOString(), date])).values());
+  const participantIds = Array.from(new Set(input.participantIds ?? []));
+  const participantCount = participantIds.length || input.participantCount;
   const inserted = await db.insert(trainings).values({
-    ...input,
+    workspaceId: input.workspaceId,
     companyId: input.companyId ?? null,
-    scheduledAt: input.scheduledAt ?? null,
+    title: input.title,
+    scheduledAt: input.scheduledAt ?? scheduledDates[0] ?? null,
+    scheduledDatesJson: scheduledDates.length ? JSON.stringify(scheduledDates.map(date => date.toISOString())) : null,
+    instructorName: input.instructorName ?? null,
+    location: input.location ?? null,
+    participantCount,
+    createdByUserId: input.createdByUserId,
   });
-  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  if (id && participantIds.length) await db.insert(trainingParticipants).values(participantIds.map(employeeId => ({ trainingId: id, workspaceId: input.workspaceId, employeeId })));
+  return { id, ...input, scheduledAt: input.scheduledAt ?? scheduledDates[0] ?? null, scheduledDates, instructorName: input.instructorName ?? null, location: input.location ?? null, participantCount };
 }
 
 export async function listCipaCommissionsForWorkspace(workspaceId: number) {

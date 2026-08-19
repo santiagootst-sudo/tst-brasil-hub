@@ -758,6 +758,119 @@ export async function downloadPgrReportPdf(input: PgrReportInput) {
   return { embedded: prepared.embedded, unavailable: prepared.unavailable };
 }
 
+export type TrainingAttendanceInput = {
+  workspaceName: string;
+  companyName?: string | null;
+  title: string;
+  instructorName?: string | null;
+  location?: string | null;
+  scheduledDates?: PdfDate[];
+  participantCount: number;
+  participants?: Array<{ fullName: string }>;
+  generatedAt?: PdfDate;
+};
+
+export function buildTrainingAttendancePdf(input: TrainingAttendanceInput) {
+  const doc = setupDocument("Ata de Curso e Lista de Presença", input.workspaceName, input.generatedAt);
+  const dates = (input.scheduledDates ?? []).filter(Boolean);
+  const participants = input.participants?.length
+    ? input.participants.map(participant => participant.fullName)
+    : Array.from({ length: input.participantCount }, (_, index) => `Participante ${String(index + 1).padStart(2, "0")}`);
+  let y = 49;
+
+  doc.setTextColor(6, 59, 67);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("ATA DE CURSO E LISTA DE PRESENÇA", 16, y);
+  y += 9;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(71, 99, 106);
+  doc.text("Documento para registro de realização e assinaturas dos participantes.", 16, y);
+  y += 10;
+
+  const details = [
+    ["Treinamento", input.title],
+    ["Instrutor(a) / responsável", input.instructorName || "Não informado"],
+    ["Local de realização", input.location || "Não informado"],
+    ["Datas programadas", dates.length ? dates.map(formatDate).join(" · ") : "Não informadas"],
+    ["Participantes previstos", String(participants.length)],
+    ["Empresa / ambiente", input.companyName || input.workspaceName],
+  ];
+  details.forEach(([label, value], index) => {
+    doc.setFillColor(index % 2 ? 247 : 237, index % 2 ? 251 : 246, index % 2 ? 250 : 243);
+    doc.rect(16, y, 178, 8, "F");
+    doc.setTextColor(12, 116, 116);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(label, 19, y + 5);
+    doc.setTextColor(16, 43, 50);
+    doc.setFont("helvetica", "normal");
+    doc.text(String(value).slice(0, 95), 66, y + 5);
+    y += 8;
+  });
+
+  y += 10;
+  const drawTableHeader = () => {
+    doc.setFillColor(12, 116, 116);
+    doc.rect(16, y, 178, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("Nº", 19, y + 5.3);
+    doc.text("NOME DO PARTICIPANTE", 34, y + 5.3);
+    doc.text("ASSINATURA", 137, y + 5.3);
+    y += 8;
+  };
+  drawTableHeader();
+  participants.forEach((name, index) => {
+    if (y > 265) {
+      doc.addPage();
+      y = 22;
+      doc.setTextColor(6, 59, 67);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("ATA DE CURSO E LISTA DE PRESENÇA — CONTINUAÇÃO", 16, y);
+      y += 8;
+      drawTableHeader();
+    }
+    doc.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 251, index % 2 === 0 ? 255 : 250);
+    doc.rect(16, y, 178, 11, "F");
+    doc.setDrawColor(207, 225, 220);
+    doc.rect(16, y, 178, 11);
+    doc.setTextColor(16, 43, 50);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.text(String(index + 1), 20, y + 7);
+    doc.text(name.slice(0, 60), 34, y + 7);
+    doc.line(135, y + 8, 188, y + 8);
+    y += 11;
+  });
+  if (!participants.length) {
+    doc.setTextColor(171, 92, 14);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    doc.text("Nenhum participante foi selecionado ou informado no cadastro deste treinamento.", 16, y + 6);
+    y += 12;
+  }
+  y += 15;
+  if (y > 248) { doc.addPage(); y = 35; }
+  doc.setDrawColor(64, 91, 96);
+  doc.line(25, y, 92, y);
+  doc.line(118, y, 185, y);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(71, 99, 106);
+  doc.text("Instrutor(a) / responsável", 40, y + 5);
+  doc.text("Representante da empresa", 132, y + 5);
+  return doc;
+}
+
+export function downloadTrainingAttendancePdf(input: TrainingAttendanceInput) {
+  const doc = buildTrainingAttendancePdf(input);
+  doc.save(`${safeFileName(input.title)}-ata-lista-presenca.pdf`);
+}
+
 export { formatDate, safeFileName };
 export type { InspectionRecord, ActionRecord, InspectionReportInput, PgrReportInput };
 

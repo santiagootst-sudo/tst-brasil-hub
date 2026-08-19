@@ -758,5 +758,18 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Preservar a relação rastreável de laudos em PDF e certificados não visuais, sem simulá-los como imagens.
 - [x] Validar a paginação e a qualidade das evidências visuais em PDF e Word antes da sincronização.
 
-- [ ] Sincronizar ao GitHub a emissão PGR aprovada com anexos técnicos e evidências visuais incorporadas.
-- [ ] Confirmar o commit remoto para o teste prático no Render.
+- [x] Sincronizar ao GitHub a emissão PGR aprovada com anexos técnicos e evidências visuais incorporadas.
+- [x] Confirmar o commit remoto para o teste prático no Render.
+
+- [x] Mapear o formulário, os dados persistidos e as ações atuais do módulo de Treinamentos.
+- [x] Incluir instrutor, local, múltiplas datas e seleção opcional de funcionários no cadastro de treinamento.
+- [x] Criar ata de curso imprimível com lista de presença e linhas de assinatura dimensionadas aos participantes.
+- [x] Validar persistência, layout e geração da ata na prévia antes de solicitar sincronização.
+- [x] Sincronizar ao GitHub a evolução aprovada de Treinamentos e preparar o commit para deploy manual no Render.
+- [x] Analisar o Design System e as recomendações enviadas para o dashboard Prestador de Serviço, comparando-os com a implementação atual antes de qualquer alteração visual.
+- [x] Implementar somente após aprovação explícita a evolução aprovada do dashboard Prestador, preservando dados reais, responsividade e navegação contextual.
+- [x] Redesenhar na prévia o dashboard Prestador com cabeçalho compacto, grid amplo, KPIs de carteira, prioridades ordenadas e painel contextual recolhível em desktop.
+- [x] Validar os dados reais, os estados vazios, a responsividade desktop/mobile e a suíte de testes antes de apresentar a revisão ao usuário.
+- [x] Padronizar a barra de abas, o cabeçalho de painel, os cartões de indicadores e os estados vazios entre Resumo, CIPA, EPIs, Inspeções e Documentos no dashboard Prestador.
+- [x] Validar a navegação entre todas as abas do dashboard Prestador em desktop e telefone antes de nova apresentação na prévia.
+- [x] Sincronizar ao GitHub as evoluções aprovadas de Treinamentos e do dashboard Prestador para deploy manual no Render.

@@ -443,6 +443,9 @@ export const trainings = mysqlTable("trainings", {
   title: varchar("title", { length: 255 }).notNull(),
   status: mysqlEnum("status", ["planned", "completed"]).default("planned").notNull(),
   scheduledAt: timestamp("scheduledAt"),
+  scheduledDatesJson: text("scheduledDatesJson"),
+  instructorName: varchar("instructorName", { length: 255 }),
+  location: varchar("location", { length: 255 }),
   participantCount: int("participantCount").default(0).notNull(),
   createdByUserId: int("createdByUserId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -450,6 +453,18 @@ export const trainings = mysqlTable("trainings", {
 }, table => [
   index("trainings_workspace_idx").on(table.workspaceId),
   index("trainings_company_idx").on(table.companyId),
+]);
+
+export const trainingParticipants = mysqlTable("training_participants", {
+  id: int("id").autoincrement().primaryKey(),
+  trainingId: int("trainingId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  employeeId: int("employeeId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  uniqueIndex("training_participants_training_employee_unique").on(table.trainingId, table.employeeId),
+  index("training_participants_workspace_idx").on(table.workspaceId, table.trainingId),
+  index("training_participants_employee_idx").on(table.workspaceId, table.employeeId),
 ]);
 
 export const cipaCommissions = mysqlTable("cipa_commissions", {
