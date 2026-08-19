@@ -247,8 +247,12 @@ function addWatermarkArtwork(doc: jsPDF, nr: CertificateNr, color: string, opaci
 }
 
 function addWatermark(doc: jsPDF, nr: CertificateNr, _text: string, opacity: number, enabled: boolean, imageDataUrl: string | null, variantId: CertificateWatermarkVariantId) {
-  if (!enabled || !imageDataUrl) return;
+  if (!enabled) return;
   const theme = getCertificateWatermarkTheme(nr);
+  if (!imageDataUrl) {
+    addWatermarkArtwork(doc, nr, theme.color, opacity, true);
+    return;
+  }
   const variant = getCertificateWatermarkVariant(variantId);
   const intensity = Math.max(0.45, Math.min(opacity / 0.12, 1.7));
   const imageOpacity = Math.max(0.025, Math.min(variant.imageOpacity * intensity, 0.22));
@@ -687,7 +691,12 @@ export default function CertificateGeneratorPanel({ workspaceId, workspaceName, 
     try {
       const snapshot = { ...form };
       const snapshotExpiresAt = expiresAt;
-      const watermarkImageDataUrl = form.customWatermarkDataUrl ? form.customWatermarkDataUrl : await fetchImageAsDataUrl(watermarkAssetUrl);
+      const watermarkImageDataUrl = form.customWatermarkDataUrl
+        ? form.customWatermarkDataUrl
+        : await fetchImageAsDataUrl(watermarkAssetUrl).catch(error => {
+            console.warn("[CertificateGenerator] Imagem temática indisponível; usando marca d’água vetorial.", error);
+            return null;
+          });
       const result = await generateCertificatePdf(snapshot, logoDataUrl, signatureDataUrl, watermarkImageDataUrl);
       const url = URL.createObjectURL(result.pdfBlob);
       setCertificatePreview({ url, fileName: result.fileName, result, form: snapshot, expiresAt: snapshotExpiresAt });

@@ -43,6 +43,8 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
     expect(generatorSource).toContain("Conteúdo prático sugerido");
     expect(generatorSource).toContain("signatureDataUrl");
     expect(generatorSource).toContain("Assinatura digital do instrutor");
+    expect(generatorSource).toContain("Imagem temática indisponível; usando marca d’água vetorial.");
+    expect(generatorSource).toContain("addWatermarkArtwork(doc, nr, theme.color, opacity, true)");
     expect(generatorSource).toContain("TEMPLATE_STORAGE_KEY");
     expect(generatorSource).toContain("Salvar modelo");
     expect(generatorSource).not.toContain("previewQrDataUrl");
