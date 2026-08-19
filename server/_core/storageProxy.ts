@@ -12,6 +12,26 @@ export function registerStorageProxy(app: Express) {
 
     const publicAssetUrl = legacyPublicAssetUrls[key];
     if (publicAssetUrl) {
+      if (req.query.inline === "1") {
+        try {
+          const assetResponse = await fetch(publicAssetUrl);
+          if (!assetResponse.ok) {
+            res.status(502).send("Public asset backend error");
+            return;
+          }
+
+          const contentType = assetResponse.headers.get("content-type") ?? "application/octet-stream";
+          const bytes = Buffer.from(await assetResponse.arrayBuffer());
+          res.set("Content-Type", contentType);
+          res.set("Cache-Control", "public, max-age=31536000, immutable");
+          res.send(bytes);
+          return;
+        } catch (err) {
+          console.error("[StorageProxy] inline public asset failed:", err);
+          res.status(502).send("Public asset proxy error");
+          return;
+        }
+      }
       res.set("Cache-Control", "public, max-age=31536000, immutable");
       res.redirect(302, publicAssetUrl);
       return;

@@ -703,5 +703,7 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 - [x] Reconciliar os helpers de CIPA e vídeos do GitHub com a versão local antes de repetir o deploy.
 - [x] Validar a compilação do código que será entregue ao Render e publicar a correção de build.
 
-- [ ] Testar a emissão de certificado no portal publicado e verificar a abertura do documento gerado.
-- [ ] Corrigir a falha “Não foi possível preparar a prévia” observada ao gerar um certificado de teste.
+- [x] Testar a emissão de certificado no portal publicado e verificar a abertura do documento gerado.
+- [x] Corrigir a falha “Não foi possível preparar a prévia” observada ao gerar um certificado de teste.
+- [ ] Substituir os riscos vetoriais da marca d’água por uma imagem temática adequada no PDF de certificado.
+- [ ] Validar a apresentação fotográfica da marca d’água na prévia e no arquivo baixado.

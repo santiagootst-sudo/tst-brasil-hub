@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const dbSource = readFileSync(resolve(process.cwd(), "server/db.ts"), "utf8");
+const storageProxySource = readFileSync(resolve(process.cwd(), "server/_core/storageProxy.ts"), "utf8");
+const watermarkSource = readFileSync(resolve(process.cwd(), "client/src/lib/certificateWatermark.ts"), "utf8");
 
 describe("contratos de deploy dos módulos publicados", () => {
   it("mantém os helpers usados pelos routers de calendário CIPA e vídeos", () => {
@@ -13,5 +15,12 @@ describe("contratos de deploy dos módulos publicados", () => {
     expect(dbSource).toContain("export async function listYouTubeVideosForAdmin");
     expect(dbSource).toContain("export async function createYouTubeVideo");
     expect(dbSource).toContain("export async function updateYouTubeVideo");
+  });
+
+  it("entrega as marcas d’água de certificado na mesma origem para geração de PDF", () => {
+    expect(storageProxySource).toContain('req.query.inline === "1"');
+    expect(storageProxySource).toContain('res.send(bytes)');
+    expect(watermarkSource).toContain('inlineWatermarkUrl');
+    expect(watermarkSource).toContain('?inline=1');
   });
 });

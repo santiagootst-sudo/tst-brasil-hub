@@ -1,5 +1,5 @@
 import type { CertificateNr } from "./certificateCatalog";
-import { publicAssetUrls } from "@shared/publicAssets";
+const inlineWatermarkUrl = (key: string) => `/manus-storage/${key}?inline=1`;
 
 export type CertificateWatermarkTheme = {
   nr: CertificateNr;
@@ -64,7 +64,7 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
     eyebrow: "Prevenção coletiva",
     description: "Imagem editorial de colaboração e prevenção no ambiente de trabalho.",
     color: "#8c6f3d",
-    assetUrl: publicAssetUrls.watermarkNr05,
+    assetUrl: inlineWatermarkUrl("certificate-watermark-nr05_c09495dd.jpg"),
     kind: "cipa",
   },
   "NR-10": {
@@ -73,7 +73,7 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
     eyebrow: "Energia e proteção",
     description: "Painel elétrico industrial e cabos protegidos em composição de baixa opacidade.",
     color: "#0c8c89",
-    assetUrl: publicAssetUrls.watermarkNr10,
+    assetUrl: inlineWatermarkUrl("certificate-watermark-nr10_b040e9df.jpg"),
     kind: "electricity",
   },
   "NR-15": {
@@ -82,7 +82,7 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
     eyebrow: "Medição e controle",
     description: "Medidor de nível sonoro e proteção auditiva para representar a avaliação ocupacional.",
     color: "#2b9a70",
-    assetUrl: publicAssetUrls.watermarkNr15,
+    assetUrl: inlineWatermarkUrl("certificate-watermark-nr15_552a2d54.jpg"),
     kind: "noise",
   },
   "NR-20": {
@@ -91,7 +91,7 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
     eyebrow: "Controle de energia",
     description: "Equipamentos de transferência e chama controlada em contexto industrial seguro.",
     color: "#d78343",
-    assetUrl: publicAssetUrls.watermarkNr20,
+    assetUrl: inlineWatermarkUrl("certificate-watermark-nr20_db15a211.jpg"),
     kind: "fire",
   },
   "NR-33": {
@@ -100,7 +100,7 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
     eyebrow: "Acesso e resgate",
     description: "Acesso técnico, tripé de resgate e monitoramento atmosférico de espaço confinado.",
     color: "#c85e55",
-    assetUrl: publicAssetUrls.watermarkNr33,
+    assetUrl: inlineWatermarkUrl("certificate-watermark-nr33_6aa5caf5.jpg"),
     kind: "confined",
   },
   "NR-35": {
@@ -109,7 +109,7 @@ export const certificateWatermarkThemes: Record<CertificateNr, CertificateWaterm
     eyebrow: "Ancoragem e resgate",
     description: "Trabalhador equipado e ancorado em estrutura industrial, com leitura visual segura.",
     color: "#3b72a4",
-    assetUrl: publicAssetUrls.watermarkNr35,
+    assetUrl: inlineWatermarkUrl("certificate-watermark-nr35_3d8a561b.jpg"),
     kind: "height",
   },
 };

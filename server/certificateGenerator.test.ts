@@ -57,8 +57,9 @@ const certificatesPageSource = readFileSync(resolve(process.cwd(), "client/src/p
       const theme = certificateWatermarkThemes[nr];
       expect(theme.label.length).toBeGreaterThan(0);
       expect(theme.description.length).toBeGreaterThan(0);
-      expect(theme.assetUrl).toMatch(/^https:\/\/files\.manuscdn\.com\//);
-      expect(theme.assetUrl).toMatch(/\.jpg$/);
+      expect(theme.assetUrl).toMatch(/^\/manus-storage\/certificate-watermark-nr/);
+      expect(theme.assetUrl).toContain("?inline=1");
+      expect(theme.assetUrl).toMatch(/\.jpg(?:\?|$)/);
       expect(theme.kind.length).toBeGreaterThan(0);
     }
     expect(certificateWatermarkThemes["NR-10"].kind).toBe("electricity");
