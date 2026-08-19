@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -587,6 +587,85 @@ export async function createCipaDocumentForWorkspace(input: { workspaceId: numbe
   const inserted = await db.insert(cipaDocuments).values({ ...input, companyLogoUrl: input.companyLogoUrl ?? null });
   const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
   return (await db.select().from(cipaDocuments).where(eq(cipaDocuments.id, id)).limit(1))[0];
+}
+
+export async function listCipaMeetingsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cipaMeetings).where(eq(cipaMeetings.workspaceId, workspaceId)).orderBy(cipaMeetings.scheduledAt);
+}
+
+export async function getCipaMeetingForWorkspace(meetingId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(cipaMeetings).where(and(eq(cipaMeetings.id, meetingId), eq(cipaMeetings.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function createCipaMeetingForWorkspace(input: {
+  workspaceId: number; commissionId: number; termId: number; title: string; meetingType: "ordinary" | "extraordinary";
+  scheduledAt: Date; location?: string | null; agenda?: string | null; minutesSummary?: string | null;
+  status: "scheduled" | "completed" | "cancelled"; createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inserted = await db.insert(cipaMeetings).values({
+    ...input,
+    location: input.location ?? null,
+    agenda: input.agenda ?? null,
+    minutesSummary: input.minutesSummary ?? null,
+  });
+  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  return (await db.select().from(cipaMeetings).where(eq(cipaMeetings.id, id)).limit(1))[0];
+}
+
+export async function updateCipaMeetingForWorkspace(input: {
+  meetingId: number; workspaceId: number; title: string; meetingType: "ordinary" | "extraordinary"; scheduledAt: Date;
+  location?: string | null; agenda?: string | null; minutesSummary?: string | null; status: "scheduled" | "completed" | "cancelled";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(cipaMeetings).set({
+    title: input.title,
+    meetingType: input.meetingType,
+    scheduledAt: input.scheduledAt,
+    location: input.location ?? null,
+    agenda: input.agenda ?? null,
+    minutesSummary: input.minutesSummary ?? null,
+    status: input.status,
+    updatedAt: new Date(),
+  }).where(and(eq(cipaMeetings.id, input.meetingId), eq(cipaMeetings.workspaceId, input.workspaceId)));
+  return getCipaMeetingForWorkspace(input.meetingId, input.workspaceId);
+}
+
+export async function listPublishedYouTubeVideos() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(youtubeVideos).where(eq(youtubeVideos.status, "published")).orderBy(desc(youtubeVideos.featured), desc(youtubeVideos.publishedAt), desc(youtubeVideos.updatedAt));
+}
+
+export async function listYouTubeVideosForAdmin() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(youtubeVideos).orderBy(desc(youtubeVideos.updatedAt));
+}
+
+export async function createYouTubeVideo(input: { title: string; description: string; category: string; youtubeUrl: string; youtubeVideoId: string; thumbnailUrl: string; status: "draft" | "published" | "hidden"; featured: boolean; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const now = new Date();
+  const inserted = await db.insert(youtubeVideos).values({ ...input, publishedAt: input.status === "published" ? now : null });
+  const id = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+  return (await db.select().from(youtubeVideos).where(eq(youtubeVideos.id, id)).limit(1))[0];
+}
+
+export async function updateYouTubeVideo(id: number, input: { title: string; description: string; category: string; youtubeUrl: string; youtubeVideoId: string; thumbnailUrl: string; status: "draft" | "published" | "hidden"; featured: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const existing = (await db.select().from(youtubeVideos).where(eq(youtubeVideos.id, id)).limit(1))[0];
+  if (!existing) return undefined;
+  const publishedAt = input.status === "published" ? existing.publishedAt ?? new Date() : null;
+  await db.update(youtubeVideos).set({ ...input, publishedAt, updatedAt: new Date() }).where(eq(youtubeVideos.id, id));
+  return (await db.select().from(youtubeVideos).where(eq(youtubeVideos.id, id)).limit(1))[0];
 }
 
 export async function listMaterialsForWorkspace(workspaceId: number) {

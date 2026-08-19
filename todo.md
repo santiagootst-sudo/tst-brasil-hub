@@ -697,3 +697,9 @@ Posicionamento comercial aprovado pelo usuário em 2026-08-14.
 
 - [x] Revisar e sincronizar no GitHub as correções acumuladas de EPIs, Dashboard CLT e alternância de ambientes.
 - [x] Confirmar o hash remoto do commit enviado, sem executar deploy manual no Render.
+
+- [ ] Acionar no Render o deploy manual do commit d37e9be enviado ao GitHub.
+- [ ] Verificar que o portal publicado respondeu corretamente após a atualização.
+
+- [ ] Reconciliar os helpers de CIPA e vídeos do GitHub com a versão local antes de repetir o deploy.
+- [ ] Validar a compilação do código que será entregue ao Render e publicar a correção de build.
