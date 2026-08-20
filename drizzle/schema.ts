@@ -249,6 +249,56 @@ export const sstOccurrences = mysqlTable("sst_occurrences", {
   index("sst_occurrences_occurred_at_idx").on(table.workspaceId, table.occurredAt),
 ]);
 
+export const accidentDetails = mysqlTable("accident_details", {
+  id: int("id").autoincrement().primaryKey(),
+  occurrenceId: int("occurrenceId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  employeeId: int("employeeId"),
+  occupationalRiskId: int("occupationalRiskId"),
+  inspectionId: int("inspectionId"),
+  accidentNature: mysqlEnum("accidentNature", ["typical", "commuting", "occupational_disease", "other"]).default("typical").notNull(),
+  accidentType: varchar("accidentType", { length: 160 }),
+  injuryAgent: varchar("injuryAgent", { length: 255 }),
+  esocialAgentCode: varchar("esocialAgentCode", { length: 64 }),
+  characterization: varchar("characterization", { length: 160 }),
+  medicalTreatment: varchar("medicalTreatment", { length: 255 }),
+  daysAway: int("daysAway").default(0).notNull(),
+  catNumber: varchar("catNumber", { length: 64 }),
+  severity: mysqlEnum("severity", ["minor", "moderate", "serious", "critical"]).default("minor").notNull(),
+  immediateActions: text("immediateActions"),
+  immediateCause: text("immediateCause"),
+  rootCause: text("rootCause"),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("accident_details_occurrence_unique").on(table.occurrenceId),
+  index("accident_details_workspace_idx").on(table.workspaceId, table.severity),
+  index("accident_details_company_idx").on(table.companyId, table.departmentId),
+  index("accident_details_risk_idx").on(table.occupationalRiskId),
+]);
+
+export const accidentInjuries = mysqlTable("accident_injuries", {
+  id: int("id").autoincrement().primaryKey(),
+  accidentDetailId: int("accidentDetailId").notNull(),
+  occurrenceId: int("occurrenceId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  bodyRegion: mysqlEnum("bodyRegion", ["head", "face", "neck", "shoulder_left", "shoulder_right", "chest", "abdomen", "back", "pelvis", "arm_left", "arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "finger_left", "finger_right", "thigh_left", "thigh_right", "knee_left", "knee_right", "leg_left", "leg_right", "ankle_left", "ankle_right", "foot_left", "foot_right", "other"]).notNull(),
+  bodySide: mysqlEnum("bodySide", ["left", "right", "center", "not_applicable"]).default("not_applicable").notNull(),
+  lesionType: varchar("lesionType", { length: 160 }).notNull(),
+  severity: mysqlEnum("severity", ["minor", "moderate", "serious", "critical"]).default("minor").notNull(),
+  notes: varchar("notes", { length: 1000 }),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("accident_injuries_detail_idx").on(table.accidentDetailId, table.sortOrder),
+  index("accident_injuries_occurrence_idx").on(table.occurrenceId),
+  index("accident_injuries_workspace_region_idx").on(table.workspaceId, table.bodyRegion),
+]);
+
 export const inspectionTemplates = mysqlTable("inspection_templates", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),

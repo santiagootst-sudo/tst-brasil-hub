@@ -437,6 +437,15 @@ export const sstOccurrenceStatuses = ["open", "under_review", "closed"] as const
 export const sstOccurrenceTypeSchema = z.enum(sstOccurrenceTypes);
 export const sstOccurrenceStatusSchema = z.enum(sstOccurrenceStatuses);
 
+export const accidentNatures = ["typical", "commuting", "occupational_disease", "other"] as const;
+export const accidentSeverities = ["minor", "moderate", "serious", "critical"] as const;
+export const bodySides = ["left", "right", "center", "not_applicable"] as const;
+export const bodyRegions = ["head", "face", "neck", "shoulder_left", "shoulder_right", "chest", "abdomen", "back", "pelvis", "arm_left", "arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "finger_left", "finger_right", "thigh_left", "thigh_right", "knee_left", "knee_right", "leg_left", "leg_right", "ankle_left", "ankle_right", "foot_left", "foot_right", "other"] as const;
+export const accidentNatureSchema = z.enum(accidentNatures);
+export const accidentSeveritySchema = z.enum(accidentSeverities);
+export const bodySideSchema = z.enum(bodySides);
+export const bodyRegionSchema = z.enum(bodyRegions);
+
 export const createEpiItemInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   name: z.string().trim().min(2).max(255),
@@ -496,6 +505,37 @@ export const createSstOccurrenceInput = workspaceIdInput.extend({
   type: sstOccurrenceTypeSchema,
   occurredAt: z.coerce.date(),
   summary: z.string().trim().min(10).max(1000),
+});
+
+export const accidentInjuryInput = z.object({
+  bodyRegion: bodyRegionSchema,
+  bodySide: bodySideSchema.default("not_applicable"),
+  lesionType: z.string().trim().min(2).max(160),
+  severity: accidentSeveritySchema,
+  notes: z.string().trim().max(1000).nullable().optional(),
+});
+
+export const createAccidentInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  employeeId: z.number().int().positive().nullable().optional(),
+  occupationalRiskId: z.number().int().positive().nullable().optional(),
+  inspectionId: z.number().int().positive().nullable().optional(),
+  occurredAt: z.coerce.date(),
+  summary: z.string().trim().min(10).max(1000),
+  accidentNature: accidentNatureSchema.default("typical"),
+  accidentType: z.string().trim().max(160).nullable().optional(),
+  injuryAgent: z.string().trim().max(255).nullable().optional(),
+  esocialAgentCode: z.string().trim().max(64).nullable().optional(),
+  characterization: z.string().trim().max(160).nullable().optional(),
+  medicalTreatment: z.string().trim().max(255).nullable().optional(),
+  daysAway: z.number().int().min(0).max(3650).default(0),
+  catNumber: z.string().trim().max(64).nullable().optional(),
+  severity: accidentSeveritySchema.default("minor"),
+  immediateActions: z.string().trim().max(5000).nullable().optional(),
+  immediateCause: z.string().trim().max(5000).nullable().optional(),
+  rootCause: z.string().trim().max(5000).nullable().optional(),
+  injuries: z.array(accidentInjuryInput).min(1).max(12),
 });
 
 export const epiItemSchema = z.object({
@@ -574,6 +614,57 @@ export const sstOccurrenceSchema = z.object({
   createdByUserId: z.number().int().positive(),
   createdAt: z.date(),
   updatedAt: z.date(),
+});
+
+export const accidentInjurySchema = z.object({
+  id: z.number().int().positive(),
+  accidentDetailId: z.number().int().positive(),
+  occurrenceId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  bodyRegion: bodyRegionSchema,
+  bodySide: bodySideSchema,
+  lesionType: z.string(),
+  severity: accidentSeveritySchema,
+  notes: z.string().nullable(),
+  sortOrder: z.number().int().nonnegative(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const accidentDetailSchema = z.object({
+  id: z.number().int().positive(),
+  occurrenceId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  employeeId: z.number().int().positive().nullable(),
+  occupationalRiskId: z.number().int().positive().nullable(),
+  inspectionId: z.number().int().positive().nullable(),
+  accidentNature: accidentNatureSchema,
+  accidentType: z.string().nullable(),
+  injuryAgent: z.string().nullable(),
+  esocialAgentCode: z.string().nullable(),
+  characterization: z.string().nullable(),
+  medicalTreatment: z.string().nullable(),
+  daysAway: z.number().int().nonnegative(),
+  catNumber: z.string().nullable(),
+  severity: accidentSeveritySchema,
+  immediateActions: z.string().nullable(),
+  immediateCause: z.string().nullable(),
+  rootCause: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const accidentRecordSchema = z.object({
+  occurrence: sstOccurrenceSchema,
+  detail: accidentDetailSchema,
+  injuries: z.array(accidentInjurySchema),
+});
+
+export const accidentSnapshotSchema = z.object({
+  accidents: z.array(accidentRecordSchema),
 });
 
 export const operationalSafetySnapshotSchema = z.object({

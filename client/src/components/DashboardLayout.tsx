@@ -185,6 +185,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Estrutura e equipe", hint: "Cadastre setores, funções e pessoas da empresa para organizar a rotina de SST.", icon: UsersRound, path: "/app/estrutura" },
       { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
+      { label: "Acidentes e lesões", icon: ShieldAlert, path: "/app/acidentes" },
     ] },
     { label: "Conformidade", items: [
       { label: "Capacitação da equipe", icon: GraduationCap, path: "/app/treinamentos" },

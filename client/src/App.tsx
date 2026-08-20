@@ -14,6 +14,7 @@ import Marketplace from "./pages/MarketplaceCatalog";
 import Materials from "./pages/Materials";
 import NotFound from "./pages/NotFound";
 import Operations from "./pages/Operations";
+import Accidents from "./pages/Accidents";
 import Inspections from "./pages/Inspections";
 import Commercial from "./pages/Commercial";
 import Organization from "./pages/Organization";
@@ -29,7 +30,7 @@ import Videos from "./pages/Videos";
 import AdminVideos from "./pages/AdminVideos";
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/solicitar-acesso" component={RequestAccess} /><Route path="/planos" component={Pricing} /><Route path="/admin/materiais" component={AdminContentPanel} /><Route path="/admin/videos" component={AdminVideos} /><Route path="/admin" component={AdminPanel} /><Route path="/app/billing/success" component={BillingSuccess} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/videos" component={Videos} /><Route path="/app/marketplace" component={Marketplace} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/cipa" component={CipaAssistant} /><Route path="/app/pgr" component={PgrApp} />
+  return <Switch><Route path="/" component={Home} /><Route path="/solicitar-acesso" component={RequestAccess} /><Route path="/planos" component={Pricing} /><Route path="/admin/materiais" component={AdminContentPanel} /><Route path="/admin/videos" component={AdminVideos} /><Route path="/admin" component={AdminPanel} /><Route path="/app/billing/success" component={BillingSuccess} /><Route path="/app/visao" component={WorkspaceOverview} /><Route path="/app/estrutura" component={Organization} /><Route path="/app/operacao" component={Operations} /><Route path="/app/acidentes" component={Accidents} /><Route path="/app/inspecoes" component={Inspections} /><Route path="/app/clientes" component={Commercial} /><Route path="/app/agenda" component={Commercial} /><Route path="/app/treinamentos" component={Trainings} /><Route path="/app/biblioteca" component={Library} /><Route path="/app/videos" component={Videos} /><Route path="/app/marketplace" component={Marketplace} /><Route path="/app/materiais" component={Materials} /><Route path="/app/suporte" component={Support} /><Route path="/app/certificados" component={Certificates} /><Route path="/app/cipa" component={CipaAssistant} /><Route path="/app/pgr" component={PgrApp} />
 <Route path="/app/copsoq" component={PsychosocialApp} /><Route path="/app" component={AppDashboard} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch>;
 }
 

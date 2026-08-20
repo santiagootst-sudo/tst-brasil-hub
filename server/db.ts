@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -1083,6 +1083,61 @@ export async function createSstOccurrenceForWorkspace(input: { workspaceId: numb
   const values = { ...input, departmentId: input.departmentId ?? null, employeeId: input.employeeId ?? null, status: "open" as const };
   const inserted = await db.insert(sstOccurrences).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+export async function listAccidentRecordsForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return { accidents: [] };
+  const [details, injuries, occurrences] = await Promise.all([
+    db.select().from(accidentDetails).where(eq(accidentDetails.workspaceId, workspaceId)).orderBy(desc(accidentDetails.createdAt)),
+    db.select().from(accidentInjuries).where(eq(accidentInjuries.workspaceId, workspaceId)).orderBy(accidentInjuries.sortOrder, desc(accidentInjuries.createdAt)),
+    db.select().from(sstOccurrences).where(and(eq(sstOccurrences.workspaceId, workspaceId), eq(sstOccurrences.type, "accident"))).orderBy(desc(sstOccurrences.occurredAt)),
+  ]);
+  const occurrenceById = new Map(occurrences.map(item => [item.id, item]));
+  return {
+    accidents: details.flatMap(detail => {
+      const occurrence = occurrenceById.get(detail.occurrenceId);
+      if (!occurrence) return [];
+      return [{ occurrence, detail, injuries: injuries.filter(injury => injury.accidentDetailId === detail.id) }];
+    }),
+  };
+}
+
+export async function getAccidentRecordForWorkspace(accidentDetailId: number, workspaceId: number) {
+  const records = await listAccidentRecordsForWorkspace(workspaceId);
+  return records.accidents.find(record => record.detail.id === accidentDetailId);
+}
+
+export async function createAccidentRecordForWorkspace(input: {
+  workspaceId: number; companyId: number; departmentId?: number | null; employeeId?: number | null; occupationalRiskId?: number | null; inspectionId?: number | null;
+  occurredAt: Date; summary: string; accidentNature: "typical" | "commuting" | "occupational_disease" | "other"; accidentType?: string | null; injuryAgent?: string | null;
+  esocialAgentCode?: string | null; characterization?: string | null; medicalTreatment?: string | null; daysAway: number; catNumber?: string | null;
+  severity: "minor" | "moderate" | "serious" | "critical"; immediateActions?: string | null; immediateCause?: string | null; rootCause?: string | null;
+  injuries: Array<{ bodyRegion: "head" | "face" | "neck" | "shoulder_left" | "shoulder_right" | "chest" | "abdomen" | "back" | "pelvis" | "arm_left" | "arm_right" | "forearm_left" | "forearm_right" | "hand_left" | "hand_right" | "finger_left" | "finger_right" | "thigh_left" | "thigh_right" | "knee_left" | "knee_right" | "leg_left" | "leg_right" | "ankle_left" | "ankle_right" | "foot_left" | "foot_right" | "other"; bodySide: "left" | "right" | "center" | "not_applicable"; lesionType: string; severity: "minor" | "moderate" | "serious" | "critical"; notes?: string | null }>;
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return db.transaction(async tx => {
+    const occurrenceValues = { workspaceId: input.workspaceId, companyId: input.companyId, departmentId: input.departmentId ?? null, employeeId: input.employeeId ?? null, type: "accident" as const, occurredAt: input.occurredAt, summary: input.summary, status: "open" as const, createdByUserId: input.createdByUserId };
+    const occurrenceInsert = await tx.insert(sstOccurrences).values(occurrenceValues);
+    const occurrenceId = Number((occurrenceInsert as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+    const detailValues = {
+      occurrenceId, workspaceId: input.workspaceId, companyId: input.companyId, departmentId: input.departmentId ?? null, employeeId: input.employeeId ?? null,
+      occupationalRiskId: input.occupationalRiskId ?? null, inspectionId: input.inspectionId ?? null, accidentNature: input.accidentNature, accidentType: input.accidentType ?? null,
+      injuryAgent: input.injuryAgent ?? null, esocialAgentCode: input.esocialAgentCode ?? null, characterization: input.characterization ?? null,
+      medicalTreatment: input.medicalTreatment ?? null, daysAway: input.daysAway, catNumber: input.catNumber ?? null, severity: input.severity,
+      immediateActions: input.immediateActions ?? null, immediateCause: input.immediateCause ?? null, rootCause: input.rootCause ?? null, createdByUserId: input.createdByUserId,
+    };
+    const detailInsert = await tx.insert(accidentDetails).values(detailValues);
+    const accidentDetailId = Number((detailInsert as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+    const injuryValues = input.injuries.map((injury, sortOrder) => ({ accidentDetailId, occurrenceId, workspaceId: input.workspaceId, ...injury, notes: injury.notes ?? null, sortOrder }));
+    if (injuryValues.length) await tx.insert(accidentInjuries).values(injuryValues);
+    const [occurrence] = await tx.select().from(sstOccurrences).where(eq(sstOccurrences.id, occurrenceId)).limit(1);
+    const [detail] = await tx.select().from(accidentDetails).where(eq(accidentDetails.id, accidentDetailId)).limit(1);
+    const persistedInjuries = await tx.select().from(accidentInjuries).where(eq(accidentInjuries.accidentDetailId, accidentDetailId)).orderBy(accidentInjuries.sortOrder);
+    return { occurrence: occurrence!, detail: detail!, injuries: persistedInjuries };
+  });
 }
 
 export async function listInspectionTemplatesForWorkspace(workspaceId: number) {
