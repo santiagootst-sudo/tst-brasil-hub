@@ -51,4 +51,19 @@ describe("accidentRouter", () => {
 
     expect(db.createAccidentRecordForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 14, companyId: 3, createdByUserId: 5, injuries: [expect.objectContaining({ bodyRegion: "hand_left" })] }));
   });
+
+  it("não expõe SQL quando a persistência interna falha", async () => {
+    db.getWorkspaceForUser.mockResolvedValue(workspace("owner"));
+    db.getCompanyForWorkspace.mockResolvedValue({ id: 3, workspaceId: 14, name: "Empresa A" });
+    db.createAccidentRecordForWorkspace.mockRejectedValue(new Error("Failed query: insert into accident_details"));
+
+    await expect(accidentRouter.createCaller(context()).createAccident({ workspaceId: 14, companyId: 3, occurredAt: date, summary: "Corte na mão durante ajuste de equipamento.", injuries: [{ bodyRegion: "hand_left", bodySide: "left", lesionType: "Corte superficial", severity: "minor" }] })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o acidente neste momento. Atualize a página e tente novamente; se persistir, o ambiente precisa concluir a atualização de dados." });
+  });
+
+  it("não expõe SQL quando a consulta interna falha", async () => {
+    db.getWorkspaceForUser.mockResolvedValue(workspace("member"));
+    db.listAccidentRecordsForWorkspace.mockRejectedValue(new Error("Unknown column 'accident_details.workspaceId' in 'where clause'"));
+
+    await expect(accidentRouter.createCaller(context()).accidents({ workspaceId: 14 })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível carregar os registros de acidentes neste momento. Atualize a página e tente novamente; se persistir, o ambiente precisa concluir a atualização de dados." });
+  });
 });

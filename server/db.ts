@@ -5,6 +5,65 @@ import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAc
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
+let accidentSchemaReady: Promise<void> | null = null;
+
+async function ensureAccidentSchema(db: ReturnType<typeof drizzle>) {
+  if (accidentSchemaReady) return accidentSchemaReady;
+  accidentSchemaReady = (async () => {
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS accident_details (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      occurrenceId INT NOT NULL,
+      workspaceId INT NOT NULL,
+      companyId INT NOT NULL,
+      departmentId INT NULL,
+      employeeId INT NULL,
+      occupationalRiskId INT NULL,
+      inspectionId INT NULL,
+      accidentNature ENUM('typical','commuting','occupational_disease','other') NOT NULL DEFAULT 'typical',
+      accidentType VARCHAR(160) NULL,
+      injuryAgent VARCHAR(255) NULL,
+      esocialAgentCode VARCHAR(64) NULL,
+      characterization VARCHAR(160) NULL,
+      medicalTreatment VARCHAR(255) NULL,
+      daysAway INT NOT NULL DEFAULT 0,
+      catNumber VARCHAR(64) NULL,
+      severity ENUM('minor','moderate','serious','critical') NOT NULL DEFAULT 'minor',
+      immediateActions TEXT NULL,
+      immediateCause TEXT NULL,
+      rootCause TEXT NULL,
+      createdByUserId INT NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY accident_details_occurrence_unique (occurrenceId),
+      INDEX accident_details_workspace_idx (workspaceId, severity),
+      INDEX accident_details_company_idx (companyId, departmentId),
+      INDEX accident_details_risk_idx (occupationalRiskId)
+    )`));
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS accident_injuries (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      accidentDetailId INT NOT NULL,
+      occurrenceId INT NOT NULL,
+      workspaceId INT NOT NULL,
+      bodyRegion ENUM('head','face','neck','shoulder_left','shoulder_right','chest','abdomen','back','pelvis','arm_left','arm_right','forearm_left','forearm_right','hand_left','hand_right','finger_left','finger_right','thigh_left','thigh_right','knee_left','knee_right','leg_left','leg_right','ankle_left','ankle_right','foot_left','foot_right','other') NOT NULL,
+      bodySide ENUM('left','right','center','not_applicable') NOT NULL DEFAULT 'not_applicable',
+      lesionType VARCHAR(160) NOT NULL,
+      severity ENUM('minor','moderate','serious','critical') NOT NULL DEFAULT 'minor',
+      notes VARCHAR(1000) NULL,
+      sortOrder INT NOT NULL DEFAULT 0,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX accident_injuries_detail_idx (accidentDetailId, sortOrder),
+      INDEX accident_injuries_occurrence_idx (occurrenceId),
+      INDEX accident_injuries_workspace_region_idx (workspaceId, bodyRegion)
+    )`));
+  })();
+  try {
+    await accidentSchemaReady;
+  } catch (error) {
+    accidentSchemaReady = null;
+    throw error;
+  }
+}
 
 export async function getDb() {
   if (dbInstance) return dbInstance;
@@ -1088,6 +1147,7 @@ export async function createSstOccurrenceForWorkspace(input: { workspaceId: numb
 export async function listAccidentRecordsForWorkspace(workspaceId: number) {
   const db = await getDb();
   if (!db) return { accidents: [] };
+  await ensureAccidentSchema(db);
   const [details, injuries, occurrences] = await Promise.all([
     db.select().from(accidentDetails).where(eq(accidentDetails.workspaceId, workspaceId)).orderBy(desc(accidentDetails.createdAt)),
     db.select().from(accidentInjuries).where(eq(accidentInjuries.workspaceId, workspaceId)).orderBy(accidentInjuries.sortOrder, desc(accidentInjuries.createdAt)),
@@ -1118,6 +1178,7 @@ export async function createAccidentRecordForWorkspace(input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
+  await ensureAccidentSchema(db);
   return db.transaction(async tx => {
     const occurrenceValues = { workspaceId: input.workspaceId, companyId: input.companyId, departmentId: input.departmentId ?? null, employeeId: input.employeeId ?? null, type: "accident" as const, occurredAt: input.occurredAt, summary: input.summary, status: "open" as const, createdByUserId: input.createdByUserId };
     const occurrenceInsert = await tx.insert(sstOccurrences).values(occurrenceValues);
