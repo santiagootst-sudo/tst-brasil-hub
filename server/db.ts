@@ -1089,18 +1089,18 @@ export async function getEpiItemForWorkspace(epiItemId: number, workspaceId: num
   return (await db.select().from(epiItems).where(and(eq(epiItems.id, epiItemId), eq(epiItems.workspaceId, workspaceId))).limit(1))[0];
 }
 
-export async function createEpiItemForWorkspace(input: { workspaceId: number; companyId: number; name: string; imageUrl?: string | null; responsibleName?: string | null; renewalRequested?: boolean; caNumber?: string | null; manufacturer?: string | null; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
+export async function createEpiItemForWorkspace(input: { workspaceId: number; companyId: number; name: string; imageUrl?: string | null; responsibleName?: string | null; renewalRequested?: boolean; caNumber?: string | null; manufacturer?: string | null; lotNumber?: string | null; caExpiresAt?: Date | null; equipmentExpiresAt?: Date | null; protectionDescription?: string | null; limitations?: string | null; careInstructions?: string | null; manualUrl?: string | null; requiresTraining?: boolean; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const values = { ...input, imageUrl: input.imageUrl ?? null, responsibleName: input.responsibleName ?? null, renewalRequested: input.renewalRequested ?? false, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, expiresAt: input.expiresAt ?? null };
+  const values = { ...input, imageUrl: input.imageUrl ?? null, responsibleName: input.responsibleName ?? null, renewalRequested: input.renewalRequested ?? false, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, lotNumber: input.lotNumber ?? null, caExpiresAt: input.caExpiresAt ?? input.expiresAt ?? null, equipmentExpiresAt: input.equipmentExpiresAt ?? null, protectionDescription: input.protectionDescription ?? null, limitations: input.limitations ?? null, careInstructions: input.careInstructions ?? null, manualUrl: input.manualUrl ?? null, requiresTraining: input.requiresTraining ?? false, expiresAt: input.caExpiresAt ?? input.expiresAt ?? null };
   const inserted = await db.insert(epiItems).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values, active: true as const };
 }
 
-export async function updateEpiItemForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; name: string; imageUrl?: string | null; responsibleName?: string | null; renewalRequested?: boolean; caNumber?: string | null; manufacturer?: string | null; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
+export async function updateEpiItemForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; name: string; imageUrl?: string | null; responsibleName?: string | null; renewalRequested?: boolean; caNumber?: string | null; manufacturer?: string | null; lotNumber?: string | null; caExpiresAt?: Date | null; equipmentExpiresAt?: Date | null; protectionDescription?: string | null; limitations?: string | null; careInstructions?: string | null; manualUrl?: string | null; requiresTraining?: boolean; stockQuantity: number; minimumStock: number; expiresAt?: Date | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  await db.update(epiItems).set({ name: input.name, imageUrl: input.imageUrl ?? null, responsibleName: input.responsibleName ?? null, renewalRequested: input.renewalRequested ?? false, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, stockQuantity: input.stockQuantity, minimumStock: input.minimumStock, expiresAt: input.expiresAt ?? null }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId), eq(epiItems.companyId, input.companyId)));
+  await db.update(epiItems).set({ name: input.name, imageUrl: input.imageUrl ?? null, responsibleName: input.responsibleName ?? null, renewalRequested: input.renewalRequested ?? false, caNumber: input.caNumber ?? null, manufacturer: input.manufacturer ?? null, lotNumber: input.lotNumber ?? null, caExpiresAt: input.caExpiresAt ?? input.expiresAt ?? null, equipmentExpiresAt: input.equipmentExpiresAt ?? null, protectionDescription: input.protectionDescription ?? null, limitations: input.limitations ?? null, careInstructions: input.careInstructions ?? null, manualUrl: input.manualUrl ?? null, requiresTraining: input.requiresTraining ?? false, stockQuantity: input.stockQuantity, minimumStock: input.minimumStock, expiresAt: input.caExpiresAt ?? input.expiresAt ?? null }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId), eq(epiItems.companyId, input.companyId)));
   const updated = await getEpiItemForWorkspace(input.epiItemId, input.workspaceId);
   if (!updated) throw new Error("EPI não encontrado após a atualização.");
   return updated;
@@ -1111,19 +1111,33 @@ export async function listEpiDeliveriesForWorkspace(workspaceId: number) {
   if (!db) return [];
   return db.select().from(epiDeliveries).where(eq(epiDeliveries.workspaceId, workspaceId)).orderBy(desc(epiDeliveries.deliveredAt), desc(epiDeliveries.updatedAt));
 }
-export async function createEpiDeliveryForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; employeeId: number; quantity: number; deliveryKind: "initial" | "replacement"; deliveredAt: Date; replacementDueAt?: Date | null; notes?: string | null; signedByName?: string | null; digitalSignature?: string | null; createdByUserId: number }) {
+export async function createEpiDeliveryForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; employeeId: number; quantity: number; deliveryKind: "initial" | "replacement"; deliveryReason: "initial" | "scheduled_replacement" | "damage" | "loss" | "expiry" | "hygiene" | "other"; sourceDeliveryId?: number | null; deliveredAt: Date; replacementDueAt?: Date | null; conditionAtDelivery: "new" | "sanitized" | "inspected"; orientationTopics: string; orientationConfirmed: true; trainingRequired: boolean; trainingCompletedAt?: Date | null; deliveredByName: string; notes?: string | null; signedByName?: string | null; digitalSignature?: string | null; createdByUserId: number }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const values = {
-    ...input,
-    replacementDueAt: input.replacementDueAt ?? null,
-    notes: input.notes ?? null,
-    signedByName: input.signedByName ?? null,
-    digitalSignature: input.digitalSignature ?? null,
-    returnStatus: "delivered" as const,
-  };
   return db.transaction(async tx => {
+    const item = (await tx.select().from(epiItems).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId), eq(epiItems.companyId, input.companyId))).limit(1))[0];
+    if (!item) throw new Error("EPI não encontrado para registrar a entrega.");
+    const values = {
+      ...input,
+      sourceDeliveryId: input.sourceDeliveryId ?? null,
+      replacementDueAt: input.replacementDueAt ?? null,
+      lotNumber: item.lotNumber,
+      caNumber: item.caNumber,
+      manufacturer: item.manufacturer,
+      protectionDescription: item.protectionDescription,
+      limitations: item.limitations,
+      careInstructions: item.careInstructions,
+      orientationConfirmedAt: new Date(),
+      trainingCompletedAt: input.trainingCompletedAt ?? null,
+      receiptAcceptedAt: null,
+      receiptAcceptanceMethod: "internal_confirmation" as const,
+      notes: input.notes ?? null,
+      signedByName: input.signedByName ?? null,
+      digitalSignature: input.digitalSignature ?? null,
+      returnStatus: "delivered" as const,
+    };
     await tx.update(epiItems).set({ stockQuantity: sql`${epiItems.stockQuantity} - ${input.quantity}` }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId)));
+    if (input.sourceDeliveryId) await tx.update(epiDeliveries).set({ returnStatus: "replaced" }).where(and(eq(epiDeliveries.id, input.sourceDeliveryId), eq(epiDeliveries.workspaceId, input.workspaceId), eq(epiDeliveries.employeeId, input.employeeId)));
     const inserted = await tx.insert(epiDeliveries).values(values);
     return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
   });
@@ -1135,10 +1149,10 @@ export async function getEpiDeliveryForWorkspace(deliveryId: number, workspaceId
   return (await db.select().from(epiDeliveries).where(and(eq(epiDeliveries.id, deliveryId), eq(epiDeliveries.workspaceId, workspaceId))).limit(1))[0];
 }
 
-export async function signEpiDeliveryForWorkspace(input: { workspaceId: number; deliveryId: number; signedByName: string; digitalSignature: string }) {
+export async function signEpiDeliveryForWorkspace(input: { workspaceId: number; deliveryId: number; signedByName: string; digitalSignature: string; orientationConfirmed: true }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  await db.update(epiDeliveries).set({ signedByName: input.signedByName, digitalSignature: input.digitalSignature }).where(and(eq(epiDeliveries.id, input.deliveryId), eq(epiDeliveries.workspaceId, input.workspaceId)));
+  await db.update(epiDeliveries).set({ signedByName: input.signedByName, digitalSignature: input.digitalSignature, receiptAcceptedAt: new Date(), receiptAcceptanceMethod: "internal_confirmation" }).where(and(eq(epiDeliveries.id, input.deliveryId), eq(epiDeliveries.workspaceId, input.workspaceId)));
   const delivery = await getEpiDeliveryForWorkspace(input.deliveryId, input.workspaceId);
   if (!delivery) throw new Error("Ficha de EPI não encontrada após a assinatura.");
   return delivery;

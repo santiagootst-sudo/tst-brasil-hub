@@ -68,7 +68,7 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage.match(/Novo Funcionário/g)).toHaveLength(1);
     expect(operationsPage).toContain("isDeliverySigned");
     expect(operationsPage).toContain("signEpiDeliveryMutation");
-    expect(operationsPage).toContain("Registrar aceite na ficha");
+    expect(operationsPage).toContain("Registrar ciência na ficha");
   });
 
   it("oferece edição persistente e foto por item de EPI", () => {

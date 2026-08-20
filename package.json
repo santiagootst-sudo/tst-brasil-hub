@@ -12,7 +12,7 @@
     "test": "vitest run",
     "db:validate": "drizzle-kit check",
     "db:push": "pnpm db:validate",
-    "db:migrate": "tsx scripts/migrate-occupational-risks.ts && tsx scripts/migrate-accidents.ts"
+    "db:migrate": "tsx scripts/migrate-occupational-risks.ts && tsx scripts/migrate-accidents.ts && tsx scripts/migrate-epi-nr06.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

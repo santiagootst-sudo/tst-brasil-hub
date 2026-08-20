@@ -58,13 +58,21 @@ type EpiReceiptInput = {
   epiName?: string | null;
   caNumber?: string | null;
   manufacturer?: string | null;
+  lotNumber?: string | null;
   quantity?: number;
   deliveryKind?: string | null;
+  deliveryReason?: string | null;
   deliveredAt?: PdfDate;
   replacementDueAt?: PdfDate;
+  conditionAtDelivery?: string | null;
+  orientationTopics?: string | null;
+  orientationConfirmedAt?: PdfDate;
+  deliveredByName?: string | null;
+  receiptAcceptedAt?: PdfDate;
+  receiptAcceptanceMethod?: string | null;
   signedByName?: string | null;
   deliveryId?: number;
-  items?: Array<{ epiName: string; caNumber: string; quantity?: number; deliveryDate: PdfDate; condition?: string | null }>;
+  items?: Array<{ epiName: string; caNumber: string; lotNumber?: string | null; quantity?: number; deliveryDate: PdfDate; condition?: string | null }>;
   generatedAt?: PdfDate;
 };
 
@@ -621,7 +629,7 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
   document.setFont("helvetica", "normal");
   document.setFontSize(8.5);
   document.setTextColor(71, 99, 106);
-  const termText = "Declaro para os devidos fins, nos termos da Norma Regulamentadora NR-06 (Portaria MTP nº 6.721/2020), que recebi da empresa os Equipamentos de Proteção Individual (EPI) abaixo relacionados, em perfeito estado de conservação e uso. Comprometo-me a usá-los exclusivamente para o fim a que se destinam, responsabilizando-me pela guarda, higienização, conservação e comunicação imediata caso ocorra qualquer dano que os tornem impróprios para uso.";
+  const termText = "Registro de entrega de Equipamento de Proteção Individual nos termos da NR-06. A ficha identifica o EPI fornecido, sua condição e a ciência do trabalhador quanto ao uso adequado, limitações, limpeza, higienização, guarda, conservação, manutenção, substituição e comunicação de dano ou extravio.";
   y = writeWrapped(document, termText, 16, y, 178) + 8;
 
   document.setTextColor(12, 116, 116);
@@ -637,9 +645,9 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
   document.setFont("helvetica", "bold");
   document.setFontSize(8);
   document.text("Item / Equipamento (EPI)", 19, y + 5);
-  document.text("CA", 110, y + 5);
-  document.text("Qtd", 135, y + 5);
-  document.text("Condição / Data", 150, y + 5);
+  document.text("CA / lote", 105, y + 5);
+  document.text("Qtd", 140, y + 5);
+  document.text("Condição / Data", 153, y + 5);
   y += 7;
 
   const itemsList = input.items?.length ? input.items : [{
@@ -659,16 +667,31 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
     document.setFontSize(8);
     document.text(`${index + 1}. ${item.epiName}`, 19, y + 5);
     document.setFont("helvetica", "normal");
-    document.text(String(item.caNumber || "N/I"), 110, y + 5);
-    document.text(`${item.quantity ?? input.quantity ?? 1} un.`, 135, y + 5);
-    document.text(`${item.condition || "Novo"} (${formatDate(item.deliveryDate)})`, 150, y + 5);
+    document.text(`${String(item.caNumber || "N/I")} / ${String(item.lotNumber || input.lotNumber || "N/I")}`, 105, y + 5);
+    document.text(`${item.quantity ?? input.quantity ?? 1} un.`, 140, y + 5);
+    document.text(`${item.condition || input.conditionAtDelivery || "Novo"} (${formatDate(item.deliveryDate)})`, 153, y + 5);
     y += 8;
   });
 
-  y += 18;
+  y += 12;
+  if (input.orientationTopics || input.deliveredByName || input.orientationConfirmedAt) {
+    y = ensureSpace(document, y, 34);
+    document.setTextColor(12, 116, 116);
+    document.setFont("helvetica", "bold");
+    document.setFontSize(10);
+    document.text("03. ORIENTAÇÃO E RASTREABILIDADE", 16, y);
+    y += 6;
+    document.setFont("helvetica", "normal");
+    document.setFontSize(8);
+    document.setTextColor(71, 99, 106);
+    y = writeWrapped(document, `Orientações registradas: ${input.orientationTopics || "Uso, ajuste, limitações, manutenção, substituição, limpeza, higienização, guarda e conservação."}`, 16, y, 178) + 3;
+    document.text(`Responsável pela entrega: ${input.deliveredByName || "Não informado"} · Ciência de orientação: ${formatDate(input.orientationConfirmedAt)}`, 16, y);
+    y += 8;
+  }
+  y += 10;
   y = ensureSpace(document, y, 40);
 
-  // Bloco de Assinatura
+  // Bloco de ciência
   document.setDrawColor(189, 205, 201);
   document.line(30, y + 15, 95, y + 15);
   document.line(115, y + 15, 180, y + 15);
@@ -676,14 +699,14 @@ export function buildEpiReceiptPdf(input: EpiReceiptInput) {
   document.setFont("helvetica", "bold");
   document.setFontSize(8.5);
   document.setTextColor(16, 43, 50);
-  document.text("Assinatura do(a) Trabalhador(a)", 42, y + 20);
-  document.text("Responsável pela Entrega (TST)", 125, y + 20);
+  document.text("Ciência eletrônica interna do(a) trabalhador(a)", 26, y + 20);
+  document.text("Responsável pela entrega (SST)", 125, y + 20);
 
   if (input.signedByName) {
     document.setFont("helvetica", "normal");
     document.setFontSize(7.5);
     document.setTextColor(12, 116, 116);
-    document.text(`Aceite digital verificado: ${input.signedByName}`, 35, y + 25);
+    document.text(`Ciência interna registrada: ${input.signedByName} · ${formatDate(input.receiptAcceptedAt)}`, 35, y + 25);
   }
 
   return document;
