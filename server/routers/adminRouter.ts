@@ -1,10 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { approveAccessRequest, createManualAccess, getUserById, listAccessRequestsForAdmin, listAdminAccessAudits, listUsersForAdmin, resetAccessCredential, updateUserAccess } from "../db";
+import { approveAccessRequest, createManualAccess, getUserById, listAccessRequestsForAdmin, listAdminAccessAudits, listUsersForAdmin, resetAccessCredential, updateGeneratedAccess, updateUserAccess } from "../db";
 import { adminProcedure, router } from "../_core/trpc";
 
 const targetUserInput = z.object({
   targetUserId: z.number().int().positive(),
+});
+
+const generatedAccessInput = z.object({
+  requestId: z.number().int().positive(),
+});
+
+const generatedAccessRenewalInput = generatedAccessInput.extend({
+  durationDays: z.number().int().min(1).max(3650).default(30),
 });
 
 const renewalInput = targetUserInput.extend({
@@ -48,6 +56,17 @@ export const adminRouter = router({
     const result = await resetAccessCredential({ ...input, adminUserId: ctx.user.id, temporaryPassword });
     return { request: result.request, temporaryPassword, expiresAt: result.expiresAt };
   }),
+  disableGeneratedAccess: adminProcedure.input(generatedAccessInput).mutation(({ ctx, input }) =>
+    updateGeneratedAccess({ requestId: input.requestId, adminUserId: ctx.user.id, action: "disable", expiresAt: null })
+  ),
+  reactivateGeneratedAccess: adminProcedure.input(generatedAccessRenewalInput).mutation(({ ctx, input }) =>
+    updateGeneratedAccess({
+      requestId: input.requestId,
+      adminUserId: ctx.user.id,
+      action: "reactivate",
+      expiresAt: addDays(new Date(), input.durationDays),
+    })
+  ),
   renew: adminProcedure.input(renewalInput).mutation(async ({ ctx, input }) => {
     const target = await getUserById(input.targetUserId);
     assertManageableTarget(target, ctx.user.id);

@@ -230,12 +230,27 @@ export async function updateUserAccess(input: {
   const target = (await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1))[0];
   if (!target) throw new Error("Usuário não encontrado.");
 
-  const nextStatus = input.action === "suspend" || input.action === "disable" ? "suspended" : "active";
+  const nextStatus = input.action === "suspend" || input.action === "disable" ? "suspended" as const : "active" as const;
   const nextExpiresAt = nextStatus === "suspended" ? null : input.expiresAt;
+  const credentialRequest = target.email
+    ? (await db.select().from(accessRequests).where(eq(accessRequests.email, target.email.trim().toLowerCase())).limit(1))[0]
+    : undefined;
+
   await db.transaction(async tx => {
     await tx.update(users)
       .set({ accessStatus: nextStatus, accessExpiresAt: nextExpiresAt, updatedAt: new Date() })
       .where(eq(users.id, input.targetUserId));
+
+    if (credentialRequest?.credentialHash) {
+      await tx.update(accessRequests)
+        .set({
+          status: nextStatus === "suspended" ? "rejected" : "approved",
+          accessExpiresAt: nextExpiresAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(accessRequests.id, credentialRequest.id));
+    }
+
     await tx.insert(adminAccessAudit).values({
       targetUserId: input.targetUserId,
       adminUserId: input.adminUserId,
@@ -247,6 +262,46 @@ export async function updateUserAccess(input: {
     });
   });
   return (await db.select().from(users).where(eq(users.id, input.targetUserId)).limit(1))[0];
+}
+
+export async function updateGeneratedAccess(input: {
+  requestId: number;
+  adminUserId: number;
+  action: "disable" | "reactivate";
+  expiresAt: Date | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.id, input.requestId)).limit(1))[0];
+  if (!request || !request.credentialHash) throw new Error("A credencial gerada não foi encontrada.");
+
+  const nextCredentialStatus = input.action === "disable" ? "rejected" as const : "approved" as const;
+  const nextUserStatus = input.action === "disable" ? "suspended" as const : "active" as const;
+  const targetUser = (await db.select().from(users).where(eq(users.email, request.email)).limit(1))[0];
+
+  await db.transaction(async tx => {
+    await tx.update(accessRequests)
+      .set({ status: nextCredentialStatus, accessExpiresAt: input.expiresAt, updatedAt: new Date() })
+      .where(eq(accessRequests.id, request.id));
+
+    if (targetUser) {
+      await tx.update(users)
+        .set({ accessStatus: nextUserStatus, accessExpiresAt: input.expiresAt, updatedAt: new Date() })
+        .where(eq(users.id, targetUser.id));
+      await tx.insert(adminAccessAudit).values({
+        targetUserId: targetUser.id,
+        adminUserId: input.adminUserId,
+        action: input.action,
+        previousStatus: targetUser.accessStatus,
+        nextStatus: nextUserStatus,
+        previousExpiresAt: targetUser.accessExpiresAt,
+        nextExpiresAt: input.expiresAt,
+      });
+    }
+  });
+
+  return (await db.select().from(accessRequests).where(eq(accessRequests.id, request.id)).limit(1))[0]!;
 }
 
 export async function listAdminAccessAudits(limit = 100) {

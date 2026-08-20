@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   listAdminAccessAudits: vi.fn(),
   listUsersForAdmin: vi.fn(),
   resetAccessCredential: vi.fn(),
+  updateGeneratedAccess: vi.fn(),
   updateUserAccess: vi.fn(),
 }));
 
@@ -57,16 +58,29 @@ describe("adminRouter", () => {
     await expect(adminRouter.createCaller(context(regularUser)).grantAccess({ requestId: 31, durationDays: 30 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("cria acesso diretamente e permite redefinir a credencial de uma conta liberada", async () => {
+  it("cria acesso diretamente com período de teste e permite redefinir a credencial de uma conta liberada", async () => {
     const request = { id: 33, fullName: "Bruna SST", email: "bruna@empresa.com", status: "approved" };
-    db.createManualAccess.mockResolvedValue({ request, expiresAt: new Date("2026-09-11T00:00:00.000Z") });
+    db.createManualAccess.mockResolvedValue({ request, expiresAt: new Date("2026-08-15T00:00:00.000Z") });
     db.resetAccessCredential.mockResolvedValue({ request, expiresAt: new Date("2026-09-11T00:00:00.000Z") });
 
-    await adminRouter.createCaller(context()).createManualAccess({ fullName: "Bruna SST", email: "bruna@empresa.com", durationDays: 30 });
-    expect(db.createManualAccess).toHaveBeenCalledWith(expect.objectContaining({ fullName: "Bruna SST", email: "bruna@empresa.com", adminUserId: 1, durationDays: 30, temporaryPassword: expect.stringMatching(/^TST-/) }));
+    await adminRouter.createCaller(context()).createManualAccess({ fullName: "Bruna SST", email: "bruna@empresa.com", durationDays: 3 });
+    expect(db.createManualAccess).toHaveBeenCalledWith(expect.objectContaining({ fullName: "Bruna SST", email: "bruna@empresa.com", adminUserId: 1, durationDays: 3, temporaryPassword: expect.stringMatching(/^TST-/) }));
 
     await adminRouter.createCaller(context()).resetCredential({ email: "bruna@empresa.com", durationDays: 30 });
     expect(db.resetAccessCredential).toHaveBeenCalledWith(expect.objectContaining({ email: "bruna@empresa.com", adminUserId: 1, durationDays: 30, temporaryPassword: expect.stringMatching(/^TST-/) }));
+  });
+
+  it("desliga e reativa uma credencial gerada, inclusive antes do primeiro login", async () => {
+    const disabledRequest = { id: 33, email: "bruna@empresa.com", status: "rejected", approvedAt: new Date("2026-08-12T00:00:00.000Z") };
+    const reactivatedRequest = { ...disabledRequest, status: "approved", accessExpiresAt: new Date("2026-08-19T00:00:00.000Z") };
+    db.updateGeneratedAccess.mockResolvedValue(disabledRequest);
+
+    await adminRouter.createCaller(context()).disableGeneratedAccess({ requestId: 33 });
+    expect(db.updateGeneratedAccess).toHaveBeenCalledWith({ requestId: 33, adminUserId: 1, action: "disable", expiresAt: null });
+
+    db.updateGeneratedAccess.mockResolvedValue(reactivatedRequest);
+    await adminRouter.createCaller(context()).reactivateGeneratedAccess({ requestId: 33, durationDays: 7 });
+    expect(db.updateGeneratedAccess).toHaveBeenLastCalledWith({ requestId: 33, adminUserId: 1, action: "reactivate", expiresAt: new Date("2026-08-19T00:00:00.000Z") });
   });
 
   it("renova acesso e calcula a validade a partir do momento atual", async () => {
