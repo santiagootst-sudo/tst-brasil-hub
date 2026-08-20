@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { createDepartmentInput, createEmployeeInput, createJobRoleInput, departmentCreatedSchema, employeeCreatedSchema, jobRoleCreatedSchema, organizationSnapshotSchema, workspaceIdInput } from "@shared/contracts/portal";
+import { createDepartmentInput, createEmployeeInput, createJobRoleInput, departmentCreatedSchema, employeeCreatedSchema, employeeSchema, jobRoleCreatedSchema, organizationSnapshotSchema, updateEmployeeEmailInput, workspaceIdInput } from "@shared/contracts/portal";
 import * as portalDb from "../db";
 import { canManageWorkspace } from "../workspaceAccess";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -36,6 +36,12 @@ export const organizationRouter = router({
       if (!department || department.companyId !== input.companyId) throw new TRPCError({ code: "BAD_REQUEST", message: "O setor informado não pertence à empresa selecionada." });
     }
     return portalDb.createJobRoleForWorkspace(input);
+  }),
+  updateEmployeeEmail: protectedProcedure.input(updateEmployeeEmailInput).output(employeeSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    const employee = await portalDb.getEmployeeForWorkspace(input.employeeId, input.workspaceId);
+    if (!employee) throw new TRPCError({ code: "NOT_FOUND", message: "Trabalhador não encontrado neste ambiente." });
+    return portalDb.updateEmployeeEmailForWorkspace(input);
   }),
   createEmployee: protectedProcedure.input(createEmployeeInput).output(employeeCreatedSchema).mutation(async ({ ctx, input }) => {
     await requireManagedWorkspace(ctx.user.id, input.workspaceId);

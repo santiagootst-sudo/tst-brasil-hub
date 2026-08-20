@@ -53,3 +53,34 @@ A cópia oficial mais recente indicada pela página do MTE apresentou endereço 
 4. Prever fluxo específico de reposição por dano, extravio, validade, higienização/manutenção e devolução; preservar o histórico sem sobrescrever a entrega original.
 5. Fornecer relatórios extraíveis por empregado, EPI/CA/lote, período, setor, risco e pendências; reservar evidências de treinamento e de seleção/PGR.
 6. Diferenciar EPI descartável e creme de proteção em modalidade de ponto de distribuição quando o registro individual for inviável, com controle de estoque e informação obrigatória no local.
+
+## Evidência por OTP — e-mail transacional
+
+- A conta Resend do projeto está acessível, mas a área de domínios não possui domínio configurado nem remetente próprio pronto para produção.
+- A página oficial de preços do Resend informa plano gratuito de US$ 0/mês, até 3.000 e-mails transacionais por mês e limite de 100 e-mails por dia: https://resend.com/pricing
+- A API oficial de envio aceita remetente, destinatário, assunto e HTML/texto; também oferece `Idempotency-Key`, relevante para evitar duplicidade de OTP: https://resend.com/docs/api-reference/emails/send-email
+- Próxima dependência externa: adicionar e validar o domínio de envio da empresa, publicando os registros DNS que o Resend apresentar. Só depois o sistema poderá enviar OTP de um endereço próprio, como `epi@tstbrasilhub.com.br`.
+
+## Estado da validação do remetente
+
+O domínio `tstbrasilhub.com.br` foi cadastrado no Resend e permanece pendente de validação DNS. O provedor solicitou um registro TXT de DKIM em `resend._domainkey`, um registro MX de retorno em `send`, um registro TXT SPF em `send` e um registro DMARC opcional em `_dmarc`. A publicação desses registros precisa ocorrer no painel DNS que administra o domínio; enquanto essa etapa não for concluída, o OTP não poderá sair de um endereço institucional validado.
+
+## Administração DNS
+
+O domínio `tstbrasilhub.com.br` está publicado e utiliza os servidores DNS do próprio Registro.br. A zona pode ser alterada pela ação **Configurar zona DNS** no painel do domínio; portanto, os registros DKIM, SPF, MX e DMARC pendentes do Resend serão publicados diretamente nesse painel, sem depender de outro provedor.
+
+## Preservação da zona DNS existente
+
+Antes da autenticação do Resend, a zona DNS de `tstbrasilhub.com.br` possui somente os registros operacionais do portal: `A tstbrasilhub.com.br → 216.24.57.1` e `CNAME www.tstbrasilhub.com.br → tst-brasil-hub.onrender.com`. As entradas do Resend serão adicionadas sem alterar ou remover esses dois registros.
+
+## Publicação de autenticação de e-mail
+
+Em 20 de agosto de 2026, a zona DNS do Registro.br foi atualizada com sucesso para o domínio `tstbrasilhub.com.br`. Foram adicionados, sem alterar os registros A e CNAME existentes, o DKIM em `resend._domainkey`, o SPF em `send` e o MX em `send` com prioridade 10 apontando para o retorno do Resend. A etapa seguinte é aguardar a propagação e confirmar o status no painel do Resend antes de habilitar o envio de OTP.
+
+## Status de validação pós-publicação
+
+Após a publicação, o painel do Resend confirmou que os três registros esperados estão configurados com os mesmos nomes e valores publicados. O status ainda aparece como `Not Started`, o que indica que o provedor ainda não concluiu a consulta de propagação DNS. A próxima verificação deve ser feita pelo comando **Verify DNS Records** no próprio Resend; não houve alteração nos registros de aplicação do portal.
+
+## Segredo de produção
+
+A credencial criada no Resend possui somente a permissão **Sending access**. A configuração de produção fica no Render, em `tst-brasil-hub → Environment → Environment Variables`; nela será incluído `RESEND_API_KEY` como segredo, acompanhado do remetente e da URL pública do aplicativo. O valor da chave não é armazenado em arquivos do repositório nem em documentação.

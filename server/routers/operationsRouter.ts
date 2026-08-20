@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import { createEpiDeliveryInput, createEpiItemInput, createEpiRequirementInput, createEpiReturnInput, createSstOccurrenceInput, epiDeliveryCreatedSchema, epiDeliverySchema, epiItemCreatedSchema, epiItemSchema, epiRequirementCreatedSchema, epiReturnCreatedSchema, operationalSafetySnapshotSchema, signEpiDeliveryInput, sstOccurrenceCreatedSchema, updateEpiItemInput, workspaceIdInput } from "@shared/contracts/portal";
+import { createEpiDeliveryInput, createEpiItemInput, createEpiRequirementInput, createEpiReturnInput, createSstOccurrenceInput, epiDeliveryCreatedSchema, epiDeliverySchema, epiEvidenceDetailInput, epiEvidenceDetailSchema, epiEvidencePublicInput, epiEvidencePublicSchema, epiEvidenceSnapshotSchema, epiItemCreatedSchema, epiItemSchema, epiRequirementCreatedSchema, epiReturnCreatedSchema, listEpiEvidenceInput, operationalSafetySnapshotSchema, sendEpiEvidenceInput, signEpiDeliveryInput, sstOccurrenceCreatedSchema, updateEpiItemInput, verifyEpiEvidenceOtpInput, workspaceIdInput } from "@shared/contracts/portal";
 import * as portalDb from "../db";
 import { canManageWorkspace } from "../workspaceAccess";
-import { protectedProcedure, router } from "../_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
 async function requireWorkspaceAccess(userId: number, workspaceId: number) {
   const workspace = await portalDb.getWorkspaceForUser(workspaceId, userId);
@@ -13,6 +13,12 @@ async function requireWorkspaceAccess(userId: number, workspaceId: number) {
 async function requireManagedWorkspace(userId: number, workspaceId: number) {
   const workspace = await requireWorkspaceAccess(userId, workspaceId);
   if (!canManageWorkspace(workspace.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+}
+
+function requestIp(req: { headers?: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }) {
+  const forwarded = req.headers?.["x-forwarded-for"];
+  const value = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  return value?.split(",")[0]?.trim() || req.socket?.remoteAddress || null;
 }
 
 export const operationsRouter = router({
@@ -73,6 +79,45 @@ export const operationsRouter = router({
     const delivery = await portalDb.getEpiDeliveryForWorkspace(input.deliveryId, input.workspaceId);
     if (!delivery) throw new TRPCError({ code: "NOT_FOUND", message: "Ficha de EPI não encontrada neste ambiente." });
     return portalDb.signEpiDeliveryForWorkspace(input);
+  }),
+  sendEpiEvidence: protectedProcedure.input(sendEpiEvidenceInput).output(epiEvidenceDetailSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    try {
+      return await portalDb.createAndSendEpiEvidence({ ...input, createdByUserId: ctx.user.id });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível enviar a confirmação de recebimento.";
+      throw new TRPCError({ code: "BAD_REQUEST", message: message.includes("Não foi possível") || message.includes("Cadastre") || message.includes("já possui") ? message : "Não foi possível enviar a confirmação de recebimento. Revise a ficha e tente novamente." });
+    }
+  }),
+  getEpiEvidence: protectedProcedure.input(epiEvidenceDetailInput).output(epiEvidenceDetailSchema).query(async ({ ctx, input }) => {
+    await requireWorkspaceAccess(ctx.user.id, input.workspaceId);
+    try {
+      return await portalDb.getEpiEvidenceDetailForWorkspace(input);
+    } catch {
+      throw new TRPCError({ code: "NOT_FOUND", message: "A evidência de recebimento não foi encontrada neste ambiente." });
+    }
+  }),
+  listEpiEvidence: protectedProcedure.input(listEpiEvidenceInput).output(epiEvidenceSnapshotSchema).query(async ({ ctx, input }) => {
+    await requireWorkspaceAccess(ctx.user.id, input.workspaceId);
+    return { items: await portalDb.listEpiEvidenceForWorkspace(input) };
+  }),
+  publicEpiEvidence: publicProcedure.input(epiEvidencePublicInput).output(epiEvidencePublicSchema).query(async ({ input }) => {
+    const evidence = await portalDb.getPublicEpiEvidence(input.verificationCode);
+    if (!evidence) throw new TRPCError({ code: "NOT_FOUND", message: "Esta confirmação não foi encontrada ou não está mais disponível." });
+    return evidence;
+  }),
+  confirmEpiEvidence: publicProcedure.input(verifyEpiEvidenceOtpInput).output(epiEvidencePublicSchema).mutation(async ({ ctx, input }) => {
+    try {
+      return await portalDb.verifyPublicEpiEvidenceOtp({
+        verificationCode: input.verificationCode,
+        otp: input.otp,
+        confirmationIp: requestIp(ctx.req),
+        userAgent: typeof ctx.req.headers["user-agent"] === "string" ? ctx.req.headers["user-agent"] : null,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível confirmar o recebimento.";
+      throw new TRPCError({ code: "BAD_REQUEST", message });
+    }
   }),
   createEpiRequirement: protectedProcedure.input(createEpiRequirementInput).output(epiRequirementCreatedSchema).mutation(async ({ ctx, input }) => {
     await requireManagedWorkspace(ctx.user.id, input.workspaceId);

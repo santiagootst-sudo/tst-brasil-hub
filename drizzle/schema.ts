@@ -137,6 +137,7 @@ export const employees = mysqlTable("employees", {
   departmentId: int("departmentId"),
   jobRoleId: int("jobRoleId"),
   fullName: varchar("fullName", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
   status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
   hiredAt: timestamp("hiredAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -147,6 +148,7 @@ export const employees = mysqlTable("employees", {
   index("employees_department_idx").on(table.departmentId),
   index("employees_job_role_idx").on(table.jobRoleId),
   index("employees_status_idx").on(table.workspaceId, table.status),
+  index("employees_workspace_email_idx").on(table.workspaceId, table.email),
 ]);
 
 export const epiItems = mysqlTable("epi_items", {
@@ -219,7 +221,7 @@ export const epiDeliveries = mysqlTable("epi_deliveries", {
   trainingCompletedAt: timestamp("trainingCompletedAt"),
   deliveredByName: varchar("deliveredByName", { length: 255 }),
   receiptAcceptedAt: timestamp("receiptAcceptedAt"),
-  receiptAcceptanceMethod: mysqlEnum("receiptAcceptanceMethod", ["internal_confirmation", "biometric", "qualified_signature"]).default("internal_confirmation").notNull(),
+  receiptAcceptanceMethod: mysqlEnum("receiptAcceptanceMethod", ["internal_confirmation", "email_otp", "biometric", "qualified_signature"]).default("internal_confirmation").notNull(),
   notes: varchar("notes", { length: 1000 }),
   signedByName: varchar("signedByName", { length: 255 }),
   digitalSignature: varchar("digitalSignature", { length: 255 }),
@@ -235,6 +237,58 @@ export const epiDeliveries = mysqlTable("epi_deliveries", {
   index("epi_deliveries_replacement_idx").on(table.workspaceId, table.replacementDueAt),
   index("epi_deliveries_ca_lot_idx").on(table.workspaceId, table.caNumber, table.lotNumber),
   index("epi_deliveries_source_idx").on(table.workspaceId, table.sourceDeliveryId),
+]);
+
+export const epiDeliveryEvidence = mysqlTable("epi_delivery_evidence", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  deliveryId: int("deliveryId").notNull().unique(),
+  employeeId: int("employeeId").notNull(),
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  status: mysqlEnum("status", ["draft", "sent", "viewed", "confirmed", "expired", "revoked", "failed"]).default("draft").notNull(),
+  verificationCode: varchar("verificationCode", { length: 64 }).notNull().unique(),
+  documentHash: varchar("documentHash", { length: 64 }).notNull(),
+  documentVersion: varchar("documentVersion", { length: 32 }).default("nr06-otp-v1").notNull(),
+  snapshotJson: text("snapshotJson").notNull(),
+  otpHash: varchar("otpHash", { length: 255 }).notNull(),
+  otpExpiresAt: timestamp("otpExpiresAt").notNull(),
+  otpAttempts: int("otpAttempts").default(0).notNull(),
+  lastSentAt: timestamp("lastSentAt"),
+  lastViewedAt: timestamp("lastViewedAt"),
+  confirmedAt: timestamp("confirmedAt"),
+  confirmationIpHash: varchar("confirmationIpHash", { length: 64 }),
+  confirmationUserAgent: varchar("confirmationUserAgent", { length: 512 }),
+  providerMessageId: varchar("providerMessageId", { length: 160 }),
+  failureReason: varchar("failureReason", { length: 500 }),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("epi_delivery_evidence_verification_code_unique").on(table.verificationCode),
+  index("epi_delivery_evidence_workspace_idx").on(table.workspaceId, table.status, table.createdAt),
+  index("epi_delivery_evidence_company_idx").on(table.companyId, table.status),
+  index("epi_delivery_evidence_employee_idx").on(table.workspaceId, table.employeeId),
+]);
+
+export const epiDeliveryAuditEvents = mysqlTable("epi_delivery_audit_events", {
+  id: int("id").autoincrement().primaryKey(),
+  evidenceId: int("evidenceId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  deliveryId: int("deliveryId").notNull(),
+  eventType: mysqlEnum("eventType", ["evidence_created", "email_sent", "email_failed", "link_opened", "otp_failed", "otp_verified", "receipt_confirmed", "evidence_expired", "evidence_revoked", "support_viewed"]).notNull(),
+  actorType: mysqlEnum("actorType", ["manager", "employee", "system", "support"]).notNull(),
+  actorUserId: int("actorUserId"),
+  description: varchar("description", { length: 1000 }).notNull(),
+  metadataJson: text("metadataJson"),
+  previousHash: varchar("previousHash", { length: 64 }),
+  eventHash: varchar("eventHash", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("epi_delivery_audit_evidence_idx").on(table.evidenceId, table.createdAt),
+  index("epi_delivery_audit_workspace_idx").on(table.workspaceId, table.companyId, table.createdAt),
+  uniqueIndex("epi_delivery_audit_event_hash_unique").on(table.eventHash),
 ]);
 
 export const epiReturns = mysqlTable("epi_returns", {

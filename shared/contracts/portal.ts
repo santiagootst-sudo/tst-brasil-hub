@@ -30,7 +30,13 @@ export const createEmployeeInput = workspaceIdInput.extend({
   departmentId: z.number().int().positive().nullable().optional(),
   jobRoleId: z.number().int().positive().nullable().optional(),
   fullName: z.string().trim().min(2).max(255),
+  email: z.string().trim().email().max(320).nullable().optional(),
   hiredAt: z.coerce.date().nullable().optional(),
+});
+
+export const updateEmployeeEmailInput = workspaceIdInput.extend({
+  employeeId: z.number().int().positive(),
+  email: z.string().trim().email().max(320),
 });
 
 export const uploadCompanyLogoInput = workspaceIdInput.extend({
@@ -193,6 +199,7 @@ export const employeeSchema = z.object({
   departmentId: z.number().int().positive().nullable(),
   jobRoleId: z.number().int().positive().nullable(),
   fullName: z.string(),
+  email: z.string().nullable(),
   status: employeeStatusSchema,
   hiredAt: z.date().nullable(),
   createdAt: z.date(),
@@ -371,6 +378,7 @@ export const employeeCreatedSchema = z.object({
   departmentId: z.number().int().positive().nullable(),
   jobRoleId: z.number().int().positive().nullable(),
   fullName: z.string(),
+  email: z.string().nullable(),
   status: z.literal("active"),
   hiredAt: z.date().nullable(),
 });
@@ -499,6 +507,28 @@ export const signEpiDeliveryInput = workspaceIdInput.extend({
   orientationConfirmed: z.literal(true),
 });
 
+export const sendEpiEvidenceInput = workspaceIdInput.extend({
+  deliveryId: z.number().int().positive(),
+});
+
+export const epiEvidencePublicInput = z.object({
+  verificationCode: z.string().trim().min(20).max(64),
+});
+
+export const verifyEpiEvidenceOtpInput = epiEvidencePublicInput.extend({
+  otp: z.string().trim().regex(/^\d{6}$/, "Informe o código de 6 dígitos enviado ao seu e-mail."),
+  receiptConfirmed: z.literal(true),
+});
+
+export const epiEvidenceDetailInput = workspaceIdInput.extend({
+  deliveryId: z.number().int().positive(),
+});
+
+export const listEpiEvidenceInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive().nullable().optional(),
+  limit: z.number().int().min(1).max(500).default(100),
+});
+
 export const createEpiReturnInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   deliveryId: z.number().int().positive().nullable().optional(),
@@ -606,7 +636,7 @@ export const epiDeliverySchema = z.object({
   trainingCompletedAt: z.date().nullable(),
   deliveredByName: z.string().nullable(),
   receiptAcceptedAt: z.date().nullable(),
-  receiptAcceptanceMethod: z.enum(["internal_confirmation", "biometric", "qualified_signature"]),
+  receiptAcceptanceMethod: z.enum(["internal_confirmation", "email_otp", "biometric", "qualified_signature"]),
   notes: z.string().nullable(),
   signedByName: z.string().nullable(),
   digitalSignature: z.string().nullable(),
@@ -614,6 +644,90 @@ export const epiDeliverySchema = z.object({
   createdByUserId: z.number().int().positive(),
   createdAt: z.date(),
   updatedAt: z.date(),
+});
+
+export const epiDeliveryEvidenceStatusSchema = z.enum(["draft", "sent", "viewed", "confirmed", "expired", "revoked", "failed"]);
+export const epiDeliveryAuditEventTypeSchema = z.enum(["evidence_created", "email_sent", "email_failed", "link_opened", "otp_failed", "otp_verified", "receipt_confirmed", "evidence_expired", "evidence_revoked", "support_viewed"]);
+
+export const epiDeliveryEvidenceSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  deliveryId: z.number().int().positive(),
+  employeeId: z.number().int().positive(),
+  recipientEmail: z.string(),
+  status: epiDeliveryEvidenceStatusSchema,
+  verificationCode: z.string(),
+  documentHash: z.string().length(64),
+  documentVersion: z.string(),
+  snapshotJson: z.string(),
+  otpExpiresAt: z.date(),
+  otpAttempts: z.number().int().nonnegative(),
+  lastSentAt: z.date().nullable(),
+  lastViewedAt: z.date().nullable(),
+  confirmedAt: z.date().nullable(),
+  providerMessageId: z.string().nullable(),
+  failureReason: z.string().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const epiDeliveryAuditEventSchema = z.object({
+  id: z.number().int().positive(),
+  evidenceId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  deliveryId: z.number().int().positive(),
+  eventType: epiDeliveryAuditEventTypeSchema,
+  actorType: z.enum(["manager", "employee", "system", "support"]),
+  actorUserId: z.number().int().positive().nullable(),
+  description: z.string(),
+  metadataJson: z.string().nullable(),
+  previousHash: z.string().length(64).nullable(),
+  eventHash: z.string().length(64),
+  createdAt: z.date(),
+});
+
+export const epiEvidencePublicSchema = z.object({
+  verificationCode: z.string(),
+  status: epiDeliveryEvidenceStatusSchema,
+  documentHash: z.string().length(64),
+  documentVersion: z.string(),
+  otpExpiresAt: z.date(),
+  lastViewedAt: z.date().nullable(),
+  confirmedAt: z.date().nullable(),
+  document: z.object({
+    companyName: z.string(),
+    employeeName: z.string(),
+    epiName: z.string(),
+    caNumber: z.string().nullable(),
+    lotNumber: z.string().nullable(),
+    manufacturer: z.string().nullable(),
+    quantity: z.number().int().positive(),
+    deliveredAt: z.date(),
+    conditionAtDelivery: z.string(),
+    orientationTopics: z.string().nullable(),
+    deliveredByName: z.string().nullable(),
+  }),
+});
+
+export const epiEvidenceDetailSchema = z.object({
+  evidence: epiDeliveryEvidenceSchema,
+  events: z.array(epiDeliveryAuditEventSchema),
+  verificationUrl: z.string().url(),
+  qrCodeDataUrl: z.string(),
+});
+
+export const epiEvidenceListItemSchema = z.object({
+  evidence: epiDeliveryEvidenceSchema,
+  employeeName: z.string(),
+  epiName: z.string(),
+  companyName: z.string(),
+});
+
+export const epiEvidenceSnapshotSchema = z.object({
+  items: z.array(epiEvidenceListItemSchema),
 });
 
 export const epiReturnSchema = z.object({

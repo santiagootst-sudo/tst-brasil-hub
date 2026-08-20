@@ -59,7 +59,7 @@ describe("organizationRouter", () => {
     db.getCompanyForWorkspace.mockResolvedValue({ id: 4, workspaceId: 9, name: "Empresa A" });
     db.getDepartmentForWorkspace.mockResolvedValue({ id: 8, workspaceId: 9, companyId: 4, name: "Produção" });
     db.getJobRoleForWorkspace.mockResolvedValue({ id: 11, workspaceId: 9, companyId: 4, name: "Técnico" });
-    db.createEmployeeForWorkspace.mockResolvedValue({ id: 15, workspaceId: 9, companyId: 4, departmentId: 8, jobRoleId: 11, fullName: "Pessoa Real", hiredAt: null, status: "active" });
+    db.createEmployeeForWorkspace.mockResolvedValue({ id: 15, workspaceId: 9, companyId: 4, departmentId: 8, jobRoleId: 11, fullName: "Pessoa Real", email: null, hiredAt: null, status: "active" });
 
     await expect(organizationRouter.createCaller(context()).createEmployee({ workspaceId: 9, companyId: 4, departmentId: 8, jobRoleId: 11, fullName: "Pessoa Real", hiredAt: null })).resolves.toMatchObject({ id: 15, status: "active" });
     expect(db.createEmployeeForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: 9, companyId: 4, jobRoleId: 11 }));

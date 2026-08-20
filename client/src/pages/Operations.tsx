@@ -39,7 +39,9 @@ import {
   TrendingDown,
   RefreshCw,
   Loader2,
-  ClipboardList
+  ClipboardList,
+  MailCheck,
+  ShieldCheck
 } from "lucide-react";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadConsolidatedEpiReportPdf, downloadEpiReceiptPdf } from "@/lib/pdfReports";
@@ -56,7 +58,7 @@ export default function Operations() {
   const organization = trpc.portal.organization.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
   const operations = trpc.portal.operations.useQuery({ workspaceId }, { enabled: workspaceId > 0 });
 
-  const [currentTab, setCurrentTab] = useState<"overview" | "stock" | "deliveries" | "roles" | "employees" | "alerts">("overview");
+  const [currentTab, setCurrentTab] = useState<"overview" | "stock" | "deliveries" | "evidence" | "roles" | "employees" | "alerts">("overview");
 
   // Global & Module Search state
   const [globalSearch, setGlobalSearch] = useState("");
@@ -72,6 +74,7 @@ export default function Operations() {
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [newEmployeeName, setNewEmployeeName] = useState("");
+  const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
   const [newEmployeeCpf, setNewEmployeeCpf] = useState("");
   const [newEmployeeDepartmentId, setNewEmployeeDepartmentId] = useState<number>(0);
   const [newEmployeeRoleId, setNewEmployeeRoleId] = useState<number>(0);
@@ -113,6 +116,7 @@ export default function Operations() {
 
   // Active QR code delivery modal
   const [activeQrDelivery, setActiveQrDelivery] = useState<any | null>(null);
+  const [selectedEvidenceDeliveryId, setSelectedEvidenceDeliveryId] = useState(0);
   const [isSigningQr, setIsSigningQr] = useState(false);
   const [qrSignedSuccess, setQrSignedSuccess] = useState(false);
   const [signatureName, setSignatureName] = useState("");
@@ -123,6 +127,8 @@ export default function Operations() {
   const companies = currentWs?.companies ?? [];
   const activeCompanyId = currentCompanyId || companies[0]?.id || 0;
   const currentCompany = companies.find(c => c.id === activeCompanyId) || companies[0];
+  const evidenceList = trpc.portal.listEpiEvidence.useQuery({ workspaceId, companyId: activeCompanyId || null, limit: 300 }, { enabled: workspaceId > 0 && activeCompanyId > 0 });
+  const selectedEvidence = trpc.portal.getEpiEvidence.useQuery({ workspaceId, deliveryId: selectedEvidenceDeliveryId }, { enabled: workspaceId > 0 && selectedEvidenceDeliveryId > 0, retry: false });
 
   const current = { kind: "clt", label: "TST CLT / Empresa" };
 
@@ -159,6 +165,7 @@ export default function Operations() {
       ]);
       setIsEmployeeModalOpen(false);
       setNewEmployeeName("");
+      setNewEmployeeEmail("");
       setNewEmployeeCpf("");
       toast.success("Funcionário cadastrado. Registre uma entrega de EPI para gerar a primeira ficha.");
     },
@@ -209,6 +216,20 @@ export default function Operations() {
       toast.error(error.message || "Não foi possível registrar a assinatura da ficha.");
     },
   });
+  const sendEpiEvidenceMutation = trpc.portal.sendEpiEvidence.useMutation({
+    onSuccess: async () => {
+      await Promise.all([utils.portal.listEpiEvidence.invalidate({ workspaceId, companyId: activeCompanyId || null, limit: 300 }), utils.portal.operations.invalidate({ workspaceId })]);
+      toast.success("E-mail de confirmação enviado. A ficha e o OTP foram registrados na trilha auditável.");
+    },
+    onError: error => toast.error(error.message || "Não foi possível enviar a confirmação por e-mail."),
+  });
+  const updateEmployeeEmailMutation = trpc.portal.updateEmployeeEmail.useMutation({
+    onSuccess: async () => {
+      await utils.portal.organization.invalidate({ workspaceId });
+      toast.success("E-mail de confirmação atualizado para o trabalhador.");
+    },
+    onError: error => toast.error(error.message || "Não foi possível atualizar o e-mail."),
+  });
 
   // Mappings
   const employeeNameById = useMemo(() => new Map<number, string>(employees.map((e: any) => [e.id, e.fullName])), [employees]);
@@ -224,7 +245,8 @@ export default function Operations() {
     return new Date(item.expiresAt).getTime() <= now + thirtyDays;
   });
 
-  const isDeliverySigned = (delivery: any) => Boolean(delivery.signedByName || delivery.digitalSignature);
+  const evidenceByDeliveryId = useMemo(() => new Map<number, any>((evidenceList.data?.items ?? []).map((item: any) => [item.evidence.deliveryId, item.evidence])), [evidenceList.data?.items]);
+  const isDeliverySigned = (delivery: any) => evidenceByDeliveryId.get(delivery.id)?.status === "confirmed" || Boolean(delivery.signedByName || delivery.digitalSignature);
   const pendingDeliveries = deliveries.filter((delivery: any) => !isDeliverySigned(delivery));
 
   const [profileDepartmentFilter, setProfileDepartmentFilter] = useState(0);
@@ -252,7 +274,7 @@ export default function Operations() {
 
   useEffect(() => {
     if (requestedTab === "employee_profile") setCurrentTab("deliveries");
-    if (requestedTab === "overview" || requestedTab === "stock" || requestedTab === "deliveries" || requestedTab === "employees") setCurrentTab(requestedTab);
+    if (requestedTab === "overview" || requestedTab === "stock" || requestedTab === "deliveries" || requestedTab === "evidence" || requestedTab === "employees") setCurrentTab(requestedTab);
     if (requestedStockView === "table" || requestedStockView === "kanban") setStockView(requestedStockView);
     if (requestedArchiveView === "sectors" || requestedArchiveView === "employees") setArchiveView(requestedArchiveView);
   }, [requestedTab, requestedStockView, requestedArchiveView]);
@@ -338,6 +360,26 @@ export default function Operations() {
     setActiveQrDelivery(delivery);
     setSignatureName(employeeNameById.get(delivery.employeeId) || "");
     setQrSignedSuccess(false);
+  };
+
+  const sendOtpConfirmation = (delivery: any) => {
+    const employee = employees.find((item: any) => item.id === delivery.employeeId);
+    if (!employee?.email) {
+      toast.error("Cadastre o e-mail do trabalhador na aba Funcionários antes de enviar a confirmação OTP.");
+      return;
+    }
+    sendEpiEvidenceMutation.mutate({ workspaceId, deliveryId: delivery.id });
+  };
+
+  const updateEmployeeOtpEmail = (employee: any) => {
+    const email = window.prompt(`E-mail para a confirmação de EPI de ${employee.fullName}:`, employee.email || "");
+    if (email === null) return;
+    const normalized = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(normalized)) {
+      toast.error("Informe um e-mail válido para a confirmação OTP.");
+      return;
+    }
+    updateEmployeeEmailMutation.mutate({ workspaceId, employeeId: employee.id, email: normalized });
   };
 
   const collapseAllArchiveFolders = () => {
@@ -501,6 +543,13 @@ export default function Operations() {
                     {pendingDeliveries.length}
                   </span>
                 )}
+              </button>
+              <button
+                onClick={() => setCurrentTab("evidence")}
+                className={`border-b-2 px-3 py-2 text-xs font-semibold transition-colors flex items-center gap-1.5 ${currentTab === "evidence" ? "border-[#15803d] text-[#15803d]" : "border-transparent text-[#6b7280] hover:text-[#111827]"}`}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" /> Evidências
+                {(evidenceList.data?.items?.length ?? 0) > 0 && <span className="grid h-4 w-4 place-items-center rounded-full bg-[#0c7474] text-[9px] text-white">{evidenceList.data?.items?.length}</span>}
               </button>
               <button
                 onClick={() => setCurrentTab("employees")}
@@ -958,19 +1007,17 @@ export default function Operations() {
                                   )}
                                 </div>
                                 <p className="text-[11px] text-[#668087]">Qtde: {d.quantity} un. • {new Date(d.deliveredAt).toLocaleDateString("pt-BR")}</p>
-                                <div className="flex items-center gap-2 pt-1">
-                                  {!isDeliverySigned(d) ? (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        openSignatureDialog(d);
-                                      }}
-                                      className="w-full h-7 rounded-lg bg-[#0c7474] text-white text-[11px] font-bold hover:bg-[#063b43]"
-                                    >
-                                      <QrCode className="h-3 w-3 mr-1" /> Assinar QR Code
+                                {evidenceByDeliveryId.get(d.id) && <p className={`text-[10px] font-bold ${evidenceByDeliveryId.get(d.id)?.status === "confirmed" ? "text-emerald-700" : "text-[#3173a8]"}`}>{evidenceByDeliveryId.get(d.id)?.status === "confirmed" ? "OTP confirmado e auditável" : `Evidência OTP: ${evidenceByDeliveryId.get(d.id)?.status}`}</p>}
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                  {!isDeliverySigned(d) ? <>
+                                    <Button size="sm" disabled={sendEpiEvidenceMutation.isPending} onClick={() => sendOtpConfirmation(d)} className="h-7 flex-1 rounded-lg bg-[#0c7474] text-white text-[11px] font-bold hover:bg-[#063b43]">
+                                      <MailCheck className="h-3 w-3 mr-1" /> {evidenceByDeliveryId.get(d.id) ? "Reenviar OTP" : "Enviar OTP"}
                                     </Button>
-                                  ) : null}
-                                  <Button size="sm" variant="outline" onClick={() => handleDownloadReceipt(d)} className="w-full h-7 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#3173a8]">
+                                    <Button size="sm" variant="outline" onClick={() => openSignatureDialog(d)} className="h-7 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#668087]" title="Contingência: ciência eletrônica interna">
+                                      <QrCode className="h-3 w-3" />
+                                    </Button>
+                                  </> : null}
+                                  <Button size="sm" variant="outline" onClick={() => handleDownloadReceipt(d)} className="h-7 flex-1 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#3173a8]">
                                     <Download className="mr-1 h-3 w-3" /> Exportar ficha PDF
                                   </Button>
                                 </div>
@@ -989,6 +1036,9 @@ export default function Operations() {
           </div>
         )}
 
+        {/* Central de Evidências NR-06 */}
+        {currentTab === "evidence" && <section className="space-y-5"><div className="rounded-3xl border border-[#b9e3d7] bg-[linear-gradient(135deg,#f3fffb,#edf8f6)] p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Central de evidências NR-06</p><h3 className="mt-1 text-xl font-bold text-[#102b32]">Comprovação auditável por empresa</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-[#4e6e73]">Cada confirmação é salva de forma isolada por ambiente e empresa. A ficha congelada, seu hash, o link verificável, o QR Code e os eventos encadeados ficam disponíveis nesta central para consulta do responsável e apresentação em auditoria.</p></div><div className="rounded-2xl border border-[#b9e3d7] bg-white px-4 py-3 text-xs text-[#315158]"><strong className="block text-[#0c7474]">Local de guarda</strong><span className="mt-1 block">Evidência: <code>epi_delivery_evidence</code></span><span className="mt-1 block">Trilha: <code>epi_delivery_audit_events</code></span></div></div></div><div className="overflow-hidden rounded-3xl border border-[#dcebe8] bg-white shadow-xs"><div className="flex items-center justify-between border-b border-[#edf4f1] px-5 py-4"><div><h4 className="font-bold text-[#102b32]">Fichas com confirmação por e-mail</h4><p className="mt-1 text-xs text-[#668087]">Empresa em foco: {currentCompany?.name ?? "Não selecionada"}</p></div><span className="rounded-full bg-[#e8f6f1] px-3 py-1 text-xs font-bold text-[#0c7474]">{evidenceList.data?.items?.length ?? 0} evidência(s)</span></div>{evidenceList.isLoading ? <div className="grid min-h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-[#0c7474]" /></div> : evidenceList.data?.items?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[860px] text-left text-xs"><thead className="bg-[#f8fbfa] text-[#668087]"><tr><th className="px-5 py-3 font-bold">Trabalhador / EPI</th><th className="px-5 py-3 font-bold">Status</th><th className="px-5 py-3 font-bold">Documento</th><th className="px-5 py-3 font-bold">Envio / confirmação</th><th className="px-5 py-3 text-right font-bold">Auditoria</th></tr></thead><tbody className="divide-y divide-[#edf4f1]">{evidenceList.data.items.map((item: any) => <tr key={item.evidence.id} className="hover:bg-[#fcfefd]"><td className="px-5 py-4"><strong className="block text-[#17383e]">{item.employeeName}</strong><span className="mt-1 block text-[#668087]">{item.epiName} · ficha #{item.evidence.deliveryId}</span></td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${item.evidence.status === "confirmed" ? "bg-emerald-100 text-emerald-800" : item.evidence.status === "failed" || item.evidence.status === "expired" || item.evidence.status === "revoked" ? "bg-rose-100 text-rose-800" : "bg-blue-100 text-blue-800"}`}>{item.evidence.status === "confirmed" ? "Confirmado por OTP" : item.evidence.status === "sent" ? "OTP enviado" : item.evidence.status === "viewed" ? "Ficha visualizada" : item.evidence.status}</span></td><td className="px-5 py-4 font-mono text-[10px] text-[#506c71]">{item.evidence.documentHash.slice(0, 20)}…</td><td className="px-5 py-4 text-[#668087]"><span className="block">Envio: {item.evidence.lastSentAt ? new Date(item.evidence.lastSentAt).toLocaleString("pt-BR") : "não enviado"}</span><span className="block">Confirmação: {item.evidence.confirmedAt ? new Date(item.evidence.confirmedAt).toLocaleString("pt-BR") : "pendente"}</span></td><td className="px-5 py-4 text-right"><Button size="sm" onClick={() => setSelectedEvidenceDeliveryId(item.evidence.deliveryId)} className="h-8 rounded-lg bg-[#0c7474] text-[11px] font-bold text-white"><Eye className="mr-1 h-3.5 w-3.5" /> Ver trilha</Button></td></tr>)}</tbody></table></div> : <div className="px-6 py-14 text-center"><ShieldCheck className="mx-auto h-9 w-9 text-[#93b9b1]" /><h4 className="mt-3 font-bold text-[#315158]">Nenhuma evidência por OTP nesta empresa</h4><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#668087]">Registre a entrega, cadastre o e-mail do trabalhador e use “Enviar OTP” no arquivo de fichas. A primeira tentativa cria a evidência imutável e sua trilha de auditoria.</p></div>}</div></section>}
+
         {/* Aba Funcionários */}
         {currentTab === "employees" && (
           <div className="space-y-4">
@@ -1006,6 +1056,7 @@ export default function Operations() {
                     <tr>
                       <th className="p-4 font-bold">Colaborador</th>
                       <th className="p-4 font-bold">CPF</th>
+                      <th className="p-4 font-bold">E-mail OTP</th>
                       <th className="p-4 font-bold">Setor</th>
                       <th className="p-4 font-bold">Função / Cargo</th>
                       <th className="p-4 font-bold text-right">Fichas de EPI</th>
@@ -1026,10 +1077,11 @@ export default function Operations() {
                             {emp.fullName}
                           </td>
                           <td className="p-4 font-mono text-[#668087]">{emp.cpf || "Não informado"}</td>
+                          <td className={`p-4 text-xs ${emp.email ? "text-[#0c7474]" : "text-[#a85a16]"}`}>{emp.email || "Não cadastrado"}</td>
                           <td className="p-4 text-[#668087]">{deptName}</td>
                           <td className="p-4 text-[#668087]">{roleName}</td>
                           <td className="p-4 text-right font-bold text-[#0c7474]">{empDeliveries.length} entregas</td>
-                          <td className="p-4 text-right"><Button type="button" size="sm" onClick={() => { setDeliveryEmployeeId(emp.id); setDeliveryEpiItemId(0); setIsDeliveryModalOpen(true); }} className="h-8 rounded-lg bg-[#3173a8] text-[11px] font-bold text-white hover:bg-[#235882]"><Plus className="mr-1 h-3.5 w-3.5" /> Entregar EPI</Button></td>
+                          <td className="p-4 text-right"><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="outline" disabled={updateEmployeeEmailMutation.isPending} onClick={() => updateEmployeeOtpEmail(emp)} className="h-8 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#0c7474]"><MailCheck className="mr-1 h-3.5 w-3.5" /> {emp.email ? "Editar e-mail" : "Cadastrar e-mail"}</Button><Button type="button" size="sm" onClick={() => { setDeliveryEmployeeId(emp.id); setDeliveryEpiItemId(0); setIsDeliveryModalOpen(true); }} className="h-8 rounded-lg bg-[#3173a8] text-[11px] font-bold text-white hover:bg-[#235882]"><Plus className="mr-1 h-3.5 w-3.5" /> Entregar EPI</Button></div></td>
                         </tr>
                       );
                     })}
@@ -1040,6 +1092,8 @@ export default function Operations() {
           </div>
         )}
       </ModulePage>
+
+      {selectedEvidenceDeliveryId > 0 && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"><section className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between border-b border-[#e4efed] pb-4"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Dossiê de evidência NR-06</p><h3 className="mt-1 text-xl font-bold text-[#102b32]">Trilha verificável de recebimento</h3></div><Button variant="ghost" size="icon" onClick={() => setSelectedEvidenceDeliveryId(0)}><X className="h-5 w-5" /></Button></div>{selectedEvidence.isLoading ? <div className="grid min-h-60 place-items-center"><Loader2 className="h-7 w-7 animate-spin text-[#0c7474]" /></div> : selectedEvidence.data ? <div className="mt-5 space-y-5"><div className="grid gap-4 md:grid-cols-[1fr_180px]"><div className="rounded-2xl border border-[#dcebe8] bg-[#f8fbfa] p-4"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#0c7474]">Integridade da ficha</p><p className="mt-2 break-all font-mono text-xs text-[#315158]">SHA-256: {selectedEvidence.data.evidence.documentHash}</p><p className="mt-3 text-sm text-[#668087]">Status: <strong className="text-[#17383e]">{selectedEvidence.data.evidence.status}</strong> · Confirmação: {selectedEvidence.data.evidence.confirmedAt ? new Date(selectedEvidence.data.evidence.confirmedAt).toLocaleString("pt-BR") : "pendente"}</p><a href={selectedEvidence.data.verificationUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-bold text-[#0c7474] underline">Abrir página de verificação</a></div><div className="rounded-2xl border border-[#dcebe8] bg-white p-3 text-center"><img src={selectedEvidence.data.qrCodeDataUrl} alt="QR Code de verificação da ficha" className="mx-auto h-36 w-36" /><p className="mt-2 text-[10px] leading-4 text-[#668087]">QR Code verifica a ficha congelada com o link individual.</p></div></div><section><h4 className="font-bold text-[#17383e]">Linha do tempo imutável</h4><div className="mt-3 space-y-3 border-l-2 border-[#b9e3d7] pl-4">{selectedEvidence.data.events.map((event: any) => <div key={event.id} className="relative rounded-xl border border-[#e0eeeb] bg-white p-3"><span className="absolute -left-[23px] top-4 h-3 w-3 rounded-full bg-[#0c7474] ring-4 ring-[#effaf7]" /><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm text-[#23454b]">{event.description}</strong><time className="text-xs text-[#668087]">{new Date(event.createdAt).toLocaleString("pt-BR")}</time></div><p className="mt-1 break-all font-mono text-[10px] text-[#78948f]">Hash: {event.eventHash}</p></div>)}</div></section></div> : <p className="py-10 text-center text-sm text-[#668087]">Não foi possível carregar este dossiê.</p>}</section></div>}
 
       {/* Modal de ciência eletrônica interna via QR Code */}
       {activeQrDelivery && (
@@ -1177,6 +1231,18 @@ export default function Operations() {
               </div>
 
               <div className="space-y-1">
+                <label className="text-xs font-bold text-[#23454b]">E-mail para confirmação de EPI</label>
+                <Input
+                  value={newEmployeeEmail}
+                  onChange={e => setNewEmployeeEmail(e.target.value)}
+                  type="email"
+                  placeholder="Ex.: trabalhador@empresa.com.br"
+                  className="rounded-xl border-[#cfe3de] h-10 text-xs"
+                />
+                <p className="text-[11px] leading-4 text-[#668087]">Usado somente para enviar o código de confirmação do recebimento de EPI.</p>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-xs font-bold text-[#23454b]">CPF (Opcional - Validação de Duplicidade)</label>
                 <Input
                   value={newEmployeeCpf}
@@ -1257,7 +1323,7 @@ export default function Operations() {
                   Cancelar
                 </Button>
                 <Button
-                  disabled={createEmployeeMutation.isPending || newEmployeeName.trim().length < 2}
+                  disabled={createEmployeeMutation.isPending || newEmployeeName.trim().length < 2 || Boolean(newEmployeeEmail.trim() && !/^\S+@\S+\.\S+$/.test(newEmployeeEmail.trim()))}
                   onClick={() => {
                     const cleanCpf = newEmployeeCpf.replace(/\D/g, "");
                     if (cleanCpf.length === 11) {
@@ -1271,6 +1337,7 @@ export default function Operations() {
                       workspaceId,
                       companyId: activeCompanyId,
                       fullName: newEmployeeName.trim(),
+                      email: newEmployeeEmail.trim() || null,
                       departmentId: newEmployeeDepartmentId || null,
                       jobRoleId: newEmployeeRoleId || null,
                       hiredAt: null

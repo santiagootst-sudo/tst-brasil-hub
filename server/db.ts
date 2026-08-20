@@ -1,12 +1,13 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiDeliveryAuditEvents, epiDeliveryEvidence, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 let accidentSchemaReady: Promise<void> | null = null;
 let occupationalRiskSchemaReady: Promise<void> | null = null;
+let epiEvidenceSchemaReady: Promise<void> | null = null;
 
 async function ensureOccupationalRiskSchema(db: ReturnType<typeof drizzle>) {
   if (occupationalRiskSchemaReady) return occupationalRiskSchemaReady;
@@ -123,6 +124,66 @@ async function ensureAccidentSchema(db: ReturnType<typeof drizzle>) {
     await accidentSchemaReady;
   } catch (error) {
     accidentSchemaReady = null;
+    throw error;
+  }
+}
+
+async function ensureEpiEvidenceSchema(db: ReturnType<typeof drizzle>) {
+  if (epiEvidenceSchemaReady) return epiEvidenceSchemaReady;
+  epiEvidenceSchemaReady = (async () => {
+    await db.execute(sql.raw("ALTER TABLE employees ADD COLUMN IF NOT EXISTS email VARCHAR(320) NULL"));
+    await db.execute(sql.raw("CREATE INDEX IF NOT EXISTS employees_workspace_email_idx ON employees (workspaceId, email)"));
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS epi_delivery_evidence (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      workspaceId INT NOT NULL,
+      companyId INT NOT NULL,
+      deliveryId INT NOT NULL UNIQUE,
+      employeeId INT NOT NULL,
+      recipientEmail VARCHAR(320) NOT NULL,
+      status ENUM('draft','sent','viewed','confirmed','expired','revoked','failed') NOT NULL DEFAULT 'draft',
+      verificationCode VARCHAR(64) NOT NULL UNIQUE,
+      documentHash VARCHAR(64) NOT NULL,
+      documentVersion VARCHAR(32) NOT NULL DEFAULT 'nr06-otp-v1',
+      snapshotJson TEXT NOT NULL,
+      otpHash VARCHAR(255) NOT NULL,
+      otpExpiresAt TIMESTAMP NOT NULL,
+      otpAttempts INT NOT NULL DEFAULT 0,
+      lastSentAt TIMESTAMP NULL,
+      lastViewedAt TIMESTAMP NULL,
+      confirmedAt TIMESTAMP NULL,
+      confirmationIpHash VARCHAR(64) NULL,
+      confirmationUserAgent VARCHAR(512) NULL,
+      providerMessageId VARCHAR(160) NULL,
+      failureReason VARCHAR(500) NULL,
+      createdByUserId INT NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX epi_delivery_evidence_workspace_idx (workspaceId, status, createdAt),
+      INDEX epi_delivery_evidence_company_idx (companyId, status),
+      INDEX epi_delivery_evidence_employee_idx (workspaceId, employeeId)
+    )`));
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS epi_delivery_audit_events (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      evidenceId INT NOT NULL,
+      workspaceId INT NOT NULL,
+      companyId INT NOT NULL,
+      deliveryId INT NOT NULL,
+      eventType ENUM('evidence_created','email_sent','email_failed','link_opened','otp_failed','otp_verified','receipt_confirmed','evidence_expired','evidence_revoked','support_viewed') NOT NULL,
+      actorType ENUM('manager','employee','system','support') NOT NULL,
+      actorUserId INT NULL,
+      description VARCHAR(1000) NOT NULL,
+      metadataJson TEXT NULL,
+      previousHash VARCHAR(64) NULL,
+      eventHash VARCHAR(64) NOT NULL UNIQUE,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX epi_delivery_audit_evidence_idx (evidenceId, createdAt),
+      INDEX epi_delivery_audit_workspace_idx (workspaceId, companyId, createdAt)
+    )`));
+  })();
+  try {
+    await epiEvidenceSchemaReady;
+  } catch (error) {
+    epiEvidenceSchemaReady = null;
     throw error;
   }
 }
@@ -1064,17 +1125,28 @@ export async function listEmployeesForWorkspace(workspaceId: number) {
   return db.select().from(employees).where(eq(employees.workspaceId, workspaceId)).orderBy(desc(employees.updatedAt));
 }
 
-export async function createEmployeeForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; jobRoleId?: number | null; fullName: string; hiredAt?: Date | null }) {
+export async function createEmployeeForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; jobRoleId?: number | null; fullName: string; email?: string | null; hiredAt?: Date | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const inserted = await db.insert(employees).values({ ...input, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" });
-  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" as const };
+  const email = input.email?.trim().toLowerCase() || null;
+  const inserted = await db.insert(employees).values({ ...input, email, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, email, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" as const };
 }
 
 export async function getEmployeeForWorkspace(employeeId: number, workspaceId: number) {
   const db = await getDb();
   if (!db) return undefined;
   return (await db.select().from(employees).where(and(eq(employees.id, employeeId), eq(employees.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function updateEmployeeEmailForWorkspace(input: { workspaceId: number; employeeId: number; email: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await ensureEpiEvidenceSchema(db);
+  await db.update(employees).set({ email: input.email.trim().toLowerCase(), updatedAt: new Date() }).where(and(eq(employees.id, input.employeeId), eq(employees.workspaceId, input.workspaceId)));
+  const employee = await getEmployeeForWorkspace(input.employeeId, input.workspaceId);
+  if (!employee) throw new Error("Trabalhador não encontrado após a atualização.");
+  return employee;
 }
 
 export async function listEpiItemsForWorkspace(workspaceId: number) {
@@ -1156,6 +1228,364 @@ export async function signEpiDeliveryForWorkspace(input: { workspaceId: number; 
   const delivery = await getEpiDeliveryForWorkspace(input.deliveryId, input.workspaceId);
   if (!delivery) throw new Error("Ficha de EPI não encontrada após a assinatura.");
   return delivery;
+}
+
+type EpiEvidenceEventType = "evidence_created" | "email_sent" | "email_failed" | "link_opened" | "otp_failed" | "otp_verified" | "receipt_confirmed" | "evidence_expired" | "evidence_revoked" | "support_viewed";
+type EpiEvidenceActorType = "manager" | "employee" | "system" | "support";
+
+type EpiEvidenceSnapshot = {
+  companyName: string;
+  employeeName: string;
+  epiName: string;
+  caNumber: string | null;
+  lotNumber: string | null;
+  manufacturer: string | null;
+  quantity: number;
+  deliveredAt: string;
+  conditionAtDelivery: string;
+  orientationTopics: string | null;
+  deliveredByName: string | null;
+  protectionDescription: string | null;
+  limitations: string | null;
+  careInstructions: string | null;
+  trainingRequired: boolean;
+  trainingCompletedAt: string | null;
+};
+
+function sha256(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "e-mail informado";
+  return `${local.slice(0, 2)}${"•".repeat(Math.max(1, local.length - 2))}@${domain}`;
+}
+
+function getEpiEvidenceBaseUrl() {
+  return (process.env.APP_BASE_URL || "https://tstbrasilhub.com.br").replace(/\/$/, "");
+}
+
+function parseEvidenceSnapshot(snapshotJson: string): EpiEvidenceSnapshot {
+  return JSON.parse(snapshotJson) as EpiEvidenceSnapshot;
+}
+
+async function appendEpiEvidenceAuditEvent(db: ReturnType<typeof drizzle>, input: {
+  evidenceId: number;
+  workspaceId: number;
+  companyId: number;
+  deliveryId: number;
+  eventType: EpiEvidenceEventType;
+  actorType: EpiEvidenceActorType;
+  actorUserId?: number | null;
+  description: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const previous = (await db.select({ eventHash: epiDeliveryAuditEvents.eventHash })
+    .from(epiDeliveryAuditEvents)
+    .where(eq(epiDeliveryAuditEvents.evidenceId, input.evidenceId))
+    .orderBy(desc(epiDeliveryAuditEvents.id))
+    .limit(1))[0];
+  const createdAt = new Date();
+  const metadataJson = input.metadata ? JSON.stringify(input.metadata) : null;
+  const previousHash = previous?.eventHash ?? null;
+  const eventHash = sha256([previousHash ?? "GENESIS", input.evidenceId, input.eventType, input.actorType, input.description, metadataJson ?? "", createdAt.toISOString()].join("|"));
+  await db.insert(epiDeliveryAuditEvents).values({
+    evidenceId: input.evidenceId,
+    workspaceId: input.workspaceId,
+    companyId: input.companyId,
+    deliveryId: input.deliveryId,
+    eventType: input.eventType,
+    actorType: input.actorType,
+    actorUserId: input.actorUserId ?? null,
+    description: input.description,
+    metadataJson,
+    previousHash,
+    eventHash,
+    createdAt,
+  });
+}
+
+async function expireEpiEvidenceIfNeeded(db: ReturnType<typeof drizzle>, evidence: typeof epiDeliveryEvidence.$inferSelect) {
+  if (["confirmed", "revoked", "expired"].includes(evidence.status) || evidence.otpExpiresAt.getTime() > Date.now()) return evidence;
+  await db.update(epiDeliveryEvidence).set({ status: "expired", updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
+  await appendEpiEvidenceAuditEvent(db, {
+    evidenceId: evidence.id,
+    workspaceId: evidence.workspaceId,
+    companyId: evidence.companyId,
+    deliveryId: evidence.deliveryId,
+    eventType: "evidence_expired",
+    actorType: "system",
+    description: "O prazo de confirmação por e-mail expirou.",
+  });
+  return { ...evidence, status: "expired" as const };
+}
+
+export async function createAndSendEpiEvidence(input: { workspaceId: number; deliveryId: number; createdByUserId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para registrar a confirmação de EPI.");
+  await ensureEpiEvidenceSchema(db);
+  const delivery = await getEpiDeliveryForWorkspace(input.deliveryId, input.workspaceId);
+  if (!delivery) throw new Error("Ficha de entrega de EPI não encontrada.");
+  const [employee, item, company] = await Promise.all([
+    getEmployeeForWorkspace(delivery.employeeId, input.workspaceId),
+    getEpiItemForWorkspace(delivery.epiItemId, input.workspaceId),
+    getCompanyForWorkspace(delivery.companyId, input.workspaceId),
+  ]);
+  if (!employee || !item || !company) throw new Error("Não foi possível compor a evidência da entrega de EPI.");
+  if (!employee.email?.trim()) throw new Error("Cadastre o e-mail do trabalhador antes de enviar a confirmação de recebimento.");
+
+  const recipientEmail = employee.email.trim().toLowerCase();
+  const snapshot: EpiEvidenceSnapshot = {
+    companyName: company.name,
+    employeeName: employee.fullName,
+    epiName: item.name,
+    caNumber: delivery.caNumber,
+    lotNumber: delivery.lotNumber,
+    manufacturer: delivery.manufacturer,
+    quantity: delivery.quantity,
+    deliveredAt: delivery.deliveredAt.toISOString(),
+    conditionAtDelivery: delivery.conditionAtDelivery,
+    orientationTopics: delivery.orientationTopics,
+    deliveredByName: delivery.deliveredByName,
+    protectionDescription: delivery.protectionDescription,
+    limitations: delivery.limitations,
+    careInstructions: delivery.careInstructions,
+    trainingRequired: delivery.trainingRequired,
+    trainingCompletedAt: delivery.trainingCompletedAt?.toISOString() ?? null,
+  };
+  const snapshotJson = JSON.stringify(snapshot);
+  const documentHash = sha256(snapshotJson);
+  const otp = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const otpHash = hashCredential(otp);
+  const otpExpiresAt = new Date(Date.now() + 30 * 60_000);
+  let evidence = (await db.select().from(epiDeliveryEvidence)
+    .where(and(eq(epiDeliveryEvidence.deliveryId, delivery.id), eq(epiDeliveryEvidence.workspaceId, input.workspaceId)))
+    .limit(1))[0];
+
+  if (evidence?.status === "confirmed") throw new Error("Esta entrega já possui uma confirmação de recebimento por e-mail.");
+  if (!evidence) {
+    const verificationCode = randomBytes(24).toString("base64url");
+    const inserted = await db.insert(epiDeliveryEvidence).values({
+      workspaceId: input.workspaceId,
+      companyId: delivery.companyId,
+      deliveryId: delivery.id,
+      employeeId: delivery.employeeId,
+      recipientEmail,
+      status: "draft",
+      verificationCode,
+      documentHash,
+      snapshotJson,
+      otpHash,
+      otpExpiresAt,
+      createdByUserId: input.createdByUserId,
+    });
+    const evidenceId = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+    evidence = (await db.select().from(epiDeliveryEvidence).where(eq(epiDeliveryEvidence.id, evidenceId)).limit(1))[0];
+    if (!evidence) throw new Error("Não foi possível criar a evidência de recebimento.");
+    await appendEpiEvidenceAuditEvent(db, {
+      evidenceId: evidence.id,
+      workspaceId: evidence.workspaceId,
+      companyId: evidence.companyId,
+      deliveryId: evidence.deliveryId,
+      eventType: "evidence_created",
+      actorType: "manager",
+      actorUserId: input.createdByUserId,
+      description: "Ficha de entrega congelada para confirmação por e-mail.",
+      metadata: { documentHash, recipient: maskEmail(recipientEmail), documentVersion: evidence.documentVersion },
+    });
+  } else {
+    await db.update(epiDeliveryEvidence).set({
+      recipientEmail,
+      status: "draft",
+      documentHash,
+      snapshotJson,
+      otpHash,
+      otpExpiresAt,
+      otpAttempts: 0,
+      failureReason: null,
+      updatedAt: new Date(),
+    }).where(eq(epiDeliveryEvidence.id, evidence.id));
+    evidence = (await db.select().from(epiDeliveryEvidence).where(eq(epiDeliveryEvidence.id, evidence!.id)).limit(1))[0]!;
+  }
+
+  const confirmationUrl = `${getEpiEvidenceBaseUrl()}/confirmar-epi/${evidence.verificationCode}`;
+  try {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.RESEND_FROM_EMAIL;
+    if (!apiKey || !from) throw new Error("O canal de e-mail de confirmação ainda não está configurado.");
+    const { Resend } = await import("resend");
+    const response = await new Resend(apiKey).emails.send({
+      from,
+      to: recipientEmail,
+      subject: `Confirmação de recebimento de EPI — ${company.name}`,
+      html: `<main style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#172033"><h1 style="font-size:22px">Confirmação de recebimento de EPI</h1><p>Olá, ${employee.fullName}.</p><p>Foi registrada uma entrega de <strong>${item.name}</strong> para você. Confira a ficha e confirme o recebimento e as orientações recebidas.</p><p style="font-size:28px;letter-spacing:6px;font-weight:700">${otp}</p><p>Este código expira em 30 minutos e deve ser usado somente neste endereço:</p><p><a href="${confirmationUrl}">Abrir ficha de confirmação</a></p><p style="font-size:12px;color:#64748b">Evidência ${evidence.verificationCode.slice(0, 10)} · Não encaminhe este código a terceiros.</p></main>`,
+    });
+    if (response.error) throw new Error("O provedor de e-mail recusou o envio da confirmação.");
+    const providerMessageId = response.data?.id ?? null;
+    await db.update(epiDeliveryEvidence).set({ status: "sent", lastSentAt: new Date(), providerMessageId, failureReason: null, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
+    await appendEpiEvidenceAuditEvent(db, {
+      evidenceId: evidence.id,
+      workspaceId: evidence.workspaceId,
+      companyId: evidence.companyId,
+      deliveryId: evidence.deliveryId,
+      eventType: "email_sent",
+      actorType: "system",
+      description: "Convite de confirmação enviado ao e-mail do trabalhador.",
+      metadata: { recipient: maskEmail(recipientEmail), otpExpiresAt: otpExpiresAt.toISOString(), providerMessageId },
+    });
+  } catch (error) {
+    const failureReason = error instanceof Error ? error.message.slice(0, 500) : "Falha não identificada no envio.";
+    await db.update(epiDeliveryEvidence).set({ status: "failed", failureReason, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
+    await appendEpiEvidenceAuditEvent(db, {
+      evidenceId: evidence.id,
+      workspaceId: evidence.workspaceId,
+      companyId: evidence.companyId,
+      deliveryId: evidence.deliveryId,
+      eventType: "email_failed",
+      actorType: "system",
+      description: "Não foi possível enviar o convite de confirmação.",
+      metadata: { recipient: maskEmail(recipientEmail) },
+    });
+    throw new Error("Não foi possível enviar a confirmação por e-mail. Revise o endereço do trabalhador e tente novamente.");
+  }
+  return getEpiEvidenceDetailForWorkspace({ workspaceId: input.workspaceId, deliveryId: input.deliveryId });
+}
+
+export async function getPublicEpiEvidence(verificationCode: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await ensureEpiEvidenceSchema(db);
+  let evidence = (await db.select().from(epiDeliveryEvidence).where(eq(epiDeliveryEvidence.verificationCode, verificationCode)).limit(1))[0];
+  if (!evidence) return undefined;
+  evidence = await expireEpiEvidenceIfNeeded(db, evidence);
+  if (evidence.status === "sent") {
+    await db.update(epiDeliveryEvidence).set({ status: "viewed", lastViewedAt: new Date(), updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
+    await appendEpiEvidenceAuditEvent(db, {
+      evidenceId: evidence.id,
+      workspaceId: evidence.workspaceId,
+      companyId: evidence.companyId,
+      deliveryId: evidence.deliveryId,
+      eventType: "link_opened",
+      actorType: "employee",
+      description: "O link individual da ficha de EPI foi aberto.",
+    });
+    evidence = { ...evidence, status: "viewed", lastViewedAt: new Date() };
+  }
+  const snapshot = parseEvidenceSnapshot(evidence.snapshotJson);
+  return {
+    verificationCode: evidence.verificationCode,
+    status: evidence.status,
+    documentHash: evidence.documentHash,
+    documentVersion: evidence.documentVersion,
+    otpExpiresAt: evidence.otpExpiresAt,
+    lastViewedAt: evidence.lastViewedAt,
+    confirmedAt: evidence.confirmedAt,
+    document: {
+      companyName: snapshot.companyName,
+      employeeName: snapshot.employeeName,
+      epiName: snapshot.epiName,
+      caNumber: snapshot.caNumber,
+      lotNumber: snapshot.lotNumber,
+      manufacturer: snapshot.manufacturer,
+      quantity: snapshot.quantity,
+      deliveredAt: new Date(snapshot.deliveredAt),
+      conditionAtDelivery: snapshot.conditionAtDelivery,
+      orientationTopics: snapshot.orientationTopics,
+      deliveredByName: snapshot.deliveredByName,
+    },
+  };
+}
+
+export async function verifyPublicEpiEvidenceOtp(input: { verificationCode: string; otp: string; confirmationIp?: string | null; userAgent?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("A confirmação está indisponível. Tente novamente em alguns instantes.");
+  await ensureEpiEvidenceSchema(db);
+  let evidence = (await db.select().from(epiDeliveryEvidence).where(eq(epiDeliveryEvidence.verificationCode, input.verificationCode)).limit(1))[0];
+  if (!evidence) throw new Error("Esta confirmação não foi encontrada ou não está mais disponível.");
+  evidence = await expireEpiEvidenceIfNeeded(db, evidence);
+  if (evidence.status === "confirmed") {
+    const existingConfirmation = await getPublicEpiEvidence(input.verificationCode);
+    if (!existingConfirmation) throw new Error("Esta confirmação não está mais disponível.");
+    return existingConfirmation;
+  }
+  if (["expired", "revoked"].includes(evidence.status)) throw new Error("O prazo desta confirmação expirou. Solicite um novo envio ao responsável pela entrega.");
+  const nextAttempts = evidence.otpAttempts + 1;
+  if (!verifyCredential(input.otp, evidence.otpHash)) {
+    const revoked = nextAttempts >= 5;
+    await db.update(epiDeliveryEvidence).set({ status: revoked ? "revoked" : evidence.status, otpAttempts: nextAttempts, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
+    await appendEpiEvidenceAuditEvent(db, {
+      evidenceId: evidence.id,
+      workspaceId: evidence.workspaceId,
+      companyId: evidence.companyId,
+      deliveryId: evidence.deliveryId,
+      eventType: revoked ? "evidence_revoked" : "otp_failed",
+      actorType: "employee",
+      description: revoked ? "A confirmação foi bloqueada após exceder o limite de tentativas." : "Foi informado um código de confirmação inválido.",
+      metadata: { attempt: nextAttempts },
+    });
+    throw new Error(revoked ? "Por segurança, esta confirmação foi bloqueada. Solicite um novo envio." : "Código inválido. Confira o e-mail e tente novamente.");
+  }
+  const now = new Date();
+  const confirmationIpHash = input.confirmationIp ? sha256(input.confirmationIp) : null;
+  const snapshot = parseEvidenceSnapshot(evidence.snapshotJson);
+  await db.transaction(async tx => {
+    await tx.update(epiDeliveryEvidence).set({ status: "confirmed", otpAttempts: nextAttempts, confirmedAt: now, confirmationIpHash, confirmationUserAgent: input.userAgent?.slice(0, 512) ?? null, updatedAt: now }).where(eq(epiDeliveryEvidence.id, evidence.id));
+    await tx.update(epiDeliveries).set({ signedByName: snapshot.employeeName, receiptAcceptedAt: now, receiptAcceptanceMethod: "email_otp", digitalSignature: `Confirmação OTP · hash ${evidence.documentHash.slice(0, 16)}` }).where(and(eq(epiDeliveries.id, evidence.deliveryId), eq(epiDeliveries.workspaceId, evidence.workspaceId)));
+  });
+  await appendEpiEvidenceAuditEvent(db, {
+    evidenceId: evidence.id,
+    workspaceId: evidence.workspaceId,
+    companyId: evidence.companyId,
+    deliveryId: evidence.deliveryId,
+    eventType: "otp_verified",
+    actorType: "employee",
+    description: "O código temporário enviado ao e-mail foi validado.",
+    metadata: { attempts: nextAttempts },
+  });
+  await appendEpiEvidenceAuditEvent(db, {
+    evidenceId: evidence.id,
+    workspaceId: evidence.workspaceId,
+    companyId: evidence.companyId,
+    deliveryId: evidence.deliveryId,
+    eventType: "receipt_confirmed",
+    actorType: "employee",
+    description: "O trabalhador confirmou o recebimento do EPI e a ciência das orientações registradas.",
+    metadata: { documentHash: evidence.documentHash },
+  });
+  const confirmedEvidence = await getPublicEpiEvidence(input.verificationCode);
+  if (!confirmedEvidence) throw new Error("A confirmação foi registrada, mas a ficha não pôde ser recarregada.");
+  return confirmedEvidence;
+}
+
+export async function getEpiEvidenceDetailForWorkspace(input: { workspaceId: number; deliveryId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await ensureEpiEvidenceSchema(db);
+  const evidence = (await db.select().from(epiDeliveryEvidence).where(and(eq(epiDeliveryEvidence.workspaceId, input.workspaceId), eq(epiDeliveryEvidence.deliveryId, input.deliveryId))).limit(1))[0];
+  if (!evidence) throw new Error("Ainda não há confirmação por e-mail para esta ficha de EPI.");
+  const events = await db.select().from(epiDeliveryAuditEvents).where(eq(epiDeliveryAuditEvents.evidenceId, evidence.id)).orderBy(epiDeliveryAuditEvents.createdAt, epiDeliveryAuditEvents.id);
+  const verificationUrl = `${getEpiEvidenceBaseUrl()}/confirmar-epi/${evidence.verificationCode}`;
+  const QRCode = await import("qrcode");
+  const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, { margin: 1, width: 240, errorCorrectionLevel: "M" });
+  return { evidence, events, verificationUrl, qrCodeDataUrl };
+}
+
+export async function listEpiEvidenceForWorkspace(input: { workspaceId: number; companyId?: number | null; limit: number }) {
+  const db = await getDb();
+  if (!db) return [];
+  await ensureEpiEvidenceSchema(db);
+  const conditions = input.companyId ? and(eq(epiDeliveryEvidence.workspaceId, input.workspaceId), eq(epiDeliveryEvidence.companyId, input.companyId)) : eq(epiDeliveryEvidence.workspaceId, input.workspaceId);
+  const rows = await db.select({ evidence: epiDeliveryEvidence, employeeName: employees.fullName, epiName: epiItems.name, companyName: companies.name })
+    .from(epiDeliveryEvidence)
+    .innerJoin(employees, eq(epiDeliveryEvidence.employeeId, employees.id))
+    .innerJoin(epiDeliveries, eq(epiDeliveryEvidence.deliveryId, epiDeliveries.id))
+    .innerJoin(epiItems, eq(epiDeliveries.epiItemId, epiItems.id))
+    .innerJoin(companies, eq(epiDeliveryEvidence.companyId, companies.id))
+    .where(conditions)
+    .orderBy(desc(epiDeliveryEvidence.updatedAt), desc(epiDeliveryEvidence.id))
+    .limit(input.limit);
+  return rows;
 }
 
 export async function listEpiReturnsForWorkspace(workspaceId: number) {
