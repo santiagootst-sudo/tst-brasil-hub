@@ -177,14 +177,14 @@ export default function WorkspaceOverview() {
     { workspaceId },
     { enabled: Boolean(queryOptions.enabled && workspace.data?.kind === "autonomo") },
   );
-  const queryError = [workspace, certificates, trainings, organization, operations, planning, commercial].find((query) => query.isError)?.error;
+  const workspaceError = workspace.isError ? workspace.error : null;
 
   if (workspace.isLoading || certificates.isLoading || trainings.isLoading || organization.isLoading || operations.isLoading || planning.isLoading || (workspace.data?.kind === "autonomo" && commercial.isLoading)) {
     return <WorkspaceOverviewSkeleton />;
   }
 
-  if (queryError) {
-    return <DashboardLayout title="Dashboard"><div className="mx-auto grid min-h-[420px] max-w-2xl place-items-center"><div className="w-full rounded-[2rem] border border-[#f1d5c9] bg-gradient-to-br from-white to-[#fff9f5] p-8 text-center shadow-[0_18px_45px_rgba(28,74,77,0.08)]"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0e8] text-[#d67845]"><AlertTriangle className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#d67845]">Acesso ao ambiente</p><h2 className="mt-2 text-2xl font-bold text-[#173b43]">Não foi possível carregar este ambiente.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Selecione um ambiente pertencente à sua conta ou entre novamente no portal para atualizar a sessão.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#063b43]">Voltar à seleção <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
+  if (workspaceError) {
+    return <DashboardLayout title="Dashboard"><div className="mx-auto grid min-h-[420px] max-w-2xl place-items-center"><div className="w-full rounded-[2rem] border border-[#f1d5c9] bg-gradient-to-br from-white to-[#fff9f5] p-8 text-center shadow-[0_18px_45px_rgba(28,74,77,0.08)]"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#fff0e8] text-[#d67845]"><AlertTriangle className="h-7 w-7" /></span><p className="mt-5 text-xs font-bold uppercase tracking-[.16em] text-[#d67845]">Acesso ao ambiente</p><h2 className="mt-2 text-2xl font-bold text-[#173b43]">Não foi possível validar o acesso a este ambiente.</h2><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#668087]">Volte à seleção para abrir um ambiente disponível na sua conta ou entre novamente no portal para atualizar a sessão.</p><Link href="/app" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(12,116,116,0.18)] transition hover:bg-[#063b43]">Voltar à seleção <ArrowRight className="h-4 w-4" /></Link></div></div></DashboardLayout>;
   }
 
   if (!workspaceId || !workspace.data) {
