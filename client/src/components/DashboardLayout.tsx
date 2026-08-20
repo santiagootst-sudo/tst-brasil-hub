@@ -237,17 +237,11 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
           })}</section>)}
         </nav>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-          {currentWorkspace ? <>
-            <p className="text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">{isAutonomo ? "TST Autônomo" : "TST CLT"}</p>
-            <p className="mt-1 truncate text-sm font-semibold text-white">{currentWorkspace.name}</p>
-            <p className="mt-2 text-xs leading-5 text-[#9ecfc5]">{isAutonomo ? "Prioridade: carteira, entregas e retorno aos clientes." : "Prioridade: pessoas, capacitação e conformidade interna."}</p>
-            {selectableWorkspaces.length > 1 ? <div className="mt-3 border-t border-white/10 pt-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#9ecfc5]">Alternar contexto</p><div className="flex flex-wrap gap-2">{selectableWorkspaces.map(item => <button key={item.id} type="button" onClick={() => switchWorkspace(item.id, item.kind)} disabled={switchingWorkspaceId !== null} className={`rounded-lg px-2 py-1 text-[10px] font-bold transition disabled:cursor-wait disabled:opacity-70 ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.id === switchingWorkspaceId ? "Abrindo..." : item.kind === "autonomo" ? "Autônomo" : "CLT"}</button>)}</div></div> : <Link href="/app" className="mt-3 inline-flex text-xs font-bold text-[#8edec7] hover:text-white">Adicionar contexto CLT</Link>}
-            <button type="button" onClick={goToProfilePicker} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-[#d9eeea] transition hover:-translate-y-0.5 hover:bg-white/12 hover:text-white active:scale-[.98]"><ArrowLeftRight className="h-3.5 w-3.5" />Trocar perfil</button>
-          </> : <>
-            <p className="text-xs font-semibold text-white">Ambiente protegido</p>
-            <p className="mt-1 text-xs leading-5 text-[#9ecfc5]">Seus dados ficam organizados por empresa e perfil de trabalho.</p>
-          </>}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          {currentWorkspace ? <div className="flex flex-wrap items-center gap-2">
+            {selectableWorkspaces.length > 1 && selectableWorkspaces.map(item => <button key={item.id} type="button" onClick={() => switchWorkspace(item.id, item.kind)} disabled={switchingWorkspaceId !== null} aria-label={`Abrir ambiente ${item.kind === "autonomo" ? "Autônomo" : "CLT"}`} className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition disabled:cursor-wait disabled:opacity-70 ${item.id === currentWorkspace.id ? "bg-[#8edec7] text-[#063b43]" : "bg-white/10 text-[#d9eeea] hover:bg-white/20"}`}>{item.id === switchingWorkspaceId ? "Abrindo..." : item.kind === "autonomo" ? "Autônomo" : "CLT"}</button>)}
+            <button type="button" onClick={goToProfilePicker} aria-label="Trocar perfil ou ambiente" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#d9eeea] transition hover:-translate-y-0.5 hover:bg-white/12 hover:text-white active:scale-[.98]"><ArrowLeftRight className="h-3.5 w-3.5" />Trocar perfil</button>
+          </div> : <button type="button" onClick={goToProfilePicker} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#d9eeea]"><ArrowLeftRight className="h-3.5 w-3.5" />Escolher ambiente</button>}
         </div>
       </aside>
 
