@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { clearRememberedProfile } from "@/lib/profilePreference";
 import { withWorkspaceContext, workspaceIdFromSearch } from "@shared/workspaceContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, BriefcaseBusiness, CalendarDays, UsersRound, ShieldCheck, ShieldAlert, FolderKanban, Trophy, HardHat, PackageCheck, GraduationCap, Library, Headphones, Bell, Menu, X, Award, BookOpen, ArrowLeftRight, LogOut, Loader2, Save, BellRing, UserRound, ClipboardCheck, Store, CheckCircle2, MapPinned } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -186,6 +186,7 @@ export default function DashboardLayout({ children, title = "TST Brasil Hub" }: 
       { label: "Controle de EPIs", icon: PackageCheck, path: "/app/operacao" },
       { label: "Inspeções e ações", icon: ShieldCheck, path: "/app/inspecoes" },
       { label: "Acidentes e lesões", icon: ShieldAlert, path: "/app/acidentes" },
+      { label: "Mapa de Risco", icon: MapPinned, path: "/app/mapa-risco" },
     ] },
     { label: "Conformidade", items: [
       { label: "Capacitação da equipe", icon: GraduationCap, path: "/app/treinamentos" },
