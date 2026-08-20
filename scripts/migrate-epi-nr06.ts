@@ -9,6 +9,7 @@ if (!databaseUrl) {
 const connection = await mysql.createConnection(databaseUrl);
 
 const columns: Array<[string, string]> = [
+  ["epi_items", "manufacturer VARCHAR(160) NULL"],
   ["epi_items", "lotNumber VARCHAR(100) NULL"],
   ["epi_items", "caExpiresAt TIMESTAMP NULL"],
   ["epi_items", "equipmentExpiresAt TIMESTAMP NULL"],
