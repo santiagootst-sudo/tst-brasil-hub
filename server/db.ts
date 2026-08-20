@@ -6,6 +6,68 @@ import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 let accidentSchemaReady: Promise<void> | null = null;
+let occupationalRiskSchemaReady: Promise<void> | null = null;
+
+async function ensureOccupationalRiskSchema(db: ReturnType<typeof drizzle>) {
+  if (occupationalRiskSchemaReady) return occupationalRiskSchemaReady;
+  occupationalRiskSchemaReady = (async () => {
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS occupational_risks (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      workspaceId INT NOT NULL,
+      companyId INT NOT NULL,
+      pgrProjectId INT NULL,
+      departmentId INT NULL,
+      jobRoleId INT NULL,
+      title VARCHAR(255) NOT NULL,
+      description VARCHAR(1500) NULL,
+      riskGroup ENUM('physical','chemical','biological','ergonomic','accident','psychosocial','other') NOT NULL,
+      source ENUM('pgr','inspection','combined') NOT NULL DEFAULT 'pgr',
+      inherentProbability INT NOT NULL,
+      inherentSeverity INT NOT NULL,
+      inherentScore INT NOT NULL,
+      residualProbability INT NULL,
+      residualSeverity INT NULL,
+      residualScore INT NULL,
+      situation ENUM('identified','in_treatment','controlled','eliminated') NOT NULL DEFAULT 'identified',
+      controls VARCHAR(1500) NULL,
+      exposedWorkersCount INT NOT NULL DEFAULT 0,
+      identifiedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      controlVerifiedAt TIMESTAMP NULL,
+      eliminatedAt TIMESTAMP NULL,
+      lastInspectionId INT NULL,
+      createdByUserId INT NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX occupational_risks_workspace_idx (workspaceId, situation),
+      INDEX occupational_risks_company_idx (companyId, departmentId),
+      INDEX occupational_risks_pgr_idx (pgrProjectId)
+    )`));
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS occupational_risk_events (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      occupationalRiskId INT NOT NULL,
+      workspaceId INT NOT NULL,
+      companyId INT NOT NULL,
+      departmentId INT NULL,
+      eventType ENUM('identified','treatment_started','control_verified','reduced','eliminated','reopened') NOT NULL,
+      previousSituation VARCHAR(64) NULL,
+      nextSituation VARCHAR(64) NULL,
+      previousScore INT NULL,
+      nextScore INT NULL,
+      notes VARCHAR(1500) NULL,
+      occurredAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      createdByUserId INT NOT NULL,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX occupational_risk_events_risk_idx (occupationalRiskId, occurredAt),
+      INDEX occupational_risk_events_workspace_idx (workspaceId, occurredAt)
+    )`));
+  })();
+  try {
+    await occupationalRiskSchemaReady;
+  } catch (error) {
+    occupationalRiskSchemaReady = null;
+    throw error;
+  }
+}
 
 async function ensureAccidentSchema(db: ReturnType<typeof drizzle>) {
   if (accidentSchemaReady) return accidentSchemaReady;
@@ -1275,6 +1337,7 @@ function riskEventType(previousSituation: OccupationalRiskSituation | null, next
 export async function listOccupationalRisksForWorkspace(workspaceId: number) {
   const db = await getDb();
   if (!db) return { risks: [], events: [] };
+  await ensureOccupationalRiskSchema(db);
   const [risks, events] = await Promise.all([
     db.select().from(occupationalRisks).where(eq(occupationalRisks.workspaceId, workspaceId)).orderBy(desc(occupationalRisks.updatedAt), desc(occupationalRisks.id)),
     db.select().from(occupationalRiskEvents).where(eq(occupationalRiskEvents.workspaceId, workspaceId)).orderBy(desc(occupationalRiskEvents.occurredAt), desc(occupationalRiskEvents.id)),
@@ -1285,6 +1348,7 @@ export async function listOccupationalRisksForWorkspace(workspaceId: number) {
 export async function getOccupationalRiskForWorkspace(riskId: number, workspaceId: number) {
   const db = await getDb();
   if (!db) return undefined;
+  await ensureOccupationalRiskSchema(db);
   return (await db.select().from(occupationalRisks).where(and(eq(occupationalRisks.id, riskId), eq(occupationalRisks.workspaceId, workspaceId))).limit(1))[0];
 }
 
@@ -1295,6 +1359,7 @@ export async function createOccupationalRiskForWorkspace(input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
+  await ensureOccupationalRiskSchema(db);
   const inherentScore = input.inherentProbability * input.inherentSeverity;
   const values = {
     ...input,
@@ -1335,6 +1400,7 @@ export async function updateOccupationalRiskForWorkspace(input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
+  await ensureOccupationalRiskSchema(db);
   const current = await getOccupationalRiskForWorkspace(input.riskId, input.workspaceId);
   if (!current) throw new Error("Risco ocupacional não encontrado.");
   const nextResidualProbability = input.residualProbability === undefined ? current.residualProbability : input.residualProbability;

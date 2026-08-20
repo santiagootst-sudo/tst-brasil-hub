@@ -82,4 +82,27 @@ describe("riskRouter", () => {
     await expect(riskRouter.createCaller(context()).updateOccupationalRisk({ workspaceId: 14, riskId: 31, situation: "controlled", residualProbability: 2, residualSeverity: 2, notes: "Medição em campo confirmou o controle." })).resolves.toMatchObject({ id: 31, situation: "controlled", residualScore: 4 });
     expect(db.updateOccupationalRiskForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ riskId: 31, workspaceId: 14, updatedByUserId: 5 }));
   });
+
+  it("não expõe SQL quando a gravação de risco falha", async () => {
+    db.getWorkspaceForUser.mockResolvedValue(workspace("owner"));
+    db.getCompanyForWorkspace.mockResolvedValue({ id: 3, workspaceId: 14, name: "Empresa A" });
+    db.createOccupationalRiskForWorkspace.mockRejectedValue(new Error("Failed query: insert into occupational_risks"));
+
+    await expect(riskRouter.createCaller(context()).createOccupationalRisk({ workspaceId: 14, companyId: 3, title: "Ruído de máquinas", riskGroup: "physical", source: "pgr", inherentProbability: 4, inherentSeverity: 4, exposedWorkersCount: 12 })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível registrar o risco ocupacional neste momento. Atualize a página e tente novamente; se persistir, o ambiente precisa concluir a atualização de dados." });
+  });
+
+  it("não expõe SQL quando a consulta do inventário falha", async () => {
+    db.getWorkspaceForUser.mockResolvedValue(workspace("member"));
+    db.listOccupationalRisksForWorkspace.mockRejectedValue(new Error("Table 'occupational_risks' doesn't exist"));
+
+    await expect(riskRouter.createCaller(context()).occupationalRisks({ workspaceId: 14 })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível carregar o inventário de riscos neste momento. Atualize a página e tente novamente; se persistir, o ambiente precisa concluir a atualização de dados." });
+  });
+
+  it("não expõe SQL quando a evolução do risco falha", async () => {
+    db.getWorkspaceForUser.mockResolvedValue(workspace("manager"));
+    db.getOccupationalRiskForWorkspace.mockResolvedValue(risk);
+    db.updateOccupationalRiskForWorkspace.mockRejectedValue(new Error("Unknown column 'residualScore' in 'field list'"));
+
+    await expect(riskRouter.createCaller(context()).updateOccupationalRisk({ workspaceId: 14, riskId: 31, situation: "controlled", residualProbability: 2, residualSeverity: 2 })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível atualizar a evolução do risco neste momento. Atualize a página e tente novamente; se persistir, o ambiente precisa concluir a atualização de dados." });
+  });
 });

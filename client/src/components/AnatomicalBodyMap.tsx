@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 export const bodyRegions = ["head", "face", "neck", "shoulder_left", "shoulder_right", "chest", "abdomen", "back", "pelvis", "arm_left", "arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "finger_left", "finger_right", "thigh_left", "thigh_right", "knee_left", "knee_right", "leg_left", "leg_right", "ankle_left", "ankle_right", "foot_left", "foot_right", "other"] as const;
@@ -33,13 +33,18 @@ const sideByRegion: Partial<Record<BodyRegion, BodySide>> = {
 const severityLabels: Record<InjurySeverity, string> = { minor: "Leve", moderate: "Moderada", serious: "Grave", critical: "Crítica" };
 const severityColor: Record<InjurySeverity, string> = { minor: "#eab85f", moderate: "#e4863a", serious: "#d95f3c", critical: "#9d2f32" };
 
+const countMarkerPositions: Record<"front" | "back", Partial<Record<BodyRegion, { x: number; y: number }>>> = {
+  front: { head: { x: 125, y: 28 }, face: { x: 125, y: 67 }, neck: { x: 125, y: 91 }, shoulder_left: { x: 86, y: 114 }, shoulder_right: { x: 164, y: 114 }, chest: { x: 125, y: 128 }, abdomen: { x: 125, y: 171 }, pelvis: { x: 125, y: 206 }, arm_left: { x: 65, y: 160 }, arm_right: { x: 185, y: 160 }, forearm_left: { x: 51, y: 224 }, forearm_right: { x: 199, y: 224 }, hand_left: { x: 47, y: 265 }, hand_right: { x: 203, y: 265 }, finger_left: { x: 40, y: 290 }, finger_right: { x: 210, y: 290 }, thigh_left: { x: 103, y: 260 }, thigh_right: { x: 147, y: 260 }, knee_left: { x: 103, y: 308 }, knee_right: { x: 147, y: 308 }, leg_left: { x: 99, y: 357 }, leg_right: { x: 151, y: 357 }, ankle_left: { x: 99, y: 395 }, ankle_right: { x: 151, y: 395 }, foot_left: { x: 89, y: 412 }, foot_right: { x: 161, y: 412 } },
+  back: { head: { x: 125, y: 42 }, neck: { x: 125, y: 91 }, shoulder_left: { x: 86, y: 114 }, shoulder_right: { x: 164, y: 114 }, back: { x: 125, y: 153 }, pelvis: { x: 125, y: 206 }, arm_left: { x: 65, y: 160 }, arm_right: { x: 185, y: 160 }, forearm_left: { x: 51, y: 224 }, forearm_right: { x: 199, y: 224 }, hand_left: { x: 47, y: 265 }, hand_right: { x: 203, y: 265 }, finger_left: { x: 40, y: 290 }, finger_right: { x: 210, y: 290 }, thigh_left: { x: 103, y: 260 }, thigh_right: { x: 147, y: 260 }, knee_left: { x: 103, y: 308 }, knee_right: { x: 147, y: 308 }, leg_left: { x: 99, y: 357 }, leg_right: { x: 151, y: 357 }, ankle_left: { x: 99, y: 395 }, ankle_right: { x: 151, y: 395 }, foot_left: { x: 89, y: 412 }, foot_right: { x: 161, y: 412 } },
+};
+
 function RegionShape({ region, children, active, onSelect }: { region: BodyRegion; children: React.ReactNode; active?: AnatomicalInjuryDraft; onSelect: (region: BodyRegion) => void }) {
   const fill = active ? severityColor[active.severity] : "#dce9e5";
   const label = `${labels[region]}${active ? ` · lesão ${severityLabels[active.severity].toLowerCase()}` : " · selecionar região"}`;
   return <g role="button" tabIndex={0} aria-label={label} onClick={() => onSelect(region)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(region); } }} className="cursor-pointer outline-none"><title>{label}</title><g fill={fill} stroke={active ? "#702e28" : "#98b4ad"} strokeWidth={active ? 2.2 : 1.2} className="transition-colors duration-200">{children}</g></g>;
 }
 
-function Figure({ back, injuries, onSelect }: { back: boolean; injuries: Map<BodyRegion, AnatomicalInjuryDraft>; onSelect: (region: BodyRegion) => void }) {
+function Figure({ back, injuries, onSelect, counts }: { back: boolean; injuries: Map<BodyRegion, AnatomicalInjuryDraft>; onSelect: (region: BodyRegion) => void; counts?: Partial<Record<BodyRegion, number>> }) {
   const selected = (region: BodyRegion) => injuries.get(region);
   return <svg viewBox="0 0 250 456" className="mx-auto h-[430px] max-w-full" aria-label={back ? "Mapa corporal posterior" : "Mapa corporal frontal"}>
     <path d="M56 404 Q125 434 194 404" fill="none" stroke="#e4efec" strokeWidth="24" strokeLinecap="round" />
@@ -68,7 +73,21 @@ function Figure({ back, injuries, onSelect }: { back: boolean; injuries: Map<Bod
     <RegionShape region="ankle_right" active={selected("ankle_right")} onSelect={onSelect}><rect x="139" y="388" width="23" height="14" rx="6" /></RegionShape>
     <RegionShape region="foot_left" active={selected("foot_left")} onSelect={onSelect}><path d="M87 400 L112 400 L112 418 L72 418 Q74 404 87 400Z" /></RegionShape>
     <RegionShape region="foot_right" active={selected("foot_right")} onSelect={onSelect}><path d="M163 400 L138 400 L138 418 L178 418 Q176 404 163 400Z" /></RegionShape>
+    {counts && Object.entries(counts).flatMap(([rawRegion, count]) => {
+      const region = rawRegion as BodyRegion;
+      const position = countMarkerPositions[back ? "back" : "front"][region];
+      return count && position ? [<g key={`count-${region}`} pointerEvents="none"><circle cx={position.x} cy={position.y} r="10" fill="#0c7474" stroke="white" strokeWidth="2" /><text x={position.x} y={position.y + 4} textAnchor="middle" fill="white" fontSize="11" fontWeight="700">{count > 99 ? "99+" : count}</text></g>] : [];
+    })}
   </svg>;
+}
+
+export function AccidentBodyMapSummary({ injuries }: { injuries: Array<Pick<AnatomicalInjuryDraft, "bodyRegion">> }) {
+  const [view, setView] = useState<"front" | "back">("front");
+  const counts = useMemo(() => injuries.reduce<Partial<Record<BodyRegion, number>>>((accumulator, injury) => ({ ...accumulator, [injury.bodyRegion]: (accumulator[injury.bodyRegion] ?? 0) + 1 }), {}), [injuries]);
+  const total = injuries.length;
+  const visibleRegions = Object.entries(counts).filter(([, count]) => count).length;
+
+  return <section className="rounded-3xl border border-[#dcebe8] bg-white p-5 shadow-sm"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[#0c8c89]">Mapa de acidentes</p><h3 className="mt-1 font-bold text-[#102b32]">Lesões classificadas por região</h3><p className="mt-1 text-sm leading-6 text-[#668087]">Os números indicam quantas lesões registradas atingiram cada região anatômica.</p></div><div className="inline-flex rounded-xl border border-[#cfe3de] bg-[#f7fcfa] p-1 text-xs font-bold"><button type="button" onClick={() => setView("front")} className={`rounded-lg px-3 py-1.5 ${view === "front" ? "bg-[#0c7474] text-white" : "text-[#55716e]"}`}>Frente</button><button type="button" onClick={() => setView("back")} className={`rounded-lg px-3 py-1.5 ${view === "back" ? "bg-[#0c7474] text-white" : "text-[#55716e]"}`}>Costas</button></div></div><div className="mt-4 rounded-2xl border border-[#e2efec] bg-[#f7fcfa] p-2"><div className="pointer-events-none"><Figure back={view === "back"} injuries={new Map()} onSelect={() => undefined} counts={counts} /></div><p className="px-2 pb-2 text-center text-xs text-[#668087]"><span className="font-bold text-[#0c7474]">{total}</span> lesão(ões) em <span className="font-bold text-[#0c7474]">{visibleRegions}</span> região(ões) classificada(s).</p></div></section>;
 }
 
 export default function AnatomicalBodyMap({ injuries, onChange, disabled = false }: Props) {
