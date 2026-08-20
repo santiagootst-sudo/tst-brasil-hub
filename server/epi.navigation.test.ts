@@ -22,12 +22,15 @@ describe("navegação do Controle de EPIs", () => {
     expect(operationsPage).toContain("Controle de EPIs");
   });
 
-  it("permite abrir diretamente a aba de fichas por funcionário e evita retry em acesso negado", () => {
+  it("permite abrir diretamente a aba de fichas e recupera separadamente falhas de acesso e de carregamento", async () => {
     expect(operationsPage).toContain('new URLSearchParams(search).get("tab")');
     expect(operationsPage).toContain('requestedTab === "employee_profile"');
     expect(operationsPage).toContain('requestedTab === "stock"');
     expect(operationsPage).toContain("retry: false");
-    expect(operationsPage).toContain("Não foi possível abrir este ambiente.");
+    expect(operationsPage).toContain("Este ambiente não está disponível para a sua conta.");
+    expect(operationsPage).toContain("Não foi possível carregar os dados de EPIs agora.");
+    expect(operationsPage).toContain("Promise.all([workspace.refetch(), organization.refetch(), operations.refetch()])");
+    expect(operationsPage).toContain('setLocation("/app")');
   });
 
   it("aplica filtros de setor e função e mantém a ficha completa fechada até abrir a gaveta", () => {

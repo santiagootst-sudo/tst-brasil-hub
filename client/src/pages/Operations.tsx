@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { ModuleHeader, ModulePage } from "@/components/ModulePageLayout";
-import { useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ import { uploadContentAsset } from "@/lib/cloudinaryUpload";
 export default function Operations() {
   const utils = trpc.useUtils();
   const search = useSearch();
+  const [, setLocation] = useLocation();
   const requestedTab = new URLSearchParams(search).get("tab");
   const requestedStockView = new URLSearchParams(search).get("view");
   const requestedArchiveView = new URLSearchParams(search).get("archive");
@@ -490,8 +491,12 @@ export default function Operations() {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-[#0c7474]" /></div>;
   }
 
-  if (workspace.error || organization.error || operations.error || !workspace.data) {
-    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Não foi possível abrir este ambiente.</h2><p className="mt-2 text-sm text-[#668087]">Verifique o ambiente selecionado e tente novamente pela tela principal.</p><a href="/app" className="mt-6 inline-flex rounded-xl bg-[#0c7474] px-5 py-3 text-sm font-bold text-white">Escolher ambiente</a></section></DashboardLayout>;
+  if (workspace.error || !workspace.data) {
+    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Este ambiente não está disponível para a sua conta.</h2><p className="mt-2 text-sm text-[#668087]">O link pode estar desatualizado ou a sua sessão precisa ser renovada. Escolha um ambiente disponível para continuar.</p><div className="mt-6 flex flex-wrap justify-center gap-3"><Button type="button" variant="outline" onClick={() => void workspace.refetch()} className="rounded-xl border-[#b9e3d7] text-[#0c7474]">Tentar novamente</Button><Button type="button" onClick={() => setLocation("/app")} className="rounded-xl bg-[#0c7474] text-white">Escolher ambiente</Button></div></section></DashboardLayout>;
+  }
+
+  if (organization.error || operations.error) {
+    return <DashboardLayout title="Controle de EPIs"><section className="rounded-3xl border border-dashed border-[#bddbd5] bg-white p-10 text-center"><AlertTriangle className="mx-auto h-10 w-10 text-[#b85c36]" /><h2 className="mt-4 text-xl font-bold text-[#102b32]">Não foi possível carregar os dados de EPIs agora.</h2><p className="mt-2 text-sm text-[#668087]">O ambiente continua selecionado. Tente carregar novamente; se a falha persistir, volte à seleção e abra o ambiente de novo.</p><div className="mt-6 flex flex-wrap justify-center gap-3"><Button type="button" onClick={() => void Promise.all([workspace.refetch(), organization.refetch(), operations.refetch()])} className="rounded-xl bg-[#0c7474] text-white">Tentar novamente</Button><Button type="button" variant="outline" onClick={() => setLocation("/app")} className="rounded-xl border-[#b9e3d7] text-[#0c7474]">Escolher ambiente</Button></div></section></DashboardLayout>;
   }
 
   return (
