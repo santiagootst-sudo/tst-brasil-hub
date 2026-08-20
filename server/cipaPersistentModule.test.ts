@@ -56,7 +56,7 @@ describe("módulo CIPA persistente", () => {
     expect(router).toContain("companyLogoUrl: company.logoUrl");
     expect(page).toContain("downloadCipaPdf");
     expect(page).toContain("companyLogoUrl");
-    expect(page).toContain("Calendário persistente");
+    expect(page).toContain("Dossiê persistente");
     expect(router).toContain("createCipaMeeting");
   });
 

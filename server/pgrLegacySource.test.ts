@@ -1,19 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { storageGetSignedUrl } from "./storage";
-
-const sourcePath = "/home/ubuntu/webdev-static-assets/pgr-pro-portal-integrado.html";
-const sourceKey = "pgr-pro-portal-integrado_2fdf701f.html";
+const sourcePath = new URL("./fixtures/pgr-pro-portal-integrado.html", import.meta.url);
 
 async function readPgrSource() {
-  try {
-    return await readFile(sourcePath, "utf8");
-  } catch {
-    const signedUrl = await storageGetSignedUrl(sourceKey);
-    const response = await fetch(signedUrl);
-    if (!response.ok) throw new Error(`Falha ao ler o HTML legado no armazenamento (${response.status})`);
-    return response.text();
-  }
+  return readFile(sourcePath, "utf8");
 }
 
 describe("PGR legado integrado ao Portal TST", () => {
