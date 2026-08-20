@@ -10,6 +10,7 @@ import { supportRouter } from "./supportRouter";
 import { workspaceRouter } from "./workspaceRouter";
 import { psychosocialRouter } from "./psychosocialRouter";
 import { cipaRouter } from "./cipaRouter";
+import { riskRouter } from "./riskRouter";
 
 export const portalRouter = router({
   ...workspaceRouter._def.record,
@@ -23,4 +24,5 @@ export const portalRouter = router({
   ...supportRouter._def.record,
   ...psychosocialRouter._def.record,
   ...cipaRouter._def.record,
+  ...riskRouter._def.record,
 });

@@ -66,7 +66,7 @@ describe("planningRouter", () => {
     db.getWorkspaceForUser.mockResolvedValue(workspace("owner"));
     db.getCompanyForWorkspace.mockResolvedValue({ id: 3, workspaceId: 14, name: "Empresa A" });
     db.getEmployeeForWorkspace.mockResolvedValue({ id: 8, workspaceId: 14, companyId: 3, fullName: "Responsável Real" });
-    db.createActionItemForWorkspace.mockResolvedValue({ id: 22, workspaceId: 14, companyId: 3, inspectionId: null, departmentId: null, responsibleEmployeeId: 8, title: "Ação preventiva", description: null, dueAt: null, status: "open", createdByUserId: 5 });
+    db.createActionItemForWorkspace.mockResolvedValue({ id: 22, workspaceId: 14, companyId: 3, inspectionId: null, occupationalRiskId: null, departmentId: null, responsibleEmployeeId: 8, title: "Ação preventiva", description: null, dueAt: null, status: "open", createdByUserId: 5 });
     await expect(planningRouter.createCaller(context()).createActionItem({ workspaceId: 14, companyId: 3, responsibleEmployeeId: 8, title: "Ação preventiva" })).resolves.toMatchObject({ id: 22, status: "open" });
     expect(db.createActionItemForWorkspace).toHaveBeenCalledWith(expect.objectContaining({ createdByUserId: 5, responsibleEmployeeId: 8 }));
   });

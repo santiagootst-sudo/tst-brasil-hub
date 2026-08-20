@@ -284,12 +284,66 @@ export const inspectionTemplateItems = mysqlTable("inspection_template_items", {
   index("inspection_template_items_template_idx").on(table.templateId, table.sortOrder),
 ]);
 
+export const occupationalRisks = mysqlTable("occupational_risks", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  pgrProjectId: int("pgrProjectId"),
+  departmentId: int("departmentId"),
+  jobRoleId: int("jobRoleId"),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1500 }),
+  riskGroup: mysqlEnum("riskGroup", ["physical", "chemical", "biological", "ergonomic", "accident", "psychosocial", "other"]).notNull(),
+  source: mysqlEnum("source", ["pgr", "inspection", "combined"]).default("pgr").notNull(),
+  inherentProbability: int("inherentProbability").notNull(),
+  inherentSeverity: int("inherentSeverity").notNull(),
+  inherentScore: int("inherentScore").notNull(),
+  residualProbability: int("residualProbability"),
+  residualSeverity: int("residualSeverity"),
+  residualScore: int("residualScore"),
+  situation: mysqlEnum("situation", ["identified", "in_treatment", "controlled", "eliminated"]).default("identified").notNull(),
+  controls: varchar("controls", { length: 1500 }),
+  exposedWorkersCount: int("exposedWorkersCount").default(0).notNull(),
+  identifiedAt: timestamp("identifiedAt").defaultNow().notNull(),
+  controlVerifiedAt: timestamp("controlVerifiedAt"),
+  eliminatedAt: timestamp("eliminatedAt"),
+  lastInspectionId: int("lastInspectionId"),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("occupational_risks_workspace_idx").on(table.workspaceId, table.situation),
+  index("occupational_risks_company_idx").on(table.companyId, table.departmentId),
+  index("occupational_risks_pgr_idx").on(table.pgrProjectId),
+]);
+
+export const occupationalRiskEvents = mysqlTable("occupational_risk_events", {
+  id: int("id").autoincrement().primaryKey(),
+  occupationalRiskId: int("occupationalRiskId").notNull(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  departmentId: int("departmentId"),
+  eventType: mysqlEnum("eventType", ["identified", "treatment_started", "control_verified", "reduced", "eliminated", "reopened"]).notNull(),
+  previousSituation: varchar("previousSituation", { length: 64 }),
+  nextSituation: varchar("nextSituation", { length: 64 }),
+  previousScore: int("previousScore"),
+  nextScore: int("nextScore"),
+  notes: varchar("notes", { length: 1500 }),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("occupational_risk_events_risk_idx").on(table.occupationalRiskId, table.occurredAt),
+  index("occupational_risk_events_workspace_idx").on(table.workspaceId, table.occurredAt),
+]);
+
 export const inspections = mysqlTable("inspections", {
   id: int("id").autoincrement().primaryKey(),
   workspaceId: int("workspaceId").notNull(),
   companyId: int("companyId").notNull(),
   departmentId: int("departmentId"),
   templateId: int("templateId"),
+  occupationalRiskId: int("occupationalRiskId"),
   title: varchar("title", { length: 255 }).notNull(),
   dueAt: timestamp("dueAt"),
   completedAt: timestamp("completedAt"),
@@ -310,6 +364,7 @@ export const actionItems = mysqlTable("action_items", {
   workspaceId: int("workspaceId").notNull(),
   companyId: int("companyId").notNull(),
   inspectionId: int("inspectionId"),
+  occupationalRiskId: int("occupationalRiskId"),
   departmentId: int("departmentId"),
   responsibleEmployeeId: int("responsibleEmployeeId"),
   title: varchar("title", { length: 255 }).notNull(),
@@ -642,6 +697,8 @@ export type InsertUser = typeof users.$inferInsert;
 export type AdminAccessAudit = typeof adminAccessAudit.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type Subscription = typeof subscriptions.$inferSelect;
+export type OccupationalRisk = typeof occupationalRisks.$inferSelect;
+export type OccupationalRiskEvent = typeof occupationalRiskEvents.$inferSelect;
 export type Certificate = typeof certificates.$inferSelect;
 export type Training = typeof trainings.$inferSelect;
 export type Material = typeof materials.$inferSelect;

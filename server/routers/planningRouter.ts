@@ -46,6 +46,10 @@ export const planningRouter = router({
       const template = await portalDb.getInspectionTemplateForWorkspace(input.templateId, input.workspaceId);
       if (!template || template.companyId !== input.companyId || (template.departmentId && template.departmentId !== input.departmentId)) throw new TRPCError({ code: "BAD_REQUEST", message: "O modelo de checklist não pertence à empresa ou setor selecionado." });
     }
+    if (input.occupationalRiskId) {
+      const risk = await portalDb.getOccupationalRiskForWorkspace(input.occupationalRiskId, input.workspaceId);
+      if (!risk || risk.companyId !== input.companyId || (input.departmentId && risk.departmentId && risk.departmentId !== input.departmentId)) throw new TRPCError({ code: "BAD_REQUEST", message: "O risco informado não pertence à empresa ou setor selecionado." });
+    }
     return portalDb.createInspectionForWorkspace({ ...input, createdByUserId: ctx.user.id });
   }),
   createActionItem: protectedProcedure.input(createActionItemInput).output(actionItemCreatedSchema).mutation(async ({ ctx, input }) => {
@@ -54,6 +58,10 @@ export const planningRouter = router({
     if (input.inspectionId) {
       const inspection = await portalDb.getInspectionForWorkspace(input.inspectionId, input.workspaceId);
       if (!inspection || inspection.companyId !== input.companyId) throw new TRPCError({ code: "BAD_REQUEST", message: "A inspeção informada não pertence à empresa selecionada." });
+    }
+    if (input.occupationalRiskId) {
+      const risk = await portalDb.getOccupationalRiskForWorkspace(input.occupationalRiskId, input.workspaceId);
+      if (!risk || risk.companyId !== input.companyId || (input.departmentId && risk.departmentId && risk.departmentId !== input.departmentId)) throw new TRPCError({ code: "BAD_REQUEST", message: "O risco informado não pertence à empresa ou setor selecionado." });
     }
     if (input.responsibleEmployeeId) {
       const employee = await portalDb.getEmployeeForWorkspace(input.responsibleEmployeeId, input.workspaceId);

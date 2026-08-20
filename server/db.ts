@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -1122,10 +1122,10 @@ export async function getInspectionForWorkspace(inspectionId: number, workspaceI
   return (await db.select().from(inspections).where(and(eq(inspections.id, inspectionId), eq(inspections.workspaceId, workspaceId))).limit(1))[0];
 }
 
-export async function createInspectionForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; templateId?: number | null; title: string; dueAt?: Date | null; notes?: string | null; createdByUserId: number }) {
+export async function createInspectionForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; templateId?: number | null; occupationalRiskId?: number | null; title: string; dueAt?: Date | null; notes?: string | null; createdByUserId: number }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const values = { ...input, departmentId: input.departmentId ?? null, templateId: input.templateId ?? null, dueAt: input.dueAt ?? null, notes: input.notes ?? null, status: "planned" as const };
+  const values = { ...input, departmentId: input.departmentId ?? null, templateId: input.templateId ?? null, occupationalRiskId: input.occupationalRiskId ?? null, dueAt: input.dueAt ?? null, notes: input.notes ?? null, status: "planned" as const };
   const inserted = await db.insert(inspections).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
 }
@@ -1136,12 +1136,126 @@ export async function listActionItemsForWorkspace(workspaceId: number) {
   return db.select().from(actionItems).where(eq(actionItems.workspaceId, workspaceId)).orderBy(desc(actionItems.dueAt), desc(actionItems.updatedAt));
 }
 
-export async function createActionItemForWorkspace(input: { workspaceId: number; companyId: number; inspectionId?: number | null; departmentId?: number | null; responsibleEmployeeId?: number | null; title: string; description?: string | null; dueAt?: Date | null; createdByUserId: number }) {
+export async function createActionItemForWorkspace(input: { workspaceId: number; companyId: number; inspectionId?: number | null; occupationalRiskId?: number | null; departmentId?: number | null; responsibleEmployeeId?: number | null; title: string; description?: string | null; dueAt?: Date | null; createdByUserId: number }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const values = { ...input, inspectionId: input.inspectionId ?? null, departmentId: input.departmentId ?? null, responsibleEmployeeId: input.responsibleEmployeeId ?? null, description: input.description ?? null, dueAt: input.dueAt ?? null, status: "open" as const };
+  const values = { ...input, inspectionId: input.inspectionId ?? null, occupationalRiskId: input.occupationalRiskId ?? null, departmentId: input.departmentId ?? null, responsibleEmployeeId: input.responsibleEmployeeId ?? null, description: input.description ?? null, dueAt: input.dueAt ?? null, status: "open" as const };
   const inserted = await db.insert(actionItems).values(values);
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...values };
+}
+
+type OccupationalRiskSituation = "identified" | "in_treatment" | "controlled" | "eliminated";
+type OccupationalRiskGroup = "physical" | "chemical" | "biological" | "ergonomic" | "accident" | "psychosocial" | "other";
+type OccupationalRiskSource = "pgr" | "inspection" | "combined";
+
+function riskEventType(previousSituation: OccupationalRiskSituation | null, nextSituation: OccupationalRiskSituation, previousScore: number | null, nextScore: number | null) {
+  if (nextSituation === "eliminated") return "eliminated" as const;
+  if (nextSituation === "controlled") return previousScore !== null && nextScore !== null && nextScore < previousScore ? "reduced" as const : "control_verified" as const;
+  if (nextSituation === "in_treatment") return "treatment_started" as const;
+  if (previousSituation === "controlled" || previousSituation === "eliminated") return "reopened" as const;
+  return "identified" as const;
+}
+
+export async function listOccupationalRisksForWorkspace(workspaceId: number) {
+  const db = await getDb();
+  if (!db) return { risks: [], events: [] };
+  const [risks, events] = await Promise.all([
+    db.select().from(occupationalRisks).where(eq(occupationalRisks.workspaceId, workspaceId)).orderBy(desc(occupationalRisks.updatedAt), desc(occupationalRisks.id)),
+    db.select().from(occupationalRiskEvents).where(eq(occupationalRiskEvents.workspaceId, workspaceId)).orderBy(desc(occupationalRiskEvents.occurredAt), desc(occupationalRiskEvents.id)),
+  ]);
+  return { risks, events };
+}
+
+export async function getOccupationalRiskForWorkspace(riskId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(occupationalRisks).where(and(eq(occupationalRisks.id, riskId), eq(occupationalRisks.workspaceId, workspaceId))).limit(1))[0];
+}
+
+export async function createOccupationalRiskForWorkspace(input: {
+  workspaceId: number; companyId: number; pgrProjectId?: number | null; departmentId?: number | null; jobRoleId?: number | null;
+  title: string; description?: string | null; riskGroup: OccupationalRiskGroup; source: OccupationalRiskSource;
+  inherentProbability: number; inherentSeverity: number; controls?: string | null; exposedWorkersCount: number; createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const inherentScore = input.inherentProbability * input.inherentSeverity;
+  const values = {
+    ...input,
+    pgrProjectId: input.pgrProjectId ?? null,
+    departmentId: input.departmentId ?? null,
+    jobRoleId: input.jobRoleId ?? null,
+    description: input.description ?? null,
+    controls: input.controls ?? null,
+    inherentScore,
+    residualProbability: null,
+    residualSeverity: null,
+    residualScore: null,
+    situation: "identified" as const,
+  };
+  return db.transaction(async tx => {
+    const inserted = await tx.insert(occupationalRisks).values(values);
+    const riskId = Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0);
+    await tx.insert(occupationalRiskEvents).values({
+      occupationalRiskId: riskId,
+      workspaceId: input.workspaceId,
+      companyId: input.companyId,
+      departmentId: input.departmentId ?? null,
+      eventType: "identified",
+      previousSituation: null,
+      nextSituation: "identified",
+      previousScore: null,
+      nextScore: inherentScore,
+      notes: input.description ?? null,
+      createdByUserId: input.createdByUserId,
+    });
+    return (await tx.select().from(occupationalRisks).where(eq(occupationalRisks.id, riskId)).limit(1))[0]!;
+  });
+}
+
+export async function updateOccupationalRiskForWorkspace(input: {
+  riskId: number; workspaceId: number; situation: OccupationalRiskSituation; residualProbability?: number | null; residualSeverity?: number | null;
+  controls?: string | null; notes?: string | null; lastInspectionId?: number | null; updatedByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const current = await getOccupationalRiskForWorkspace(input.riskId, input.workspaceId);
+  if (!current) throw new Error("Risco ocupacional não encontrado.");
+  const nextResidualProbability = input.residualProbability === undefined ? current.residualProbability : input.residualProbability;
+  const nextResidualSeverity = input.residualSeverity === undefined ? current.residualSeverity : input.residualSeverity;
+  const nextResidualScore = nextResidualProbability && nextResidualSeverity ? nextResidualProbability * nextResidualSeverity : null;
+  const now = new Date();
+  const nextScore = nextResidualScore ?? current.inherentScore;
+  const eventType = riskEventType(current.situation, input.situation, current.residualScore ?? current.inherentScore, nextScore);
+  const values = {
+    situation: input.situation,
+    residualProbability: nextResidualProbability,
+    residualSeverity: nextResidualSeverity,
+    residualScore: nextResidualScore,
+    controls: input.controls === undefined ? current.controls : input.controls,
+    lastInspectionId: input.lastInspectionId === undefined ? current.lastInspectionId : input.lastInspectionId,
+    controlVerifiedAt: input.situation === "controlled" ? now : current.controlVerifiedAt,
+    eliminatedAt: input.situation === "eliminated" ? now : current.eliminatedAt,
+    updatedAt: now,
+  };
+  await db.transaction(async tx => {
+    await tx.update(occupationalRisks).set(values).where(eq(occupationalRisks.id, input.riskId));
+    await tx.insert(occupationalRiskEvents).values({
+      occupationalRiskId: input.riskId,
+      workspaceId: current.workspaceId,
+      companyId: current.companyId,
+      departmentId: current.departmentId,
+      eventType,
+      previousSituation: current.situation,
+      nextSituation: input.situation,
+      previousScore: current.residualScore ?? current.inherentScore,
+      nextScore,
+      notes: input.notes ?? null,
+      createdByUserId: input.updatedByUserId,
+      occurredAt: now,
+    });
+  });
+  return (await db.select().from(occupationalRisks).where(eq(occupationalRisks.id, input.riskId)).limit(1))[0]!;
 }
 
 export async function listClientEngagementsForWorkspace(workspaceId: number) {

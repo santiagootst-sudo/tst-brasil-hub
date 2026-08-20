@@ -673,6 +673,7 @@ export const createInspectionInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   departmentId: z.number().int().positive().nullable().optional(),
   templateId: z.number().int().positive().nullable().optional(),
+  occupationalRiskId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().min(3).max(255),
   dueAt: z.coerce.date().nullable().optional(),
   notes: z.string().trim().max(1500).nullable().optional(),
@@ -681,6 +682,7 @@ export const createInspectionInput = workspaceIdInput.extend({
 export const createActionItemInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   inspectionId: z.number().int().positive().nullable().optional(),
+  occupationalRiskId: z.number().int().positive().nullable().optional(),
   departmentId: z.number().int().positive().nullable().optional(),
   responsibleEmployeeId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().min(3).max(255),
@@ -722,6 +724,7 @@ export const inspectionSchema = z.object({
   companyId: z.number().int().positive(),
   departmentId: z.number().int().positive().nullable(),
   templateId: z.number().int().positive().nullable(),
+  occupationalRiskId: z.number().int().positive().nullable(),
   title: z.string(),
   dueAt: z.date().nullable(),
   completedAt: z.date().nullable(),
@@ -737,6 +740,7 @@ export const actionItemSchema = z.object({
   workspaceId: z.number().int().positive(),
   companyId: z.number().int().positive(),
   inspectionId: z.number().int().positive().nullable(),
+  occupationalRiskId: z.number().int().positive().nullable(),
   departmentId: z.number().int().positive().nullable(),
   responsibleEmployeeId: z.number().int().positive().nullable(),
   title: z.string(),
@@ -774,6 +778,7 @@ export const inspectionCreatedSchema = z.object({
   companyId: z.number().int().positive(),
   departmentId: z.number().int().positive().nullable(),
   templateId: z.number().int().positive().nullable(),
+  occupationalRiskId: z.number().int().positive().nullable(),
   title: z.string(),
   dueAt: z.date().nullable(),
   notes: z.string().nullable(),
@@ -786,6 +791,7 @@ export const actionItemCreatedSchema = z.object({
   workspaceId: z.number().int().positive(),
   companyId: z.number().int().positive(),
   inspectionId: z.number().int().positive().nullable(),
+  occupationalRiskId: z.number().int().positive().nullable(),
   departmentId: z.number().int().positive().nullable(),
   responsibleEmployeeId: z.number().int().positive().nullable(),
   title: z.string(),
@@ -793,6 +799,91 @@ export const actionItemCreatedSchema = z.object({
   dueAt: z.date().nullable(),
   status: z.literal("open"),
   createdByUserId: z.number().int().positive(),
+});
+
+export const occupationalRiskGroups = ["physical", "chemical", "biological", "ergonomic", "accident", "psychosocial", "other"] as const;
+export const occupationalRiskSources = ["pgr", "inspection", "combined"] as const;
+export const occupationalRiskSituations = ["identified", "in_treatment", "controlled", "eliminated"] as const;
+export const occupationalRiskGroupSchema = z.enum(occupationalRiskGroups);
+export const occupationalRiskSourceSchema = z.enum(occupationalRiskSources);
+export const occupationalRiskSituationSchema = z.enum(occupationalRiskSituations);
+
+const riskScoreInput = z.number().int().min(1).max(5);
+
+export const createOccupationalRiskInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  pgrProjectId: z.number().int().positive().nullable().optional(),
+  departmentId: z.number().int().positive().nullable().optional(),
+  jobRoleId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().min(3).max(255),
+  description: z.string().trim().max(1500).nullable().optional(),
+  riskGroup: occupationalRiskGroupSchema,
+  source: occupationalRiskSourceSchema.default("pgr"),
+  inherentProbability: riskScoreInput,
+  inherentSeverity: riskScoreInput,
+  controls: z.string().trim().max(1500).nullable().optional(),
+  exposedWorkersCount: z.number().int().min(0).max(100000).default(0),
+});
+
+export const updateOccupationalRiskInput = workspaceIdInput.extend({
+  riskId: z.number().int().positive(),
+  situation: occupationalRiskSituationSchema,
+  residualProbability: riskScoreInput.nullable().optional(),
+  residualSeverity: riskScoreInput.nullable().optional(),
+  controls: z.string().trim().max(1500).nullable().optional(),
+  notes: z.string().trim().max(1500).nullable().optional(),
+  lastInspectionId: z.number().int().positive().nullable().optional(),
+});
+
+export const occupationalRiskSchema = z.object({
+  id: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  pgrProjectId: z.number().int().positive().nullable(),
+  departmentId: z.number().int().positive().nullable(),
+  jobRoleId: z.number().int().positive().nullable(),
+  title: z.string(),
+  description: z.string().nullable(),
+  riskGroup: occupationalRiskGroupSchema,
+  source: occupationalRiskSourceSchema,
+  inherentProbability: z.number().int(),
+  inherentSeverity: z.number().int(),
+  inherentScore: z.number().int(),
+  residualProbability: z.number().int().nullable(),
+  residualSeverity: z.number().int().nullable(),
+  residualScore: z.number().int().nullable(),
+  situation: occupationalRiskSituationSchema,
+  controls: z.string().nullable(),
+  exposedWorkersCount: z.number().int(),
+  identifiedAt: z.date(),
+  controlVerifiedAt: z.date().nullable(),
+  eliminatedAt: z.date().nullable(),
+  lastInspectionId: z.number().int().positive().nullable(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const occupationalRiskEventSchema = z.object({
+  id: z.number().int().positive(),
+  occupationalRiskId: z.number().int().positive(),
+  workspaceId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  departmentId: z.number().int().positive().nullable(),
+  eventType: z.enum(["identified", "treatment_started", "control_verified", "reduced", "eliminated", "reopened"]),
+  previousSituation: z.string().nullable(),
+  nextSituation: z.string().nullable(),
+  previousScore: z.number().int().nullable(),
+  nextScore: z.number().int().nullable(),
+  notes: z.string().nullable(),
+  occurredAt: z.date(),
+  createdByUserId: z.number().int().positive(),
+  createdAt: z.date(),
+});
+
+export const occupationalRiskSnapshotSchema = z.object({
+  risks: z.array(occupationalRiskSchema),
+  events: z.array(occupationalRiskEventSchema),
 });
 
 export const clientEngagementStatuses = ["lead", "active", "inactive"] as const;
