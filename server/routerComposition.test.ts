@@ -58,6 +58,7 @@ describe("composição de routers do portal", () => {
       "updateCipaMemberElection",
       "updateClientVisitStatus",
       "updateCompanyBranding",
+      "updateCompanyProfile",
       "updateEmployeeEmail",
       "updateEpiItem",
       "updateOccupationalRisk",

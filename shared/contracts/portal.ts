@@ -12,6 +12,12 @@ export const createCompanyInput = workspaceIdInput.extend({
   document: z.string().trim().max(32).optional(),
 });
 
+export const updateCompanyProfileInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  name: z.string().trim().min(2).max(255),
+  document: z.string().trim().max(32).nullable().optional(),
+});
+
 export const createDepartmentInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   name: z.string().trim().min(2).max(160),

@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { companyBrandingUpdatedSchema, companyCreatedSchema, companyLogoUpdatedSchema, createCompanyInput, updateCompanyBrandingInput, uploadCompanyLogoInput, workspaceCreatedSchema, workspaceDetailSchema, workspaceIdInput, workspaceInput, workspaceSummarySchema } from "@shared/contracts/portal";
+import { companyBrandingUpdatedSchema, companyCreatedSchema, companyLogoUpdatedSchema, companySchema, createCompanyInput, updateCompanyBrandingInput, updateCompanyProfileInput, uploadCompanyLogoInput, workspaceCreatedSchema, workspaceDetailSchema, workspaceIdInput, workspaceInput, workspaceSummarySchema } from "@shared/contracts/portal";
 import * as portalDb from "../db";
 import { storagePut } from "../storage";
 import { canManageWorkspace } from "../workspaceAccess";
@@ -24,6 +24,15 @@ export const workspaceRouter = router({
     const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);
     if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
     return portalDb.createCompanyForWorkspace(input);
+  }),
+  updateCompanyProfile: protectedProcedure.input(updateCompanyProfileInput).output(companySchema).mutation(async ({ ctx, input }) => {
+    const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);
+    if (!canManageWorkspace(workspace?.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+    const company = await portalDb.getCompanyForWorkspace(input.companyId, input.workspaceId);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
+    const updated = await portalDb.updateCompanyProfileForWorkspace(input);
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Não foi possível atualizar os dados da empresa." });
+    return updated;
   }),
   uploadCompanyLogo: protectedProcedure.input(uploadCompanyLogoInput).output(companyLogoUpdatedSchema).mutation(async ({ ctx, input }) => {
     const workspace = await portalDb.getWorkspaceForUser(input.workspaceId, ctx.user.id);

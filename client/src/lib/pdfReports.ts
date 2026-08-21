@@ -92,8 +92,19 @@ function safeFileName(value: string) {
     .toLowerCase() || "relatorio-sst";
 }
 
-function setupDocument(title: string, workspaceName: string, generatedAt: PdfDate) {
+function setupDocument(title: string, workspaceName: string, generatedAt: PdfDate, options?: { discreetIdentity?: boolean }) {
   const document = new jsPDF({ unit: "mm", format: "a4" });
+  if (options?.discreetIdentity) {
+    document.setTextColor(31, 41, 55);
+    document.setFont("helvetica", "bold");
+    document.setFontSize(15);
+    document.text(title, 16, 18);
+    document.setTextColor(150, 157, 165);
+    document.setFont("helvetica", "normal");
+    document.setFontSize(7);
+    document.text(`Portal TST Brasil · ${workspaceName} · Gerado em ${formatDate(generatedAt ?? new Date())}`, 16, 289);
+    return document;
+  }
   document.setFillColor(6, 59, 67);
   document.rect(0, 0, 210, 31, "F");
   document.setTextColor(255, 255, 255);
@@ -796,14 +807,14 @@ export type TrainingAttendanceInput = {
 type AttendanceParticipant = { fullName: string; cpf: string; roleName: string };
 
 export function buildTrainingAttendancePdf(input: TrainingAttendanceInput) {
-  const doc = setupDocument("LISTA DE PRESENÇA", input.workspaceName, input.generatedAt);
+  const doc = setupDocument("LISTA DE PRESENÇA", input.workspaceName, input.generatedAt, { discreetIdentity: true });
   const dates = (input.scheduledDates ?? []).filter(Boolean);
   const participants: AttendanceParticipant[] = input.participants?.length
     ? input.participants.map(participant => ({ fullName: participant.fullName, cpf: participant.cpf || "", roleName: participant.roleName || "" }))
     : Array.from({ length: input.participantCount }, () => ({ fullName: "", cpf: "", roleName: "" }));
   const pageWidth = 178;
   const x = 16;
-  let y = 56;
+  let y = 30;
 
   const drawCell = (left: number, top: number, width: number, height: number, label: string, value: string) => {
     doc.setDrawColor(64, 72, 80);
