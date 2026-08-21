@@ -14,7 +14,8 @@ describe("direção visual do dashboard", () => {
   it("mantém contraste explícito no título e nos indicadores", () => {
     expect(source).toContain("text-[#173b43]");
     expect(source).toContain("text-[#668087]");
-    expect(source).toContain("bg-white/55");
+    expect(source).toContain('max-w-[1440px]');
+    expect(source).toContain('border border-[#dfe6ec] bg-white');
   });
 
   it("evita a superfície tracejada no estado vazio principal", () => {
@@ -55,6 +56,14 @@ describe("direção visual do dashboard", () => {
     expect(source).toContain("companiesById");
     expect(source).toContain("Nenhuma visita agendada");
     expect(source).toContain("Nenhum retorno programado");
+  });
+
+  it("padroniza as abas CLT com navegação compacta e superfícies brancas", () => {
+    expect(source).toContain('bg-[#123f69] text-white shadow-sm');
+    expect(source).toContain('[&_a.rounded-3xl]:!bg-white');
+    expect(source).toContain('[&_article.rounded-3xl]:!bg-white');
+    expect(source).toContain('<RiskEvolutionPanel');
+    expect(source).toContain('rounded-xl border border-[#dfe6ec] bg-white p-4');
   });
 
   it("mantém o mesmo shell visual ao alternar entre as abas do Prestador", () => {
