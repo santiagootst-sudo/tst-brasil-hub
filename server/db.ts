@@ -492,6 +492,49 @@ export async function listAdminAccessAudits(limit = 100) {
   return db.select().from(adminAccessAudit).orderBy(desc(adminAccessAudit.createdAt), desc(adminAccessAudit.id)).limit(limit);
 }
 
+export type AdminPlatformTelemetry = {
+  capturedAt: Date;
+  database: { status: "available" | "unavailable"; observedBytes: number | null; capacityBytes: number | null };
+  usage: { companies: number; workspaces: number; employees: number; occupationalRisks: number; epiDeliveries: number; epiEvidence: number; accidents: number; documents: number; supportTickets: number };
+  operational: { emailDeliveryConfigured: boolean; latestRiskEventAt: Date | null; latestEpiEvidenceAt: Date | null; latestAdminActivityAt: Date | null };
+};
+
+export async function getAdminPlatformTelemetry(): Promise<AdminPlatformTelemetry> {
+  const capturedAt = new Date();
+  const emptyUsage = { companies: 0, workspaces: 0, employees: 0, occupationalRisks: 0, epiDeliveries: 0, epiEvidence: 0, accidents: 0, documents: 0, supportTickets: 0 };
+  const db = await getDb();
+  if (!db) return { capturedAt, database: { status: "unavailable", observedBytes: null, capacityBytes: null }, usage: emptyUsage, operational: { emailDeliveryConfigured: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL), latestRiskEventAt: null, latestEpiEvidenceAt: null, latestAdminActivityAt: null } };
+
+  const count = async (table: Parameters<typeof db.select>[0] extends never ? never : any) => {
+    const rows = await db.select({ value: sql<number>`count(*)` }).from(table);
+    return Number(rows[0]?.value ?? 0);
+  };
+  const [companiesCount, workspacesCount, employeesCount, risksCount, deliveriesCount, evidenceCount, accidentsCount, attachmentsCount, cipaDocumentsCount, certificatesCount, ticketsCount, latestRisk, latestEvidence, latestAdmin] = await Promise.all([
+    count(companies), count(workspaces), count(employees), count(occupationalRisks), count(epiDeliveries), count(epiDeliveryEvidence), count(accidentDetails), count(pgrAttachments), count(cipaDocuments), count(certificates), count(supportTickets),
+    db.select({ value: sql<Date | null>`max(${occupationalRiskEvents.occurredAt})` }).from(occupationalRiskEvents),
+    db.select({ value: sql<Date | null>`max(${epiDeliveryEvidence.createdAt})` }).from(epiDeliveryEvidence),
+    db.select({ value: sql<Date | null>`max(${adminAccessAudit.createdAt})` }).from(adminAccessAudit),
+  ]);
+
+  let observedBytes: number | null = null;
+  try {
+    const result = await db.execute(sql.raw("SELECT COALESCE(SUM(data_length + index_length), 0) AS observedBytes FROM information_schema.tables WHERE table_schema = DATABASE()"));
+    const rows = Array.isArray(result) ? result[0] : result;
+    const first = Array.isArray(rows) ? rows[0] as { observedBytes?: number | string } | undefined : undefined;
+    observedBytes = first?.observedBytes === undefined ? null : Number(first.observedBytes);
+  } catch (error) {
+    console.warn("[Admin telemetry] Não foi possível medir o volume físico do banco.", error instanceof Error ? error.message : "erro desconhecido");
+  }
+  const parsedCapacity = Number(process.env.PLATFORM_DATABASE_CAPACITY_BYTES ?? 0);
+  const capacityBytes = Number.isFinite(parsedCapacity) && parsedCapacity > 0 ? parsedCapacity : null;
+  return {
+    capturedAt,
+    database: { status: "available", observedBytes, capacityBytes },
+    usage: { companies: companiesCount, workspaces: workspacesCount, employees: employeesCount, occupationalRisks: risksCount, epiDeliveries: deliveriesCount, epiEvidence: evidenceCount, accidents: accidentsCount, documents: attachmentsCount + cipaDocumentsCount + certificatesCount, supportTickets: ticketsCount },
+    operational: { emailDeliveryConfigured: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL), latestRiskEventAt: latestRisk[0]?.value ?? null, latestEpiEvidenceAt: latestEvidence[0]?.value ?? null, latestAdminActivityAt: latestAdmin[0]?.value ?? null },
+  };
+}
+
 export async function listWorkspacesForUser(userId: number) {
   const db = await getDb();
   if (!db) return [];

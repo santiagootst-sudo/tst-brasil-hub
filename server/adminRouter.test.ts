@@ -4,6 +4,7 @@ import type { TrpcContext } from "./_core/context";
 const db = vi.hoisted(() => ({
   approveAccessRequest: vi.fn(),
   createManualAccess: vi.fn(),
+  getAdminPlatformTelemetry: vi.fn(),
   getUserById: vi.fn(),
   listAccessRequestsForAdmin: vi.fn(),
   listAdminAccessAudits: vi.fn(),
@@ -47,6 +48,14 @@ describe("adminRouter", () => {
 
     await expect(adminRouter.createCaller(context()).users()).resolves.toEqual([regularUser]);
     await expect(adminRouter.createCaller(context()).audits()).resolves.toEqual([]);
+  });
+
+  it("expõe telemetria consolidada apenas ao administrador", async () => {
+    const telemetry = { capturedAt: now, database: { status: "available", observedBytes: 2048, capacityBytes: 4096 }, usage: { companies: 2, workspaces: 3, employees: 8, occupationalRisks: 5, epiDeliveries: 4, epiEvidence: 2, accidents: 1, documents: 6, supportTickets: 0 }, operational: { emailDeliveryConfigured: true, latestRiskEventAt: now, latestEpiEvidenceAt: now, latestAdminActivityAt: now } };
+    db.getAdminPlatformTelemetry.mockResolvedValue(telemetry);
+
+    await expect(adminRouter.createCaller(context()).platformTelemetry()).resolves.toEqual(telemetry);
+    await expect(adminRouter.createCaller(context(regularUser)).platformTelemetry()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("gera acesso para uma solicitação pendente somente como administrador", async () => {

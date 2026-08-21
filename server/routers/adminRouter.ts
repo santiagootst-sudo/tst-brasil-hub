@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { approveAccessRequest, createManualAccess, getUserById, listAccessRequestsForAdmin, listAdminAccessAudits, listUsersForAdmin, resetAccessCredential, updateGeneratedAccess, updateUserAccess } from "../db";
+import { approveAccessRequest, createManualAccess, getAdminPlatformTelemetry, getUserById, listAccessRequestsForAdmin, listAdminAccessAudits, listUsersForAdmin, resetAccessCredential, updateGeneratedAccess, updateUserAccess } from "../db";
 import { adminProcedure, router } from "../_core/trpc";
 
 const targetUserInput = z.object({
@@ -41,6 +41,7 @@ export const adminRouter = router({
   users: adminProcedure.query(() => listUsersForAdmin()),
   audits: adminProcedure.query(() => listAdminAccessAudits()),
   accessRequests: adminProcedure.query(() => listAccessRequestsForAdmin()),
+  platformTelemetry: adminProcedure.query(() => getAdminPlatformTelemetry()),
   grantAccess: adminProcedure.input(grantRequestInput).mutation(async ({ ctx, input }) => {
     const temporaryPassword = generateTemporaryPassword();
     const result = await approveAccessRequest({ requestId: input.requestId, adminUserId: ctx.user.id, durationDays: input.durationDays, temporaryPassword });
