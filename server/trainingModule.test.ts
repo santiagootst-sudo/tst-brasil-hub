@@ -36,17 +36,19 @@ describe("módulo ampliado de Treinamentos", () => {
       instructorName: "Instrutor credenciado",
       location: "Área de vivência",
       participantCount: 2,
-      participants: [{ employeeId: 11, fullName: "Ana da Silva", companyId: 4 }, { employeeId: 12, fullName: "Bruno Souza", companyId: 4 }],
+      participants: [{ employeeId: 11, fullName: "Ana da Silva", cpf: "123.456.789-00", roleName: "Auxiliar de produção", companyId: 4 }, { employeeId: 12, fullName: "Bruno Souza", cpf: null, roleName: null, companyId: 4 }],
       createdByUserId: 3,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
     expect(training.participants.map(participant => participant.fullName)).toEqual(["Ana da Silva", "Bruno Souza"]);
+    expect(training.participants[0]?.cpf).toBe("123.456.789-00");
+    expect(training.participants[0]?.roleName).toBe("Auxiliar de produção");
     expect(training.scheduledDates).toHaveLength(2);
   });
 
-  it("monta ata em PDF com lista nominada e abre nova página para listas extensas", () => {
-    const names = Array.from({ length: 30 }, (_, index) => ({ fullName: `Participante ${index + 1}` }));
+  it("monta lista de presença técnica com CPF, função e nova página para listas extensas", () => {
+    const names = Array.from({ length: 30 }, (_, index) => ({ fullName: `Participante ${index + 1}`, cpf: `000.000.00${index}-00`, roleName: "Colaborador" }));
     const pdf = buildTrainingAttendancePdf({
       workspaceName: "Unidade Centro",
       companyName: "Empresa Alfa",

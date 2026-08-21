@@ -137,6 +137,7 @@ export const employees = mysqlTable("employees", {
   departmentId: int("departmentId"),
   jobRoleId: int("jobRoleId"),
   fullName: varchar("fullName", { length: 255 }).notNull(),
+  cpf: varchar("cpf", { length: 24 }),
   email: varchar("email", { length: 320 }),
   status: mysqlEnum("status", ["active", "inactive"]).default("active").notNull(),
   hiredAt: timestamp("hiredAt"),

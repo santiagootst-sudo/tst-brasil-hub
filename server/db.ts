@@ -132,7 +132,9 @@ async function ensureEpiEvidenceSchema(db: ReturnType<typeof drizzle>) {
   if (epiEvidenceSchemaReady) return epiEvidenceSchemaReady;
   epiEvidenceSchemaReady = (async () => {
     await db.execute(sql.raw("ALTER TABLE employees ADD COLUMN IF NOT EXISTS email VARCHAR(320) NULL"));
+    await db.execute(sql.raw("ALTER TABLE employees ADD COLUMN IF NOT EXISTS cpf VARCHAR(24) NULL"));
     await db.execute(sql.raw("CREATE INDEX IF NOT EXISTS employees_workspace_email_idx ON employees (workspaceId, email)"));
+    await db.execute(sql.raw("CREATE INDEX IF NOT EXISTS employees_workspace_cpf_idx ON employees (workspaceId, cpf)"));
     await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS epi_delivery_evidence (
       id INT AUTO_INCREMENT PRIMARY KEY,
       workspaceId INT NOT NULL,
@@ -761,9 +763,10 @@ export async function listTrainingsForWorkspace(workspaceId: number) {
   const records = await db.select().from(trainings).where(eq(trainings.workspaceId, workspaceId)).orderBy(desc(trainings.scheduledAt), desc(trainings.updatedAt));
   const trainingIds = records.map(record => record.id);
   const participants = trainingIds.length
-    ? await db.select({ trainingId: trainingParticipants.trainingId, employeeId: employees.id, fullName: employees.fullName, companyId: employees.companyId })
+    ? await db.select({ trainingId: trainingParticipants.trainingId, employeeId: employees.id, fullName: employees.fullName, cpf: employees.cpf, roleName: jobRoles.name, companyId: employees.companyId })
       .from(trainingParticipants)
       .innerJoin(employees, eq(trainingParticipants.employeeId, employees.id))
+      .leftJoin(jobRoles, eq(employees.jobRoleId, jobRoles.id))
       .where(and(eq(trainingParticipants.workspaceId, workspaceId), inArray(trainingParticipants.trainingId, trainingIds)))
     : [];
   const byTraining = new Map<number, typeof participants>();
@@ -775,7 +778,7 @@ export async function listTrainingsForWorkspace(workspaceId: number) {
       scheduledDates = Array.isArray(parsed) ? parsed.map(value => new Date(value)).filter(value => !Number.isNaN(value.getTime())) : [];
     } catch { scheduledDates = []; }
     if (!scheduledDates.length && record.scheduledAt) scheduledDates = [record.scheduledAt];
-    const linkedParticipants = (byTraining.get(record.id) ?? []).map(({ employeeId, fullName, companyId }) => ({ employeeId, fullName, companyId }));
+    const linkedParticipants = (byTraining.get(record.id) ?? []).map(({ employeeId, fullName, cpf, roleName, companyId }) => ({ employeeId, fullName, cpf: cpf ?? null, roleName: roleName ?? null, companyId }));
     return { ...record, scheduledDates, instructorName: record.instructorName ?? null, location: record.location ?? null, participants: linkedParticipants, participantCount: linkedParticipants.length || record.participantCount };
   });
 }
@@ -1168,12 +1171,13 @@ export async function listEmployeesForWorkspace(workspaceId: number) {
   return db.select().from(employees).where(eq(employees.workspaceId, workspaceId)).orderBy(desc(employees.updatedAt));
 }
 
-export async function createEmployeeForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; jobRoleId?: number | null; fullName: string; email?: string | null; hiredAt?: Date | null }) {
+export async function createEmployeeForWorkspace(input: { workspaceId: number; companyId: number; departmentId?: number | null; jobRoleId?: number | null; fullName: string; cpf?: string | null; email?: string | null; hiredAt?: Date | null }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const email = input.email?.trim().toLowerCase() || null;
-  const inserted = await db.insert(employees).values({ ...input, email, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" });
-  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, email, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" as const };
+  const cpf = input.cpf?.trim() || null;
+  const inserted = await db.insert(employees).values({ ...input, cpf, email, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" });
+  return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input, cpf, email, departmentId: input.departmentId ?? null, jobRoleId: input.jobRoleId ?? null, hiredAt: input.hiredAt ?? null, status: "active" as const };
 }
 
 export async function getEmployeeForWorkspace(employeeId: number, workspaceId: number) {

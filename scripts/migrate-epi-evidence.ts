@@ -20,7 +20,9 @@ async function addIndexIfMissing(table: string, indexName: string, columnsSql: s
 }
 
 await addColumnIfMissing("employees", "email VARCHAR(320) NULL");
+await addColumnIfMissing("employees", "cpf VARCHAR(24) NULL");
 await addIndexIfMissing("employees", "employees_workspace_email_idx", "workspaceId, email");
+await addIndexIfMissing("employees", "employees_workspace_cpf_idx", "workspaceId, cpf");
 
 const [receiptMethod] = await connection.query<mysql.RowDataPacket[]>("SHOW COLUMNS FROM `epi_deliveries` LIKE 'receiptAcceptanceMethod'");
 if (receiptMethod.length) {

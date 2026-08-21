@@ -789,96 +789,101 @@ export type TrainingAttendanceInput = {
   location?: string | null;
   scheduledDates?: PdfDate[];
   participantCount: number;
-  participants?: Array<{ fullName: string }>;
+  participants?: Array<{ fullName: string; cpf?: string | null; roleName?: string | null }>;
   generatedAt?: PdfDate;
 };
 
+type AttendanceParticipant = { fullName: string; cpf: string; roleName: string };
+
 export function buildTrainingAttendancePdf(input: TrainingAttendanceInput) {
-  const doc = setupDocument("Ata de Curso e Lista de Presença", input.workspaceName, input.generatedAt);
+  const doc = setupDocument("LISTA DE PRESENÇA", input.workspaceName, input.generatedAt);
   const dates = (input.scheduledDates ?? []).filter(Boolean);
-  const participants = input.participants?.length
-    ? input.participants.map(participant => participant.fullName)
-    : Array.from({ length: input.participantCount }, (_, index) => `Participante ${String(index + 1).padStart(2, "0")}`);
-  let y = 49;
+  const participants: AttendanceParticipant[] = input.participants?.length
+    ? input.participants.map(participant => ({ fullName: participant.fullName, cpf: participant.cpf || "", roleName: participant.roleName || "" }))
+    : Array.from({ length: input.participantCount }, () => ({ fullName: "", cpf: "", roleName: "" }));
+  const pageWidth = 178;
+  const x = 16;
+  let y = 56;
 
-  doc.setTextColor(6, 59, 67);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("ATA DE CURSO E LISTA DE PRESENÇA", 16, y);
-  y += 9;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(71, 99, 106);
-  doc.text("Documento para registro de realização e assinaturas dos participantes.", 16, y);
-  y += 10;
-
-  const details = [
-    ["Treinamento", input.title],
-    ["Instrutor(a) / responsável", input.instructorName || "Não informado"],
-    ["Local de realização", input.location || "Não informado"],
-    ["Datas programadas", dates.length ? dates.map(formatDate).join(" · ") : "Não informadas"],
-    ["Participantes previstos", String(participants.length)],
-    ["Empresa / ambiente", input.companyName || input.workspaceName],
-  ];
-  details.forEach(([label, value], index) => {
-    doc.setFillColor(index % 2 ? 247 : 237, index % 2 ? 251 : 246, index % 2 ? 250 : 243);
-    doc.rect(16, y, 178, 8, "F");
-    doc.setTextColor(12, 116, 116);
+  const drawCell = (left: number, top: number, width: number, height: number, label: string, value: string) => {
+    doc.setDrawColor(64, 72, 80);
+    doc.rect(left, top, width, height);
+    doc.setTextColor(31, 41, 55);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text(label, 19, y + 5);
-    doc.setTextColor(16, 43, 50);
+    doc.setFontSize(7.5);
+    doc.text(label, left + 2.5, top + 4);
     doc.setFont("helvetica", "normal");
-    doc.text(String(value).slice(0, 95), 66, y + 5);
-    y += 8;
-  });
+    doc.setFontSize(8.5);
+    const lines = doc.splitTextToSize(value || "Não informado", width - 5) as string[];
+    doc.text(lines.slice(0, Math.max(1, Math.floor((height - 5) / 4))), left + 2.5, top + 8);
+  };
 
-  y += 10;
+  drawCell(x, y, 118, 17, "TÍTULO:", input.title);
+  drawCell(x + 118, y, 60, 17, "DATA(S) DE REALIZAÇÃO:", dates.length ? dates.map(formatDate).join(" · ") : "Não informada");
+  y += 17;
+  drawCell(x, y, 118, 13, "LOCAL:", input.location || "Não informado");
+  drawCell(x + 118, y, 60, 13, "PARTICIPANTES PREVISTOS:", String(participants.length));
+  y += 13;
+  drawCell(x, y, 106, 13, "INSTRUTOR(A) / RESPONSÁVEL:", input.instructorName || "Não informado");
+  drawCell(x + 106, y, 72, 13, "EMPRESA / AMBIENTE:", input.companyName || input.workspaceName);
+  y += 18;
+
   const drawTableHeader = () => {
-    doc.setFillColor(12, 116, 116);
-    doc.rect(16, y, 178, 8, "F");
+    doc.setFillColor(77, 86, 95);
+    doc.rect(x, y, pageWidth, 10, "F");
+    doc.setDrawColor(64, 72, 80);
+    doc.rect(x, y, pageWidth, 10);
+    [x, x + 8, x + 67, x + 99, x + 136, x + 178].forEach(position => doc.line(position, y, position, y + 10));
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text("Nº", 19, y + 5.3);
-    doc.text("NOME DO PARTICIPANTE", 34, y + 5.3);
-    doc.text("ASSINATURA", 137, y + 5.3);
-    y += 8;
+    doc.setFontSize(7.2);
+    doc.text("Nº", x + 2, y + 6.2);
+    doc.text("NOME", x + 10, y + 6.2);
+    doc.text("CPF", x + 69, y + 6.2);
+    doc.text("FUNÇÃO", x + 101, y + 6.2);
+    doc.text("ASSINATURA", x + 142, y + 6.2);
+    y += 10;
   };
+
   drawTableHeader();
-  participants.forEach((name, index) => {
-    if (y > 265) {
+  participants.forEach((participant, index) => {
+    if (y > 267) {
       doc.addPage();
       y = 22;
       doc.setTextColor(6, 59, 67);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      doc.text("ATA DE CURSO E LISTA DE PRESENÇA — CONTINUAÇÃO", 16, y);
+      doc.text("LISTA DE PRESENÇA — CONTINUAÇÃO", x, y);
       y += 8;
       drawTableHeader();
     }
-    doc.setFillColor(index % 2 === 0 ? 255 : 247, index % 2 === 0 ? 255 : 251, index % 2 === 0 ? 255 : 250);
-    doc.rect(16, y, 178, 11, "F");
-    doc.setDrawColor(207, 225, 220);
-    doc.rect(16, y, 178, 11);
-    doc.setTextColor(16, 43, 50);
+    const height = 11;
+    doc.setFillColor(index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 252, index % 2 === 0 ? 255 : 253);
+    doc.rect(x, y, pageWidth, height, "F");
+    doc.setDrawColor(112, 120, 128);
+    doc.rect(x, y, pageWidth, height);
+    [x + 8, x + 67, x + 99, x + 136].forEach(position => doc.line(position, y, position, y + height));
+    doc.setTextColor(31, 41, 55);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    doc.text(String(index + 1), 20, y + 7);
-    doc.text(name.slice(0, 60), 34, y + 7);
-    doc.line(135, y + 8, 188, y + 8);
-    y += 11;
+    doc.setFontSize(7.5);
+    doc.text(String(index + 1), x + 2, y + 6.8);
+    if (participant.fullName) doc.text(participant.fullName.slice(0, 42), x + 10, y + 6.8);
+    if (participant.cpf) doc.text(participant.cpf.slice(0, 20), x + 69, y + 6.8);
+    if (participant.roleName) doc.text(participant.roleName.slice(0, 24), x + 101, y + 6.8);
+    y += height;
   });
+
   if (!participants.length) {
     doc.setTextColor(171, 92, 14);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8.5);
-    doc.text("Nenhum participante foi selecionado ou informado no cadastro deste treinamento.", 16, y + 6);
+    doc.text("Nenhum participante foi informado no planejamento deste treinamento.", x, y + 7);
     y += 12;
   }
+
   y += 15;
   if (y > 248) { doc.addPage(); y = 35; }
-  doc.setDrawColor(64, 91, 96);
+  doc.setDrawColor(64, 72, 80);
   doc.line(25, y, 92, y);
   doc.line(118, y, 185, y);
   doc.setFont("helvetica", "normal");
