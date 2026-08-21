@@ -1073,6 +1073,9 @@ export default function Operations() {
                       const empDeliveries = deliveries.filter((d: any) => d.employeeId === emp.id);
                       const deptName = departments.find((d: any) => d.id === emp.departmentId)?.name || "Geral";
                       const roleName = jobRoles.find((r: any) => r.id === emp.jobRoleId)?.name || "Colaborador";
+                      const deliveryForOtp = [...empDeliveries].filter((delivery: any) => !isDeliverySigned(delivery)).sort((a: any, b: any) => new Date(b.deliveredAt).getTime() - new Date(a.deliveredAt).getTime())[0] ?? null;
+                      const deliveryEvidence = deliveryForOtp ? evidenceByDeliveryId.get(deliveryForOtp.id) : null;
+                      const otpActionLabel = !emp.email ? "E-mail necessário" : !deliveryForOtp ? empDeliveries.length ? "Ficha confirmada" : "Sem ficha de EPI" : deliveryEvidence ? "Reenviar OTP" : "Enviar confirmação";
                       return (
                         <tr key={emp.id} className="hover:bg-[#fcfdfd]">
                           <td className="p-4 font-bold text-[#102b32] flex items-center gap-2.5">
@@ -1086,7 +1089,7 @@ export default function Operations() {
                           <td className="p-4 text-[#668087]">{deptName}</td>
                           <td className="p-4 text-[#668087]">{roleName}</td>
                           <td className="p-4 text-right font-bold text-[#0c7474]">{empDeliveries.length} entregas</td>
-                          <td className="p-4 text-right"><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="outline" disabled={updateEmployeeEmailMutation.isPending} onClick={() => updateEmployeeOtpEmail(emp)} className="h-8 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#0c7474]"><MailCheck className="mr-1 h-3.5 w-3.5" /> {emp.email ? "Editar e-mail" : "Cadastrar e-mail"}</Button><Button type="button" size="sm" onClick={() => { setDeliveryEmployeeId(emp.id); setDeliveryEpiItemId(0); setIsDeliveryModalOpen(true); }} className="h-8 rounded-lg bg-[#3173a8] text-[11px] font-bold text-white hover:bg-[#235882]"><Plus className="mr-1 h-3.5 w-3.5" /> Entregar EPI</Button></div></td>
+                          <td className="p-4 text-right"><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="outline" disabled={updateEmployeeEmailMutation.isPending} onClick={() => updateEmployeeOtpEmail(emp)} className="h-8 rounded-lg border-[#cfe3de] text-[11px] font-bold text-[#0c7474]"><MailCheck className="mr-1 h-3.5 w-3.5" /> {emp.email ? "Editar e-mail" : "Cadastrar e-mail"}</Button><Button type="button" size="sm" variant="outline" title={!emp.email ? "Cadastre o e-mail do colaborador antes de enviar a confirmação" : !deliveryForOtp ? "Não há ficha pendente de confirmação" : "Enviar a confirmação da ficha pendente mais recente"} disabled={sendEpiEvidenceMutation.isPending || !emp.email || !deliveryForOtp} onClick={() => deliveryForOtp && sendOtpConfirmation(deliveryForOtp)} className="h-8 rounded-lg border-[#9fcfc5] bg-[#f3fbf8] text-[11px] font-bold text-[#087f78] hover:bg-[#e4f6f0] disabled:cursor-not-allowed disabled:opacity-50"><MailCheck className="mr-1 h-3.5 w-3.5" /> {otpActionLabel}</Button><Button type="button" size="sm" onClick={() => { setDeliveryEmployeeId(emp.id); setDeliveryEpiItemId(0); setIsDeliveryModalOpen(true); }} className="h-8 rounded-lg bg-[#3173a8] text-[11px] font-bold text-white hover:bg-[#235882]"><Plus className="mr-1 h-3.5 w-3.5" /> Entregar EPI</Button></div></td>
                         </tr>
                       );
                     })}
