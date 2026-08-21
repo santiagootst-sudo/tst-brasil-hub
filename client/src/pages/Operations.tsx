@@ -19,7 +19,7 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Clock, 
-  QrCode, 
+  QrCode,
   Smartphone, 
   Download, 
   FileSpreadsheet, 
@@ -1115,7 +1115,7 @@ export default function Operations() {
                   <Smartphone className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#0c8c89]">Portal TST Mobile</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#0c8c89]">Registro presencial complementar</p>
                   <h4 className="text-sm font-bold text-[#102b32]">Ciência da entrega de EPI</h4>
                 </div>
               </div>
@@ -1138,13 +1138,11 @@ export default function Operations() {
 
               {!qrSignedSuccess ? (
                 <div className="space-y-3">
-                  <div className="rounded-xl border border-dashed border-[#cfe3de] p-4 text-center space-y-2">
-                    <div className="mx-auto w-24 h-24 bg-white p-2 rounded-xl shadow-xs border border-slate-200 flex items-center justify-center">
-                      <QrCode className="w-full h-full text-[#102b32]" />
-                    </div>
-                    <p className="text-[11px] text-[#668087]">Confirme o nome do trabalhador para registrar a ciência de recebimento e orientação na ficha de EPI.</p>
-                  </div>
-                  <label className="block text-xs font-bold text-[#315158]">Nome do trabalhador que confirmou o recebimento<Input value={signatureName} onChange={event => setSignatureName(event.target.value)} className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label>
+                  <section className="rounded-xl border border-[#b9e3d7] bg-[#f4fbf8] p-4">
+                    <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[#0c7474] shadow-sm"><CheckCircle2 className="h-5 w-5" /></span><div><p className="text-xs font-bold text-[#17383e]">Ciência presencial registrada no dispositivo do responsável</p><p className="mt-1 text-[11px] leading-5 text-[#668087]">Este aceite é complementar e confirma que a ficha física e as orientações foram apresentadas ao trabalhador.</p></div></div>
+                    <div className="mt-3 rounded-lg border border-[#d5e8e2] bg-white px-3 py-2"><p className="text-[10px] font-bold uppercase tracking-[.1em] text-[#0c7474]">Comprovação principal</p><p className="mt-1 text-[11px] leading-5 text-[#4d6a70]">Mantenha a ficha física assinada e envie também a confirmação por e-mail OTP. O OTP gera o link verificável, o hash da ficha e a trilha auditável.</p></div>
+                  </section>
+                  <label className="block text-xs font-bold text-[#315158]">Nome do trabalhador que prestou ciência presencial<Input value={signatureName} onChange={event => setSignatureName(event.target.value)} className="mt-1.5 h-10 rounded-xl border-[#cfe3de]" /></label>
                   <Button 
                     disabled={isSigningQr || signEpiDeliveryMutation.isPending || signatureName.trim().length < 2}
                     onClick={handleMobileSign}
@@ -1156,7 +1154,7 @@ export default function Operations() {
                       </>
                     ) : (
                       <>
-                        <Check className="h-4 w-4" /> Registrar ciência na ficha
+                        <Check className="h-4 w-4" /> Registrar ciência presencial
                       </>
                     )}
                   </Button>
