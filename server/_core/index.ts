@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { registerDbDiagnostics } from "../dbDiagnostics";
 import { stripeWebhookHandler } from "../stripe";
 import { registerPgrLegacyRoute } from "../pgrLegacyRoute";
 import { serveStatic, setupVite } from "./vite";
@@ -49,6 +50,7 @@ async function startServer() {
     console.info("[Auth] OAuth externo desativado; usando autenticação local.");
   }
   registerPgrLegacyRoute(app);
+  registerDbDiagnostics(app);
   // tRPC API
   app.use(
     "/api/trpc",
