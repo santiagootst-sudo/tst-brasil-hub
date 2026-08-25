@@ -10,6 +10,52 @@ if (!databaseUrl) {
 const connection = await mysql.createConnection(databaseUrl);
 
 const statements = [
+  // These two tables are part of the baseline schema, but some existing TiDB
+  // databases were provisioned before the inspection module was introduced.
+  // Keep the bootstrap idempotent so this script can repair those databases
+  // without replaying the historical Drizzle migration chain.
+  `CREATE TABLE IF NOT EXISTS inspections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    workspaceId INT NOT NULL,
+    companyId INT NOT NULL,
+    departmentId INT NULL,
+    templateId INT NULL,
+    occupationalRiskId INT NULL,
+    title VARCHAR(255) NOT NULL,
+    dueAt TIMESTAMP NULL,
+    completedAt TIMESTAMP NULL,
+    notes VARCHAR(1500) NULL,
+    status ENUM('planned','completed') NOT NULL DEFAULT 'planned',
+    createdByUserId INT NOT NULL,
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX inspections_workspace_idx (workspaceId),
+    INDEX inspections_company_idx (companyId),
+    INDEX inspections_status_idx (workspaceId, status),
+    INDEX inspections_due_at_idx (workspaceId, dueAt),
+    INDEX inspections_occupational_risk_idx (occupationalRiskId)
+  )`,
+  `CREATE TABLE IF NOT EXISTS action_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    workspaceId INT NOT NULL,
+    companyId INT NOT NULL,
+    inspectionId INT NULL,
+    occupationalRiskId INT NULL,
+    departmentId INT NULL,
+    responsibleEmployeeId INT NULL,
+    title VARCHAR(255) NOT NULL,
+    description VARCHAR(1500) NULL,
+    dueAt TIMESTAMP NULL,
+    status ENUM('open','in_progress','completed') NOT NULL DEFAULT 'open',
+    createdByUserId INT NOT NULL,
+    createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX action_items_workspace_idx (workspaceId),
+    INDEX action_items_company_idx (companyId),
+    INDEX action_items_status_idx (workspaceId, status),
+    INDEX action_items_due_at_idx (workspaceId, dueAt),
+    INDEX action_items_occupational_risk_idx (occupationalRiskId)
+  )`,
   `CREATE TABLE IF NOT EXISTS occupational_risks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     workspaceId INT NOT NULL,
