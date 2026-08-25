@@ -1525,10 +1525,14 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
   }
 
   const confirmationUrl = `${getEpiEvidenceBaseUrl()}/confirmar-epi/${evidence.verificationCode}`;
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  console.info(`[EPI email] Tentativa de envio: apiKeyConfigured=${Boolean(apiKey)} fromConfigured=${Boolean(from)}`);
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM_EMAIL;
-    if (!apiKey || !from) throw new Error("O canal de e-mail de confirmação ainda não está configurado.");
+    if (!apiKey || !from) {
+      console.warn("[EPI email] Envio bloqueado: configuration_missing.");
+      throw new Error("O canal de e-mail de confirmação ainda não está configurado.");
+    }
     const { Resend } = await import("resend");
     const response = await new Resend(apiKey).emails.send({
       from,
@@ -1536,8 +1540,12 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
       subject: `Confirmação de recebimento de EPI — ${company.name}`,
       html: `<main style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#172033"><h1 style="font-size:22px">Confirmação de recebimento de EPI</h1><p>Olá, ${employee.fullName}.</p><p>Foi registrada uma entrega de <strong>${item.name}</strong> para você. Confira a ficha e confirme o recebimento e as orientações recebidas.</p><p style="font-size:28px;letter-spacing:6px;font-weight:700">${otp}</p><p>Este código expira em 30 minutos e deve ser usado somente neste endereço:</p><p><a href="${confirmationUrl}">Abrir ficha de confirmação</a></p><p style="font-size:12px;color:#64748b">Evidência ${evidence.verificationCode.slice(0, 10)} · Não encaminhe este código a terceiros.</p></main>`,
     });
-    if (response.error) throw new Error("O provedor de e-mail recusou o envio da confirmação.");
+    if (response.error) {
+      console.warn("[EPI email] Resend recusou o envio: provider_rejected.");
+      throw new Error("O provedor de e-mail recusou o envio da confirmação.");
+    }
     const providerMessageId = response.data?.id ?? null;
+    console.info(`[EPI email] Resend aceitou o envio: providerMessageIdPresent=${Boolean(providerMessageId)}`);
     await db.update(epiDeliveryEvidence).set({ status: "sent", lastSentAt: new Date(), providerMessageId, failureReason: null, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
     await appendEpiEvidenceAuditEvent(db, {
       evidenceId: evidence.id,
@@ -1551,6 +1559,7 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
     });
   } catch (error) {
     const failureReason = error instanceof Error ? error.message.slice(0, 500) : "Falha não identificada no envio.";
+    console.warn("[EPI email] Envio concluído com falha; evidência marcada como failed.");
     await db.update(epiDeliveryEvidence).set({ status: "failed", failureReason, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
     await appendEpiEvidenceAuditEvent(db, {
       evidenceId: evidence.id,
