@@ -1,9 +1,3 @@
-/**
- * Quick example (matches curl usage):
- *   await callDataApi("Youtube/search", {
- *     query: { gl: "US", hl: "en", q: "manus" },
- *   })
- */
 import { ENV } from "./env";
 
 export type DataApiCallOptions = {
@@ -13,52 +7,31 @@ export type DataApiCallOptions = {
   formData?: Record<string, unknown>;
 };
 
-export async function callDataApi(
-  apiId: string,
-  options: DataApiCallOptions = {}
-): Promise<unknown> {
-  if (!ENV.forgeApiUrl) {
-    throw new Error("BUILT_IN_FORGE_API_URL is not configured");
-  }
-  if (!ENV.forgeApiKey) {
-    throw new Error("BUILT_IN_FORGE_API_KEY is not configured");
+/** Integração opcional com uma API de dados controlada pelo operador. */
+export async function callDataApi(apiId: string, options: DataApiCallOptions = {}): Promise<unknown> {
+  const baseUrl = process.env.EXTERNAL_DATA_API_URL?.replace(/\/+$/, "");
+  const apiKey = process.env.EXTERNAL_DATA_API_KEY;
+  if (!baseUrl || !apiKey) {
+    throw new Error("Optional data API is not configured");
   }
 
-  // Build the full URL by appending the service path to the base URL
-  const baseUrl = ENV.forgeApiUrl.endsWith("/") ? ENV.forgeApiUrl : `${ENV.forgeApiUrl}/`;
-  const fullUrl = new URL("webdevtoken.v1.WebDevService/CallApi", baseUrl).toString();
-
-  const response = await fetch(fullUrl, {
+  const response = await fetch(`${baseUrl}/apis/${encodeURIComponent(apiId)}`, {
     method: "POST",
     headers: {
       accept: "application/json",
       "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      apiId,
       query: options.query,
       body: options.body,
-      path_params: options.pathParams,
-      multipart_form_data: options.formData,
+      pathParams: options.pathParams,
+      formData: options.formData,
     }),
   });
-
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Data API request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
+    throw new Error(`External data API failed (${response.status})${detail ? `: ${detail}` : ""}`);
   }
-
-  const payload = await response.json().catch(() => ({}));
-  if (payload && typeof payload === "object" && "jsonData" in payload) {
-    try {
-      return JSON.parse((payload as Record<string, string>).jsonData ?? "{}");
-    } catch {
-      return (payload as Record<string, unknown>).jsonData;
-    }
-  }
-  return payload;
+  return response.json();
 }

@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { stripeWebhookHandler } from "../stripe";
 import { registerPgrLegacyRoute } from "../pgrLegacyRoute";
 import { serveStatic, setupVite } from "./vite";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -33,12 +34,20 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    stripeWebhookHandler
+  );
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
+  if (ENV.oAuthServerUrl && ENV.appId) {
+    registerOAuthRoutes(app);
+  } else {
+    console.info("[Auth] OAuth externo desativado; usando autenticação local.");
+  }
   registerPgrLegacyRoute(app);
   // tRPC API
   app.use(
