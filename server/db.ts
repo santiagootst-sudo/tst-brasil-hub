@@ -240,9 +240,34 @@ function hashCredential(password: string) {
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
 
+function normalizeCredentialHash(stored: string) {
+  let normalized = stored.trim();
+  normalized = normalized.replace(/^MASTER_ADMIN_PASSWORD_HASH\s*=\s*/i, "").trim();
+  const quote = normalized[0];
+  if (
+    normalized.length >= 2 &&
+    (quote === '"' || quote === "'" || quote === "`") &&
+    normalized.at(-1) === quote
+  ) {
+    normalized = normalized.slice(1, -1).trim();
+  }
+  return normalized;
+}
+
+export function isCredentialHashFormat(stored: string) {
+  const normalized = normalizeCredentialHash(stored);
+  const [salt, hash, ...extra] = normalized.split(":");
+  return (
+    extra.length === 0 &&
+    /^[0-9a-f]{32}$/i.test(salt ?? "") &&
+    /^[0-9a-f]{128}$/i.test(hash ?? "")
+  );
+}
+
 export function verifyCredential(password: string, stored: string) {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
+  const normalized = normalizeCredentialHash(stored);
+  if (!isCredentialHashFormat(normalized)) return false;
+  const [salt, hash] = normalized.split(":");
   const expected = Buffer.from(hash, "hex");
   const received = Buffer.from(scryptSync(password, salt, 64).toString("hex"), "hex");
   return expected.length === received.length && timingSafeEqual(expected, received);

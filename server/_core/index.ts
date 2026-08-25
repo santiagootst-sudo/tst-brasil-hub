@@ -11,6 +11,7 @@ import { stripeWebhookHandler } from "../stripe";
 import { registerPgrLegacyRoute } from "../pgrLegacyRoute";
 import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
+import { isCredentialHashFormat } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -48,12 +49,7 @@ async function startServer() {
   } else {
     console.info("[Auth] OAuth externo desativado; usando autenticação local.");
   }
-  const masterHashParts = ENV.masterAdminPasswordHash.split(":");
-  const masterHashFormatValid =
-    masterHashParts.length === 2 &&
-    Boolean(masterHashParts[0]) &&
-    /^[0-9a-f]+$/i.test(masterHashParts[1] ?? "") &&
-    (masterHashParts[1]?.length ?? 0) === 128;
+  const masterHashFormatValid = isCredentialHashFormat(ENV.masterAdminPasswordHash);
   console.info(
     `[Auth] Configuração local master: emailConfigured=${Boolean(ENV.masterAdminEmail)} hashConfigured=${Boolean(ENV.masterAdminPasswordHash)} hashFormat=${masterHashFormatValid ? "valid" : "invalid"}`
   );
