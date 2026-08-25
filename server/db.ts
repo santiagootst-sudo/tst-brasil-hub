@@ -240,7 +240,7 @@ function hashCredential(password: string) {
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
 
-function verifyCredential(password: string, stored: string) {
+export function verifyCredential(password: string, stored: string) {
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
   const expected = Buffer.from(hash, "hex");
@@ -305,11 +305,28 @@ export async function resetAccessCredential(input: { email: string; adminUserId:
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const email = input.email.trim().toLowerCase();
-  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
-  if (!request || request.status !== "approved") throw new Error("A conta ainda não possui acesso liberado.");
   const expiresAt = new Date(Date.now() + input.durationDays * 86_400_000);
-  await db.update(accessRequests).set({ credentialHash: hashCredential(input.temporaryPassword), accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: new Date(), updatedAt: new Date() }).where(eq(accessRequests.id, request.id));
-  return { request: (await db.select().from(accessRequests).where(eq(accessRequests.id, request.id)).limit(1))[0]!, expiresAt };
+  const credentialHash = hashCredential(input.temporaryPassword);
+  const now = new Date();
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  const existingUser = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+
+  if (!request && !existingUser) throw new Error("Usuário não encontrado.");
+
+  let savedRequest = request;
+  if (request) {
+    await db.update(accessRequests).set({ credentialHash, status: "approved", accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: now, updatedAt: now }).where(eq(accessRequests.id, request.id));
+    savedRequest = (await db.select().from(accessRequests).where(eq(accessRequests.id, request.id)).limit(1))[0];
+  } else {
+    await db.insert(accessRequests).values({ fullName: existingUser?.name || email, email, status: "approved", credentialHash, accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: now, updatedAt: now });
+    savedRequest = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  }
+
+  if (existingUser) {
+    await db.update(users).set({ passwordHash: credentialHash, accessStatus: "active", accessExpiresAt: expiresAt, loginMethod: "direct", updatedAt: now }).where(eq(users.id, existingUser.id));
+  }
+
+  return { request: savedRequest!, expiresAt };
 }
 
 export async function authenticateApprovedAccess(emailInput: string, password: string) {
@@ -318,6 +335,16 @@ export async function authenticateApprovedAccess(emailInput: string, password: s
   const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, emailInput.trim().toLowerCase())).limit(1))[0];
   if (!request || request.status !== "approved" || !request.credentialHash || (request.accessExpiresAt && request.accessExpiresAt.getTime() <= Date.now())) return undefined;
   return verifyCredential(password, request.credentialHash) ? request : undefined;
+}
+
+export async function authenticateLocalUser(emailInput: string, password: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const email = emailInput.trim().toLowerCase();
+  const user = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+  if (!user || !user.passwordHash || user.accessStatus !== "active") return undefined;
+  if (user.accessExpiresAt && user.accessExpiresAt.getTime() <= Date.now()) return undefined;
+  return verifyCredential(password, user.passwordHash) ? user : undefined;
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -334,6 +361,9 @@ export async function getUserByOpenId(openId: string) {
         loginMethod: "direct",
         accessStatus: "active" as const,
         accessExpiresAt: null,
+        passwordHash: null,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
@@ -348,9 +378,12 @@ export async function getUserByOpenId(openId: string) {
         loginMethod: "direct",
         accessStatus: "active" as const,
         accessExpiresAt: null,
+        passwordHash: null,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
         createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSignedIn: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
     };
   }
   const record = (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0];
@@ -373,6 +406,9 @@ export async function getUserById(userId: number) {
       loginMethod: "direct",
       accessStatus: "active" as const,
       accessExpiresAt: null,
+      passwordHash: null,
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
