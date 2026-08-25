@@ -3,7 +3,9 @@ import mysql from "mysql2/promise";
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.log("[migrate:occupational-risks] DATABASE_URL não configurada; migração ignorada neste ambiente.");
+  console.log(
+    "[migrate:occupational-risks] DATABASE_URL não configurada; migração ignorada neste ambiente."
+  );
   process.exit(0);
 }
 
@@ -122,4 +124,6 @@ for (const statement of statements) {
 }
 
 await connection.end();
-console.log("[migrate:occupational-risks] Estrutura de riscos ocupacionais atualizada.");
+console.log(
+  "[migrate:occupational-risks] Estrutura de riscos ocupacionais atualizada."
+);

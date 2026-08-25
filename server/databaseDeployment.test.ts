@@ -11,6 +11,8 @@ describe("estratégia de schema em produção", () => {
 
     expect(packageJson.scripts?.["db:validate"]).toBe("drizzle-kit check");
     expect(packageJson.scripts?.["db:push"]).toBe("pnpm db:validate");
-    expect(packageJson.scripts?.["db:migrate"]).toContain("tsx scripts/migrate-users.ts");
+    expect(packageJson.scripts?.["db:migrate"]).toMatch(
+      /^tsx scripts\/migrate-baseline\.ts && tsx scripts\/migrate-users\.ts/
+    );
   });
 });

@@ -3,7 +3,9 @@ import mysql from "mysql2/promise";
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.log("[migrate:users] DATABASE_URL não configurada; migração ignorada neste ambiente.");
+  console.log(
+    "[migrate:users] DATABASE_URL não configurada; migração ignorada neste ambiente."
+  );
   process.exit(0);
 }
 
@@ -104,24 +106,31 @@ try {
     ["accessStatus", "ENUM('active','suspended') NOT NULL DEFAULT 'active'"],
     ["accessExpiresAt", "TIMESTAMP NULL"],
     ["createdAt", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"],
-    ["updatedAt", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"],
+    [
+      "updatedAt",
+      "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+    ],
     ["lastSignedIn", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"],
   ];
 
   for (const [columnName, definition] of columns) {
     const [existing] = await connection.query<mysql.RowDataPacket[]>(
       "SHOW COLUMNS FROM `users` LIKE ?",
-      [columnName],
+      [columnName]
     );
     if (existing.length) continue;
-    await connection.query(`ALTER TABLE \`users\` ADD COLUMN \`${columnName}\` ${definition}`);
+    await connection.query(
+      `ALTER TABLE \`users\` ADD COLUMN \`${columnName}\` ${definition}`
+    );
   }
 
   const [uniqueOpenIdIndexes] = await connection.query<mysql.RowDataPacket[]>(
-    "SHOW INDEX FROM `users` WHERE Column_name = 'openId' AND Non_unique = 0",
+    "SHOW INDEX FROM `users` WHERE Column_name = 'openId' AND Non_unique = 0"
   );
   if (!uniqueOpenIdIndexes.length) {
-    await connection.query("ALTER TABLE `users` ADD UNIQUE INDEX `users_openId_unique` (`openId`)");
+    await connection.query(
+      "ALTER TABLE `users` ADD UNIQUE INDEX `users_openId_unique` (`openId`)"
+    );
   }
 
   console.log("[migrate:users] Estrutura de usuários atualizada.");
