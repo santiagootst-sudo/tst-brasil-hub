@@ -1,4 +1,5 @@
 import * as db from "./db";
+import { isCredentialHashFormat } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -36,8 +37,16 @@ export const appRouter = router({
         const password = input.password.trim();
 
         const isMaster = email === ENV.masterAdminEmail;
-        if (isMaster && (!ENV.masterAdminPasswordHash || !db.verifyCredential(password, ENV.masterAdminPasswordHash))) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciais da conta master inválidas ou não configuradas." });
+        if (isMaster) {
+          if (!ENV.masterAdminPasswordHash) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "A autenticação master ainda não foi configurada no ambiente de produção." });
+          }
+          if (!isCredentialHashFormat(ENV.masterAdminPasswordHash)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "A configuração da autenticação master está inválida. Gere novamente o hash com o comando oficial e substitua apenas o valor da variável no Render." });
+          }
+          if (!db.verifyCredential(password, ENV.masterAdminPasswordHash)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha da conta master incorreta." });
+          }
         }
 
         const localUser = isMaster ? undefined : await db.authenticateLocalUser(email, password);

@@ -24,6 +24,7 @@ describe("credential hash parsing", () => {
     expect(isCredentialHashFormat(`  '${stored}'  `)).toBe(true);
     expect(isCredentialHashFormat(`MASTER_ADMIN_PASSWORD_HASH=${stored}`)).toBe(true);
     expect(verifyCredential(password, `MASTER_ADMIN_PASSWORD_HASH=\"${stored}\"`)).toBe(true);
+    expect(verifyCredential(password, `${stored}\n`)).toBe(true);
     expect(isCredentialHashFormat("plain-password")).toBe(false);
     expect(isCredentialHashFormat(`${stored}:extra`)).toBe(false);
   });
