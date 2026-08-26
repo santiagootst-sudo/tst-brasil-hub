@@ -23,12 +23,14 @@ describe("correções operacionais do portal", () => {
     expect(operationsPage).toContain("trpc.portal.uploadEpiImage");
   });
 
-  it("impede duplicação de GHEs sugeridos no inventário do PGR", () => {
+  it("persiste GHEs no TiDB e mantém a compatibilidade do gerador legado", () => {
     const pgrPage = readFileSync(new URL("../client/src/pages/PgrApp.tsx", import.meta.url), "utf8");
-    expect(pgrPage).toContain("const normalizedSuggestionName = sug.gheName.trim().toLocaleLowerCase()");
-    expect(pgrPage).toContain("typeof g.funcao === \"string\"");
-    expect(pgrPage).toContain("typeof g.name === \"string\"");
-    expect(pgrPage).toContain("existingName.trim().toLocaleLowerCase() === normalizedSuggestionName");
+    const pgrRouter = readFileSync(new URL("./routers/pgrRouter.ts", import.meta.url), "utf8");
+    expect(pgrPage).toContain("trpc.portal.createGhe.useMutation");
+    expect(pgrPage).toContain("trpc.portal.importGhes.useMutation");
+    expect(pgrPage).toContain("localStorage.setItem(storageKey, JSON.stringify(data))");
+    expect(pgrRouter).toContain("portalDb.createPgrGheGroupForProject");
+    expect(pgrRouter).toContain("portalDb.importPgrGheGroupsForProject");
   });
 
   it("alinha o acesso manual aprovado do PGR no ticket e no gateway", () => {

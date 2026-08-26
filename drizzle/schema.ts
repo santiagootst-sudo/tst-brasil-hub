@@ -558,6 +558,28 @@ export const pgrProjects = mysqlTable("pgr_projects", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("pgr_projects_workspace_idx").on(table.workspaceId)]);
 
+export const pgrGheGroups = mysqlTable("pgr_ghe_groups", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceId: int("workspaceId").notNull(),
+  companyId: int("companyId").notNull(),
+  pgrProjectId: int("pgrProjectId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  dedupeKey: varchar("dedupeKey", { length: 255 }).notNull(),
+  description: varchar("description", { length: 1500 }),
+  suggestedHazardsJson: text("suggestedHazardsJson"),
+  suggestedMeasuresJson: text("suggestedMeasuresJson"),
+  employeeCount: int("employeeCount").default(0).notNull(),
+  source: mysqlEnum("source", ["manual", "ai", "imported"]).default("manual").notNull(),
+  createdByUserId: int("createdByUserId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("pgr_ghe_project_dedupe_unique").on(table.pgrProjectId, table.dedupeKey),
+  index("pgr_ghe_workspace_idx").on(table.workspaceId),
+  index("pgr_ghe_company_idx").on(table.companyId),
+  index("pgr_ghe_project_idx").on(table.pgrProjectId),
+]);
+
 export const pgrRevisions = mysqlTable("pgr_revisions", {
   id: int("id").autoincrement().primaryKey(),
   pgrProjectId: int("pgrProjectId").notNull(),

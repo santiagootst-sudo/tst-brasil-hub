@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { createPgrProjectInput, pgrProjectCreatedSchema, suggestPgrGhesInput, suggestPgrGhesOutput, uploadPgrAttachmentInput, pgrAttachmentSchema } from "@shared/contracts/portal";
+import { createPgrProjectInput, createPgrGheInput, createPgrGheOutput, importPgrGhesInput, importPgrGhesOutput, pgrGheSchema, pgrProjectCreatedSchema, suggestPgrGhesInput, suggestPgrGhesOutput, uploadPgrAttachmentInput, pgrAttachmentSchema } from "@shared/contracts/portal";
 import { z } from "zod";
 import { canUsePaidApps } from "../access";
 import * as portalDb from "../db";
@@ -8,6 +8,30 @@ import { canManageWorkspace } from "../workspaceAccess";
 import { invokeLLM } from "../_core/llm";
 import { storagePut } from "../storage";
 import { protectedProcedure, router } from "../_core/trpc";
+import type { AuthenticatedUser, TrpcContext } from "../_core/context";
+
+type ProtectedPgrContext = Omit<TrpcContext, "user"> & { user: AuthenticatedUser };
+
+async function authorizePgrProject(ctx: ProtectedPgrContext, workspaceId: number, projectId: number, requireManage: boolean) {
+  const [workspace, subscription, project, accessUser] = await Promise.all([
+    portalDb.getWorkspaceForUser(workspaceId, ctx.user.id),
+    portalDb.getSubscriptionForUser(ctx.user.id),
+    portalDb.getPgrProjectForWorkspace(projectId, workspaceId),
+    portalDb.getUserById(ctx.user.id),
+  ]);
+  if (!workspace) throw new TRPCError({ code: "FORBIDDEN", message: "Você não possui acesso a este ambiente." });
+  if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "Projeto PGR não encontrado neste ambiente." });
+  if (!canUsePaidApps({ userRole: accessUser?.role ?? ctx.user.role, accessStatus: accessUser?.accessStatus, accessExpiresAt: accessUser?.accessExpiresAt, subscriptionStatus: subscription?.status })) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Uma assinatura ativa é necessária para usar o PGR Pro." });
+  }
+  if (requireManage && !canManageWorkspace(workspace.role)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+  }
+  if (requireManage && !project.companyId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "O projeto PGR precisa estar vinculado a uma empresa." });
+  }
+  return { workspace, project };
+}
 
 export const pgrRouter = router({
   createPgrProject: protectedProcedure.input(createPgrProjectInput).output(pgrProjectCreatedSchema).mutation(async ({ ctx, input }) => {
@@ -131,6 +155,45 @@ export const pgrRouter = router({
       };
     }
   }),
+  listGhes: protectedProcedure
+    .input(z.object({ workspaceId: z.number().int().positive(), projectId: z.number().int().positive() }))
+    .output(z.array(pgrGheSchema))
+    .query(async ({ ctx, input }) => {
+      await authorizePgrProject(ctx, input.workspaceId, input.projectId, false);
+      return portalDb.listPgrGheGroupsForProject(input.projectId, input.workspaceId);
+    }),
+  createGhe: protectedProcedure
+    .input(createPgrGheInput)
+    .output(createPgrGheOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { project } = await authorizePgrProject(ctx, input.workspaceId, input.projectId, true);
+      const result = await portalDb.createPgrGheGroupForProject({
+        pgrProjectId: input.projectId,
+        workspaceId: input.workspaceId,
+        companyId: project.companyId!,
+        name: input.name,
+        description: input.description,
+        suggestedHazards: input.suggestedHazards,
+        suggestedMeasures: input.suggestedMeasures,
+        employeeCount: input.employeeCount,
+        source: "ai",
+        createdByUserId: ctx.user.id,
+      });
+      return { created: result.created, ghe: result.record };
+    }),
+  importGhes: protectedProcedure
+    .input(importPgrGhesInput)
+    .output(importPgrGhesOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { project } = await authorizePgrProject(ctx, input.workspaceId, input.projectId, true);
+      return portalDb.importPgrGheGroupsForProject({
+        pgrProjectId: input.projectId,
+        workspaceId: input.workspaceId,
+        companyId: project.companyId!,
+        ghes: input.ghes,
+        createdByUserId: ctx.user.id,
+      });
+    }),
   listAttachments: protectedProcedure
     .input(z.object({ workspaceId: z.number().int().positive(), projectId: z.number().int().positive() }))
     .output(z.array(pgrAttachmentSchema))

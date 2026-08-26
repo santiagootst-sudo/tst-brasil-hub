@@ -12,7 +12,7 @@
     "test": "vitest run",
     "db:validate": "drizzle-kit check",
     "db:push": "pnpm db:validate",
-    "db:migrate": "tsx scripts/migrate-baseline.ts && tsx scripts/migrate-users.ts && tsx scripts/migrate-occupational-risks.ts && tsx scripts/migrate-accidents.ts && tsx scripts/migrate-epi-nr06.ts && tsx scripts/migrate-epi-evidence.ts",
+    "db:migrate": "tsx scripts/migrate-baseline.ts && tsx scripts/migrate-users.ts && tsx scripts/migrate-occupational-risks.ts && tsx scripts/migrate-accidents.ts && tsx scripts/migrate-epi-nr06.ts && tsx scripts/migrate-epi-evidence.ts && tsx scripts/migrate-pgr-ghes.ts",
     "auth:hash": "tsx scripts/generate-password-hash.ts"
   },
   "dependencies": {

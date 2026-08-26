@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiDeliveryAuditEvents, epiDeliveryEvidence, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiDeliveryAuditEvents, epiDeliveryEvidence, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrGheGroups, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -770,6 +770,117 @@ export async function createPgrProjectForWorkspace(input: { workspaceId: number;
     legacyStorageKey: input.legacyStorageKey,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export function normalizePgrGheKey(name: string) {
+  return name.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function parsePgrGheList(value: string | null) {
+  if (!value) return [] as string[];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [] as string[];
+  }
+}
+
+function normalizePgrGheRow(row: typeof pgrGheGroups.$inferSelect) {
+  return {
+    id: row.id,
+    pgrProjectId: row.pgrProjectId,
+    name: row.name,
+    description: row.description ?? null,
+    suggestedHazards: parsePgrGheList(row.suggestedHazardsJson),
+    suggestedMeasures: parsePgrGheList(row.suggestedMeasuresJson),
+    employeeCount: Number(row.employeeCount ?? 0),
+    source: row.source,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+  };
+}
+
+export async function listPgrGheGroupsForProject(pgrProjectId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(pgrGheGroups)
+    .where(and(eq(pgrGheGroups.pgrProjectId, pgrProjectId), eq(pgrGheGroups.workspaceId, workspaceId)))
+    .orderBy(desc(pgrGheGroups.createdAt), desc(pgrGheGroups.id));
+  return rows.map(normalizePgrGheRow);
+}
+
+export async function createPgrGheGroupForProject(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  companyId: number;
+  name: string;
+  description?: string | null;
+  suggestedHazards?: string[];
+  suggestedMeasures?: string[];
+  employeeCount?: number;
+  source: "manual" | "ai" | "imported";
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const dedupeKey = normalizePgrGheKey(input.name);
+  const existing = await db.select().from(pgrGheGroups)
+    .where(and(eq(pgrGheGroups.pgrProjectId, input.pgrProjectId), eq(pgrGheGroups.dedupeKey, dedupeKey)))
+    .limit(1);
+  if (existing[0]) return { record: normalizePgrGheRow(existing[0]), created: false };
+
+  try {
+    await db.insert(pgrGheGroups).values({
+      pgrProjectId: input.pgrProjectId,
+      workspaceId: input.workspaceId,
+      companyId: input.companyId,
+      name: input.name.trim(),
+      dedupeKey,
+      description: input.description?.trim() || null,
+      suggestedHazardsJson: JSON.stringify(input.suggestedHazards ?? []),
+      suggestedMeasuresJson: JSON.stringify(input.suggestedMeasures ?? []),
+      employeeCount: input.employeeCount ?? 0,
+      source: input.source,
+      createdByUserId: input.createdByUserId,
+    });
+  } catch (error) {
+    const afterRace = await db.select().from(pgrGheGroups)
+      .where(and(eq(pgrGheGroups.pgrProjectId, input.pgrProjectId), eq(pgrGheGroups.dedupeKey, dedupeKey)))
+      .limit(1);
+    if (!afterRace[0]) throw error;
+    return { record: normalizePgrGheRow(afterRace[0]), created: false };
+  }
+
+  const inserted = await db.select().from(pgrGheGroups)
+    .where(and(eq(pgrGheGroups.pgrProjectId, input.pgrProjectId), eq(pgrGheGroups.dedupeKey, dedupeKey)))
+    .limit(1);
+  if (!inserted[0]) throw new Error("Não foi possível recuperar o GHE criado.");
+  return { record: normalizePgrGheRow(inserted[0]), created: true };
+}
+
+export async function importPgrGheGroupsForProject(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  companyId: number;
+  ghes: Array<{
+    name: string;
+    description?: string | null;
+    suggestedHazards?: string[];
+    suggestedMeasures?: string[];
+    employeeCount?: number;
+  }>;
+  createdByUserId: number;
+}) {
+  let importedCount = 0;
+  let existingCount = 0;
+  for (const ghe of input.ghes) {
+    const result = await createPgrGheGroupForProject({ ...input, ...ghe, source: "imported" });
+    if (result.created) importedCount += 1;
+    else existingCount += 1;
+  }
+  const ghes = await listPgrGheGroupsForProject(input.pgrProjectId, input.workspaceId);
+  return { importedCount, existingCount, totalCount: ghes.length, ghes };
 }
 
 export async function listPgrAttachments(pgrProjectId: number, workspaceId: number) {
