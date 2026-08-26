@@ -1,5 +1,6 @@
 import { ArrowRight, BriefcaseBusiness, ChevronRight, ClipboardCheck, FileText, HardHat, LayoutDashboard } from "lucide-react";
 import { publicAssetUrls } from "@shared/publicAssets";
+import { PortalLandingSections } from "@/components/PortalLandingSections";
 import "./portal-landing-hero.css";
 
 type PortalLandingHeroProps = { onEnter: () => void };
@@ -11,7 +12,7 @@ export function PortalLandingHero({ onEnter }: PortalLandingHeroProps) {
     <>
       <header className="portal-hero-header">
         <a href="#inicio" className="portal-brand" aria-label="TST Brasil Hub, início"><img src={publicAssetUrls.logo} alt="Logo TST Brasil Hub" /><span><strong>TST Brasil Hub</strong><small>Gestão de SST</small></span></a>
-        <nav aria-label="Navegação principal"><a href="#beneficios">Soluções</a><a href="#beneficios">Para Empresas</a><a href="#beneficios">Para Profissionais</a><a href="#produto">Conhecimento</a><a href="#planos">Planos</a></nav>
+        <nav aria-label="Navegação principal"><a href="#operacao">Soluções</a><a href="#empresas">Para Empresas</a><a href="#profissionais">Para Profissionais</a><a href="#ecossistema">Conhecimento</a><a href="#planos">Planos</a></nav>
         <button type="button" className="portal-access" onClick={onEnter}><LayoutDashboard size={16} /><span><small>ÁREA DO CLIENTE</small><b>Entrar no portal</b></span><ChevronRight size={14} /></button>
       </header>
       <section id="inicio" className="portal-hero" style={{ backgroundImage: `url(${publicAssetUrls.hero})` }}>
@@ -22,6 +23,7 @@ export function PortalLandingHero({ onEnter }: PortalLandingHeroProps) {
           <div className="portal-radar" aria-label="Radar de prioridades da rotina SST"><div className="portal-orbit portal-orbit-one" /><div className="portal-orbit portal-orbit-two" /><div className="portal-orbit portal-orbit-three" /><div className="portal-radar-core"><img src={publicAssetUrls.logo} alt="" /><span>RADAR TST</span><strong>Transforme pendências<br />em próximas ações.</strong><p>Responsável, prazo e evidência na mesma decisão.</p></div><div className="portal-signal portal-signal-doc"><FileText size={19} /><div><small>EVIDÊNCIA</small><strong>Validade e documentos no acervo.</strong></div><i /></div><div className="portal-signal portal-signal-action"><ClipboardCheck size={19} /><div><small>PRÓXIMA AÇÃO</small><strong>Defina responsável e prazo.</strong></div><i /></div><div className="portal-signal portal-signal-epi"><HardHat size={19} /><div><small>STATUS PREVENTIVO</small><strong>CA, estoque e aceite conectados.</strong></div><i /></div><div className="portal-radar-sequence"><span>responsável</span><b /> <span>prazo</span><b /> <span>ação</span><b /> <span>evidência</span></div></div>
         </div>
       </section>
+      <PortalLandingSections onEnter={onEnter} />
     </>
   );
 }

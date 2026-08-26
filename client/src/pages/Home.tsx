@@ -209,8 +209,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Seção Detalhada de Benefícios e Recursos por Perfil */}
-      <section id="beneficios" className="py-20 bg-white border-b border-[#e1ede8]">
+      {/* Conteúdo legado da landing anterior, mantido no código para referência da equipe. */}
+      <section id="beneficios" className="legacy-landing-content py-20 bg-white border-b border-[#e1ede8]">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Recursos sob medida</span>
@@ -291,7 +291,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Destaques / Ecossistema Completo */}
-      <section id="produto" className="bg-[#f8fcfb] py-20">
+      <section id="produto" className="legacy-landing-content bg-[#f8fcfb] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Ecossistema integrado</span>
@@ -337,7 +337,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Passos */}
-      <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+      <section id="como-funciona" className="legacy-landing-content mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="rounded-[2.5rem] bg-[#072d32] px-8 py-14 text-white lg:px-16 shadow-2xl relative overflow-hidden">
           <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-[#14a095]/20 blur-[100px] pointer-events-none" />
           <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr] items-center relative z-10">
@@ -365,7 +365,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Perguntas Frequentes (FAQ) */}
-      <section id="faq" className="py-20 bg-[#f8fcfb] border-t border-[#e1ede8]">
+      <section id="faq" className="legacy-landing-content py-20 bg-[#f8fcfb] border-t border-[#e1ede8]">
         <div className="mx-auto max-w-5xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Tire suas dúvidas</span>
@@ -410,7 +410,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Contato, Dúvidas e Suporte */}
-      <section id="contato" className="py-20 bg-white border-t border-[#e1ede8]">
+      <section id="contato" className="legacy-landing-content py-20 bg-white border-t border-[#e1ede8]">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <div>
@@ -538,7 +538,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#e5efe8] bg-[#072d32] py-12 text-white">
+      <footer className="legacy-landing-content border-t border-[#e5efe8] bg-[#072d32] py-12 text-white">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <BrandLockup compact aria-label="TST Brasil Hub" />
