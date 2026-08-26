@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
-import { uploadCompanyLogo, uploadPgrEvidenceAsset } from "@/lib/cloudinaryUpload";
+import { readFileAsDataUrl } from "@/lib/fileUpload";
 
 function initials(name: string) {
   return name
@@ -316,8 +316,8 @@ export default function PgrApp() {
                                 if (!file) return;
                                 setUploadingLogoCompanyId(company.id);
                                 try {
-                                  const uploaded = await uploadCompanyLogo(file);
-                                  uploadLogo.mutate({ workspaceId, companyId: company.id, remoteUrl: uploaded.url });
+                                  const dataUrl = await readFileAsDataUrl(file);
+                                  uploadLogo.mutate({ workspaceId, companyId: company.id, dataUrl });
                                 } catch (error) {
                                   toast.error(error instanceof Error ? error.message : "Não foi possível enviar o logo.");
                                 } finally {
@@ -581,13 +581,13 @@ export default function PgrApp() {
                               return;
                             }
                             setIsUploadingPgrAttachment(true);
-                            void uploadPgrEvidenceAsset(file)
-                              .then(uploaded => uploadAttachment.mutate({
+                            void readFileAsDataUrl(file)
+                              .then(dataUrl => uploadAttachment.mutate({
                                 workspaceId,
                                 projectId: selectedProject.id,
                                 title: attachmentTitle.trim(),
                                 category: attachmentCategory,
-                                remoteUrl: uploaded.url,
+                                dataUrl,
                               }))
                               .catch(error => toast.error(error instanceof Error ? error.message : "Não foi possível enviar o anexo técnico."))
                               .finally(() => {

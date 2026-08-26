@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
-import { createEpiDeliveryInput, createEpiItemInput, createEpiRequirementInput, createEpiReturnInput, createSstOccurrenceInput, epiDeliveryCreatedSchema, epiDeliverySchema, epiEvidenceDetailInput, epiEvidenceDetailSchema, epiEvidencePublicInput, epiEvidencePublicSchema, epiEvidenceSnapshotSchema, epiItemCreatedSchema, epiItemSchema, epiRequirementCreatedSchema, epiReturnCreatedSchema, listEpiEvidenceInput, operationalSafetySnapshotSchema, sendEpiEvidenceInput, signEpiDeliveryInput, sstOccurrenceCreatedSchema, updateEpiItemInput, verifyEpiEvidenceOtpInput, workspaceIdInput } from "@shared/contracts/portal";
+import { createEpiDeliveryInput, createEpiItemInput, createEpiRequirementInput, createEpiReturnInput, createSstOccurrenceInput, epiDeliveryCreatedSchema, epiDeliverySchema, epiEvidenceDetailInput, epiEvidenceDetailSchema, epiEvidencePublicInput, epiEvidencePublicSchema, epiEvidenceSnapshotSchema, epiImageUploadedSchema, epiItemCreatedSchema, epiItemSchema, epiRequirementCreatedSchema, epiReturnCreatedSchema, listEpiEvidenceInput, operationalSafetySnapshotSchema, sendEpiEvidenceInput, signEpiDeliveryInput, sstOccurrenceCreatedSchema, updateEpiItemInput, uploadEpiImageInput, verifyEpiEvidenceOtpInput, workspaceIdInput } from "@shared/contracts/portal";
 import * as portalDb from "../db";
+import { storagePut } from "../storage";
 import { canManageWorkspace } from "../workspaceAccess";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 
@@ -13,6 +14,16 @@ async function requireWorkspaceAccess(userId: number, workspaceId: number) {
 async function requireManagedWorkspace(userId: number, workspaceId: number) {
   const workspace = await requireWorkspaceAccess(userId, workspaceId);
   if (!canManageWorkspace(workspace.role)) throw new TRPCError({ code: "FORBIDDEN", message: "Seu perfil não pode alterar este ambiente." });
+}
+
+function parseEpiImage(dataUrl: string) {
+  const parsed = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl);
+  if (!parsed) throw new TRPCError({ code: "BAD_REQUEST", message: "Envie uma imagem PNG, JPEG ou WEBP válida." });
+  const contentType = parsed[1] as "image/png" | "image/jpeg" | "image/webp";
+  const buffer = Buffer.from(parsed[2].replace(/\s/g, ""), "base64");
+  if (!buffer.length || buffer.length > 2_500_000) throw new TRPCError({ code: "BAD_REQUEST", message: "A imagem do EPI deve ter no máximo 2,5 MB." });
+  const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+  return { contentType, buffer, extension };
 }
 
 function requestIp(req: { headers?: Record<string, string | string[] | undefined>; socket?: { remoteAddress?: string } }) {
@@ -48,6 +59,14 @@ export const operationsRouter = router({
     if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
     if (!epiItem || epiItem.companyId !== input.companyId) throw new TRPCError({ code: "BAD_REQUEST", message: "O EPI informado não pertence à empresa selecionada." });
     return portalDb.updateEpiItemForWorkspace(input);
+  }),
+  uploadEpiImage: protectedProcedure.input(uploadEpiImageInput).output(epiImageUploadedSchema).mutation(async ({ ctx, input }) => {
+    await requireManagedWorkspace(ctx.user.id, input.workspaceId);
+    const company = await portalDb.getCompanyForWorkspace(input.companyId, input.workspaceId);
+    if (!company) throw new TRPCError({ code: "NOT_FOUND", message: "Empresa não encontrada neste ambiente." });
+    const asset = parseEpiImage(input.dataUrl);
+    const stored = await storagePut(`epi-images/workspace-${input.workspaceId}/company-${input.companyId}/${crypto.randomUUID()}.${asset.extension}`, asset.buffer, asset.contentType);
+    return { key: stored.key, url: stored.url, mimeType: asset.contentType, bytes: asset.buffer.length };
   }),
   createEpiDelivery: protectedProcedure.input(createEpiDeliveryInput).output(epiDeliveryCreatedSchema).mutation(async ({ ctx, input }) => {
     await requireManagedWorkspace(ctx.user.id, input.workspaceId);

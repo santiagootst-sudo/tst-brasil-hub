@@ -487,6 +487,18 @@ export const updateEpiItemInput = createEpiItemInput.extend({
   epiItemId: z.number().int().positive(),
 });
 
+export const uploadEpiImageInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  dataUrl: z.string().min(32).max(3_500_000),
+});
+
+export const epiImageUploadedSchema = z.object({
+  key: z.string().min(1),
+  url: z.string().min(1),
+  mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  bytes: z.number().int().positive(),
+});
+
 export const createEpiDeliveryInput = workspaceIdInput.extend({
   companyId: z.number().int().positive(),
   epiItemId: z.number().int().positive(),

@@ -50,7 +50,7 @@ describe("composição de routers do portal", () => {
       "publicEpiEvidence",
       "sendEpiEvidence",
       "signEpiDelivery",
-    "submitPsychosocialResponse",
+      "submitPsychosocialResponse",
       "suggestGhes",
       "supportTickets",
       "trainings",
@@ -64,6 +64,7 @@ describe("composição de routers do portal", () => {
       "updateOccupationalRisk",
       "uploadAttachment",
       "uploadCompanyLogo",
+      "uploadEpiImage",
       "workspace",
       "workspaces",
     ]);

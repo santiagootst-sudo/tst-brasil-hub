@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadConsolidatedEpiReportPdf, downloadEpiReceiptPdf } from "@/lib/pdfReports";
-import { uploadContentAsset } from "@/lib/cloudinaryUpload";
+import { readFileAsDataUrl } from "@/lib/fileUpload";
 
 function maskRecipientEmail(email: string | null | undefined) {
   const [local, domain] = (email ?? "").split("@");
@@ -199,6 +199,10 @@ export default function Operations() {
       toast.success("EPI atualizado com sucesso.");
     },
     onError: error => toast.error(error.message || "Não foi possível atualizar o EPI."),
+  });
+
+  const uploadEpiImageMutation = trpc.portal.uploadEpiImage.useMutation({
+    onError: error => toast.error(error.message || "Não foi possível enviar a foto do EPI."),
   });
 
   const createEpiDeliveryMutation = trpc.portal.createEpiDelivery.useMutation({
@@ -444,11 +448,16 @@ export default function Operations() {
 
   const handleEpiImageUpload = async (file?: File) => {
     if (!file) return;
+    if (!activeCompanyId) {
+      toast.error("Selecione uma empresa antes de enviar a foto do EPI.");
+      return;
+    }
     setIsUploadingEpiImage(true);
     try {
-      const uploaded = await uploadContentAsset(file, "cover");
+      const dataUrl = await readFileAsDataUrl(file);
+      const uploaded = await uploadEpiImageMutation.mutateAsync({ workspaceId, companyId: activeCompanyId, dataUrl });
       setNewEpiImageUrl(uploaded.url);
-      toast.success("Foto enviada. Salve o formulário para vinculá-la ao EPI.");
+      toast.success("Foto enviada ao armazenamento privado. Salve o formulário para vinculá-la ao EPI.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível enviar a foto do EPI.");
     } finally {

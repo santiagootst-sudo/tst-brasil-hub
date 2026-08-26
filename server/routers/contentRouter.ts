@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createContentMaterial, getContentMaterialCheckoutMetrics, listContentMaterialsForAdmin, listPublishedContentMaterials, registerContentMaterialCheckoutClick, updateContentMaterial } from "../db";
+import { runStorageRoundtripTest, storagePut } from "../storage";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 
 const placementSchema = z.enum(["marketplace", "library"]);
@@ -9,6 +10,26 @@ const salePlatformSchema = z.enum(["hotmart", "kiwify", "externo", "nenhuma"]);
 const statusSchema = z.enum(["draft", "published", "hidden"]);
 
 const optionalUrl = z.string().trim().url("Informe uma URL válida.").max(2048).optional().or(z.literal(""));
+
+const contentAssetUploadInput = z.object({
+  kind: z.enum(["cover", "pdf"]),
+  fileName: z.string().trim().min(1).max(255),
+  dataUrl: z.string().min(32).max(14_000_000),
+});
+
+const contentAssetUploadSchema = z.object({
+  key: z.string().min(1),
+  url: z.string().min(1),
+  fileName: z.string(),
+  mimeType: z.string(),
+  bytes: z.number().int().positive(),
+});
+
+const r2RoundtripTestSchema = z.object({
+  ok: z.literal(true),
+  bytes: z.number().int().positive(),
+  contentType: z.string(),
+});
 
 const contentMaterialInput = z.object({
   placement: placementSchema,
@@ -26,6 +47,27 @@ const contentMaterialInput = z.object({
   status: statusSchema,
   featured: z.boolean().default(false),
 });
+
+function parseContentAsset(input: z.infer<typeof contentAssetUploadInput>) {
+  const parsed = /^data:([^;]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(input.dataUrl);
+  if (!parsed) throw new TRPCError({ code: "BAD_REQUEST", message: "Formato de arquivo base64 inválido." });
+
+  const contentType = parsed[1].toLowerCase();
+  const allowedTypes = input.kind === "cover"
+    ? ["image/png", "image/jpeg", "image/webp"]
+    : ["application/pdf"];
+  if (!allowedTypes.includes(contentType)) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: input.kind === "cover" ? "Envie uma capa PNG, JPEG ou WEBP." : "Envie um arquivo PDF válido." });
+  }
+
+  const buffer = Buffer.from(parsed[2].replace(/\s/g, ""), "base64");
+  if (!buffer.length || buffer.length > 10_000_000) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "O arquivo deve ter no máximo 10 MB." });
+  }
+
+  const extension = contentType === "application/pdf" ? "pdf" : contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+  return { contentType, buffer, extension };
+}
 
 function normalizeMaterial(input: z.infer<typeof contentMaterialInput>) {
   const referenceUrl = input.referenceUrl?.trim() || null;
@@ -48,6 +90,13 @@ function normalizeMaterial(input: z.infer<typeof contentMaterialInput>) {
 export const contentRouter = router({
   published: protectedProcedure.input(z.object({ placement: placementSchema })).query(({ input }) => listPublishedContentMaterials(input.placement)),
   adminList: adminProcedure.query(() => listContentMaterialsForAdmin()),
+  uploadAsset: adminProcedure.input(contentAssetUploadInput).output(contentAssetUploadSchema).mutation(async ({ input }) => {
+    const asset = parseContentAsset(input);
+    const stored = await storagePut(`content-assets/${input.kind}/${crypto.randomUUID()}.${asset.extension}`, asset.buffer, asset.contentType);
+    return { key: stored.key, url: stored.url, fileName: input.fileName, mimeType: asset.contentType, bytes: asset.buffer.length };
+  }),
+  /** Temporary authenticated production diagnostic; remove after the live round-trip test. */
+  r2RoundtripTest: adminProcedure.output(r2RoundtripTestSchema).mutation(() => runStorageRoundtripTest()),
   metrics: adminProcedure.query(() => getContentMaterialCheckoutMetrics()),
   trackCheckout: protectedProcedure.input(z.object({ materialId: z.number().int().positive() })).mutation(({ ctx, input }) => registerContentMaterialCheckoutClick({ materialId: input.materialId, userId: ctx.user.id })),
   create: adminProcedure.input(contentMaterialInput).mutation(({ ctx, input }) => createContentMaterial({ ...normalizeMaterial(input), createdByUserId: ctx.user.id })),

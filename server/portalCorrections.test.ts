@@ -10,13 +10,17 @@ describe("correções operacionais do portal", () => {
     expect(layout).toContain("Alertas do ambiente ativo");
   });
 
-  it("faz upload de logo por Cloudinary e persiste uma URL validada", () => {
-    const upload = readFileSync(new URL("../client/src/lib/cloudinaryUpload.ts", import.meta.url), "utf8");
-    const router = readFileSync(new URL("./routers/workspaceRouter.ts", import.meta.url), "utf8");
-    expect(upload).toContain("uploadCompanyLogo");
-    expect(upload).toContain("/image/upload");
-    expect(router).toContain('remote.hostname !== "res.cloudinary.com"');
-    expect(router).toContain("logoKey: null");
+  it("faz upload de arquivos pelo servidor e pelo armazenamento R2", () => {
+    const contentRouter = readFileSync(new URL("./routers/contentRouter.ts", import.meta.url), "utf8");
+    const operationsRouter = readFileSync(new URL("./routers/operationsRouter.ts", import.meta.url), "utf8");
+    const pgrPage = readFileSync(new URL("../client/src/pages/PgrApp.tsx", import.meta.url), "utf8");
+    const operationsPage = readFileSync(new URL("../client/src/pages/Operations.tsx", import.meta.url), "utf8");
+    expect(contentRouter).toContain("storagePut");
+    expect(contentRouter).toContain("uploadAsset");
+    expect(operationsRouter).toContain("uploadEpiImage");
+    expect(operationsRouter).toContain("storagePut");
+    expect(pgrPage).toContain("readFileAsDataUrl");
+    expect(operationsPage).toContain("trpc.portal.uploadEpiImage");
   });
 
   it("alinha o acesso manual aprovado do PGR no ticket e no gateway", () => {

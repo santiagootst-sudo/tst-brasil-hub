@@ -1293,6 +1293,15 @@ export async function updateEpiItemForWorkspace(input: { workspaceId: number; co
   return updated;
 }
 
+export async function updateEpiItemImageForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; imageUrl: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(epiItems).set({ imageUrl: input.imageUrl }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId), eq(epiItems.companyId, input.companyId)));
+  const updated = await getEpiItemForWorkspace(input.epiItemId, input.workspaceId);
+  if (!updated) throw new Error("EPI não encontrado após a atualização da imagem.");
+  return updated;
+}
+
 export async function listEpiDeliveriesForWorkspace(workspaceId: number) {
   const db = await getDb();
   if (!db) return [];
