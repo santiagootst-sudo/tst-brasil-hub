@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { LoginModal } from "@/components/LoginModal";
+import { PortalLandingHero } from "@/components/PortalLandingHero";
 
 const steps = [
   { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente para desbloquear o acesso aos ambientes especializados de gestão em segurança do trabalho." },
@@ -73,8 +74,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-[#091e22]">
+      <PortalLandingHero onEnter={enter} />
       {/* Top Navbar */}
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8 bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-[#e5efe8]">
+      <nav className="legacy-landing-nav mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8 bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-[#e5efe8]">
         <Link href="/" className="flex items-center">
           <BrandLockup aria-label="TST Brasil Hub" />
         </Link>
@@ -94,7 +96,7 @@ export default function Home() {
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
       {/* Hero Section */}
-      <section className="hub-hero relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
+      <section className="legacy-hero hub-hero relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
         <div
           aria-hidden="true"
           className="hub-hero-bg absolute inset-0 -z-20 bg-cover bg-[position:68%_center] sm:bg-center"
