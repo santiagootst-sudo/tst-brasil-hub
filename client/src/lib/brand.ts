@@ -1,1 +1,1 @@
-export const officialTstBrasilHubLogo = "/assets/tst-brasil-hub-wordmark.png";
+export const officialTstBrasilHubLogo = "/manus-storage/tst-brasil-hub-logo-oficial_cd91eead.png";
