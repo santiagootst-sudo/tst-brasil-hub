@@ -23,6 +23,14 @@ describe("correções operacionais do portal", () => {
     expect(operationsPage).toContain("trpc.portal.uploadEpiImage");
   });
 
+  it("impede duplicação de GHEs sugeridos no inventário do PGR", () => {
+    const pgrPage = readFileSync(new URL("../client/src/pages/PgrApp.tsx", import.meta.url), "utf8");
+    expect(pgrPage).toContain("const normalizedSuggestionName = sug.gheName.trim().toLocaleLowerCase()");
+    expect(pgrPage).toContain("typeof g.funcao === \"string\"");
+    expect(pgrPage).toContain("typeof g.name === \"string\"");
+    expect(pgrPage).toContain("existingName.trim().toLocaleLowerCase() === normalizedSuggestionName");
+  });
+
   it("alinha o acesso manual aprovado do PGR no ticket e no gateway", () => {
     const router = readFileSync(new URL("./routers/pgrRouter.ts", import.meta.url), "utf8");
     const gateway = readFileSync(new URL("./pgrLegacyRoute.ts", import.meta.url), "utf8");

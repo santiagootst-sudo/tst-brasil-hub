@@ -506,7 +506,11 @@ export default function PgrApp() {
                                   let data = raw ? JSON.parse(raw) : {};
                                   if (!data.ghes) data.ghes = [];
                                   // Verificar duplicidade
-                                  const exists = data.ghes.some((g: any) => g.name === sug.gheName);
+                                  const normalizedSuggestionName = sug.gheName.trim().toLocaleLowerCase();
+                                  const exists = data.ghes.some((g: any) => {
+                                    const existingName = typeof g.funcao === "string" ? g.funcao : typeof g.name === "string" ? g.name : "";
+                                    return existingName.trim().toLocaleLowerCase() === normalizedSuggestionName;
+                                  });
                                   if (exists) {
                                     toast.error(`O GHE "${sug.gheName}" já consta no inventário deste PGR.`);
                                     return;
