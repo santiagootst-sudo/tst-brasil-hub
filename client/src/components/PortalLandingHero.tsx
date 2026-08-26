@@ -23,7 +23,7 @@ export function PortalLandingHero({ onEnter }: PortalLandingHeroProps) {
           <div className="portal-radar" aria-label="Radar de prioridades da rotina SST"><div className="portal-orbit portal-orbit-one" /><div className="portal-orbit portal-orbit-two" /><div className="portal-orbit portal-orbit-three" /><div className="portal-radar-core"><img src={publicAssetUrls.logo} alt="" /><span>RADAR TST</span><strong>Transforme pendências<br />em próximas ações.</strong><p>Responsável, prazo e evidência na mesma decisão.</p></div><div className="portal-signal portal-signal-doc"><FileText size={19} /><div><small>EVIDÊNCIA</small><strong>Validade e documentos no acervo.</strong></div><i /></div><div className="portal-signal portal-signal-action"><ClipboardCheck size={19} /><div><small>PRÓXIMA AÇÃO</small><strong>Defina responsável e prazo.</strong></div><i /></div><div className="portal-signal portal-signal-epi"><HardHat size={19} /><div><small>STATUS PREVENTIVO</small><strong>CA, estoque e aceite conectados.</strong></div><i /></div><div className="portal-radar-sequence"><span>responsável</span><b /> <span>prazo</span><b /> <span>ação</span><b /> <span>evidência</span></div></div>
         </div>
       </section>
-      <PortalLandingSections onEnter={onEnter} />
+      <PortalLandingSections />
     </>
   );
 }
