@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { LoginModal } from "@/components/LoginModal";
+import { PortalLandingHero } from "@/components/PortalLandingHero";
 
 const steps = [
   { num: "01", title: "Crie a sua conta", text: "Cadastre-se rapidamente para desbloquear o acesso aos ambientes especializados de gestão em segurança do trabalho." },
@@ -73,8 +74,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-[#091e22]">
+      <PortalLandingHero onEnter={enter} />
       {/* Top Navbar */}
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8 bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-[#e5efe8]">
+      <nav className="legacy-landing-nav mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8 bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-[#e5efe8]">
         <Link href="/" className="flex items-center">
           <BrandLockup aria-label="TST Brasil Hub" />
         </Link>
@@ -94,7 +96,7 @@ export default function Home() {
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
       {/* Hero Section */}
-      <section className="hub-hero relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
+      <section className="legacy-hero hub-hero relative isolate overflow-hidden bg-[#0b4f55]/70 text-white py-20 lg:py-28">
         <div
           aria-hidden="true"
           className="hub-hero-bg absolute inset-0 -z-20 bg-cover bg-[position:68%_center] sm:bg-center"
@@ -200,15 +202,15 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="planos" className="scroll-mt-24 bg-[#f7fbfa] py-20">
+      <section id="planos-legado" className="legacy-landing-content scroll-mt-24 bg-[#f7fbfa] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center"><span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Planos de lançamento</span><h2 className="mt-3 text-3xl font-extrabold tracking-[-.03em] text-[#0d2227] sm:text-4xl">Escolha o ciclo ideal para a sua rotina.</h2><p className="mt-4 text-base text-[#526b73]">Todos os planos incluem o ecossistema TST Brasil Hub. Ao escolher, você fala conosco pelo WhatsApp para receber a liberação de acesso.</p></div>
           <div className="mt-11 grid gap-5 lg:grid-cols-3">{launchPlans.map(plan => <article key={plan.code} className={`relative flex flex-col rounded-[1.75rem] border bg-white p-7 shadow-[0_14px_38px_rgba(16,43,50,.07)] transition hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(16,43,50,.12)] ${plan.tone}`}>{plan.featured && <span className="absolute -top-3 left-7 rounded-full bg-[#0c7474] px-3 py-1 text-xs font-bold text-white">Mais economia</span>}{plan.code === "Anual" && <span className="absolute -top-3 right-7 rounded-full bg-[#f4c76b] px-3 py-1 text-xs font-bold text-[#5a3d0e]">Melhor opção</span>}<div className="flex items-start justify-between gap-3"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#0c8c89]">Plano {plan.code}</p><span className="rounded-lg bg-[#eff9f4] px-2 py-1 text-[10px] font-bold uppercase tracking-[.08em] text-[#0c7474]">{plan.label}</span></div><div className={`mt-5 rounded-2xl border p-4 ${plan.featured ? "border-[#9bd8c9] bg-[#f0fbf7]" : "border-[#dcebe8] bg-[#f8fcfa]"}`}><p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#66827c]">A partir de</p><div className="mt-2 flex items-end gap-2"><p className="text-4xl font-extrabold tracking-[-.06em] text-[#102b32]">{plan.price}</p><p className="pb-1 text-sm font-bold text-[#426069]">{plan.period}</p></div><p className="mt-2 min-h-10 text-xs leading-5 text-[#5d7479]">{plan.billing}</p><p className={`mt-3 inline-flex rounded-lg px-2.5 py-1.5 text-xs font-bold ${plan.code === "Mensal" ? "bg-[#eef4f3] text-[#49636a]" : "bg-[#d9f1e7] text-[#087262]"}`}>{plan.advantage}</p></div><div className="mt-7 space-y-3 text-sm text-[#315158]"><p className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-[#0c8c89]" />PGR, EPIs, CIPA e documentos</p><p className="flex gap-2"><CheckCircle2 className="h-4 w-4 shrink-0 text-[#0c8c89]" />Biblioteca, treinamentos e certificados</p></div><Button onClick={() => selectPlanOnWhatsApp(plan)} className="mt-8 w-full rounded-xl bg-[#0c7474] font-bold text-white hover:bg-[#063b43]"><PhoneCall className="mr-2 h-4 w-4" />Quero o plano {plan.code}</Button></article>)}</div>
         </div>
       </section>
 
-      {/* Seção Detalhada de Benefícios e Recursos por Perfil */}
-      <section id="beneficios" className="py-20 bg-white border-b border-[#e1ede8]">
+      {/* Conteúdo legado da landing anterior, mantido no código para referência da equipe. */}
+      <section id="beneficios" className="legacy-landing-content py-20 bg-white border-b border-[#e1ede8]">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Recursos sob medida</span>
@@ -289,7 +291,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Destaques / Ecossistema Completo */}
-      <section id="produto" className="bg-[#f8fcfb] py-20">
+      <section id="produto" className="legacy-landing-content bg-[#f8fcfb] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Ecossistema integrado</span>
@@ -335,7 +337,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Passos */}
-      <section id="como-funciona" className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+      <section id="como-funciona" className="legacy-landing-content mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="rounded-[2.5rem] bg-[#072d32] px-8 py-14 text-white lg:px-16 shadow-2xl relative overflow-hidden">
           <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-[#14a095]/20 blur-[100px] pointer-events-none" />
           <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr] items-center relative z-10">
@@ -363,7 +365,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Perguntas Frequentes (FAQ) */}
-      <section id="faq" className="py-20 bg-[#f8fcfb] border-t border-[#e1ede8]">
+      <section id="faq" className="legacy-landing-content py-20 bg-[#f8fcfb] border-t border-[#e1ede8]">
         <div className="mx-auto max-w-5xl px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-[.18em] text-[#0c8c89]">Tire suas dúvidas</span>
@@ -408,7 +410,7 @@ export default function Home() {
       </section>
 
       {/* Seção de Contato, Dúvidas e Suporte */}
-      <section id="contato" className="py-20 bg-white border-t border-[#e1ede8]">
+      <section id="contato" className="legacy-landing-content py-20 bg-white border-t border-[#e1ede8]">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <div>
@@ -536,7 +538,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#e5efe8] bg-[#072d32] py-12 text-white">
+      <footer className="legacy-landing-content border-t border-[#e5efe8] bg-[#072d32] py-12 text-white">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <BrandLockup compact aria-label="TST Brasil Hub" />

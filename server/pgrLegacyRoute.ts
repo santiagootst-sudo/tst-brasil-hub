@@ -1,31 +1,44 @@
 import type { Express, Request, Response } from "express";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { canUsePaidApps } from "./access";
-import { getPgrProjectForWorkspace, getSubscriptionForUser, getUserById, getWorkspaceForUser } from "./db";
+import {
+  getPgrProjectForWorkspace,
+  getSubscriptionForUser,
+  getUserById,
+  getWorkspaceForUser,
+} from "./db";
 import { verifyPgrIframeTicket } from "./pgrIframeTicket";
 import { sdk } from "./_core/sdk";
-import { storageGetSignedUrl } from "./storage";
 import { publicAssetUrls } from "@shared/publicAssets";
 
-const PGR_STORAGE_KEY = "pgr-pro-portal-integrado_2fdf701f.html";
 let cachedPgrHtml: string | null = null;
 
 async function getPgrHtml() {
   if (cachedPgrHtml) return cachedPgrHtml;
-  let sourceUrl: string = publicAssetUrls.pgrLegacyHtml;
-  if (process.env.BUILT_IN_FORGE_API_URL && process.env.BUILT_IN_FORGE_API_KEY) {
+
+  const assetPaths = [
+    resolve(process.cwd(), "dist/public/assets/pgr-legacy.html"),
+    resolve(process.cwd(), "client/public/assets/pgr-legacy.html"),
+  ];
+  let lastError: unknown;
+  for (const assetPath of assetPaths) {
     try {
-      sourceUrl = await storageGetSignedUrl(PGR_STORAGE_KEY);
+      cachedPgrHtml = await readFile(assetPath, "utf8");
+      return cachedPgrHtml;
     } catch (error) {
-      console.warn("[PGR] Armazenamento Forge indisponível; usando a origem pública do aplicativo legado.", error);
+      lastError = error;
     }
   }
-  const response = await fetch(sourceUrl);
-  if (!response.ok) throw new Error(`Falha ao carregar o PGR do armazenamento (${response.status}).`);
-  cachedPgrHtml = await response.text();
-  return cachedPgrHtml;
+
+  throw new Error(`Falha ao carregar o asset local ${publicAssetUrls.pgrLegacyHtml}.`, { cause: lastError });
 }
 
-function withPortalShell(html: string, workspaceId: number, storageScope: string) {
+function withPortalShell(
+  html: string,
+  workspaceId: number,
+  storageScope: string
+) {
   const portalScript = `<style>
 html.portal-tst-embedded #loginContainer { display: none !important; }
 html.portal-tst-embedded, html.portal-tst-embedded body { width: 100%; height: 100%; overflow: hidden; }
@@ -325,7 +338,9 @@ html.portal-tst-embedded #pgrContainer input:focus, html.portal-tst-embedded #pg
   });
 })();
   </script>`;
-  return html.includes("</head>") ? html.replace("</head>", `${portalScript}</head>`) : `${portalScript}${html}`;
+  return html.includes("</head>")
+    ? html.replace("</head>", `${portalScript}</head>`)
+    : `${portalScript}${html}`;
 }
 
 export function registerPgrLegacyRoute(app: Express) {
@@ -338,17 +353,26 @@ export function registerPgrLegacyRoute(app: Express) {
         user = null;
       }
       const workspaceId = Number(req.params.workspaceId);
-      if (!Number.isInteger(workspaceId) || workspaceId <= 0) return res.status(400).send("Ambiente inválido.");
+      if (!Number.isInteger(workspaceId) || workspaceId <= 0)
+        return res.status(400).send("Ambiente inválido.");
 
       const rawTicket = req.query?.ticket;
-      const ticket = typeof rawTicket === "string" ? await verifyPgrIframeTicket(rawTicket) : null;
-      if (!user && !ticket) return res.status(401).send("Autenticação necessária para abrir o PGR.");
-      if (ticket && ticket.workspaceId !== workspaceId) return res.status(403).send("Ticket inválido para este ambiente.");
+      const ticket =
+        typeof rawTicket === "string"
+          ? await verifyPgrIframeTicket(rawTicket)
+          : null;
+      if (!user && !ticket)
+        return res
+          .status(401)
+          .send("Autenticação necessária para abrir o PGR.");
+      if (ticket && ticket.workspaceId !== workspaceId)
+        return res.status(403).send("Ticket inválido para este ambiente.");
 
       const userId = user?.id ?? ticket!.userId;
       const userRole = user?.role ?? ticket!.userRole;
 
-      const requestedProjectId = ticket?.projectId ?? Number(req.query?.projectId);
+      const requestedProjectId =
+        ticket?.projectId ?? Number(req.query?.projectId);
       const [workspace, subscription, accessUser, project] = await Promise.all([
         getWorkspaceForUser(workspaceId, userId),
         getSubscriptionForUser(userId),
@@ -357,10 +381,21 @@ export function registerPgrLegacyRoute(app: Express) {
           ? getPgrProjectForWorkspace(requestedProjectId, workspaceId)
           : Promise.resolve(undefined),
       ]);
-      if (!workspace) return res.status(403).send("Você não possui acesso a este ambiente.");
-      if (requestedProjectId && !project) return res.status(403).send("Projeto PGR inválido para este ambiente.");
-      if (!canUsePaidApps({ userRole: accessUser?.role ?? userRole, accessStatus: accessUser?.accessStatus, accessExpiresAt: accessUser?.accessExpiresAt, subscriptionStatus: subscription?.status })) {
-        return res.status(402).send("Uma assinatura ativa é necessária para usar o PGR Pro.");
+      if (!workspace)
+        return res.status(403).send("Você não possui acesso a este ambiente.");
+      if (requestedProjectId && !project)
+        return res.status(403).send("Projeto PGR inválido para este ambiente.");
+      if (
+        !canUsePaidApps({
+          userRole: accessUser?.role ?? userRole,
+          accessStatus: accessUser?.accessStatus,
+          accessExpiresAt: accessUser?.accessExpiresAt,
+          subscriptionStatus: subscription?.status,
+        })
+      ) {
+        return res
+          .status(402)
+          .send("Uma assinatura ativa é necessária para usar o PGR Pro.");
       }
 
       const html = await getPgrHtml();
@@ -369,10 +404,18 @@ export function registerPgrLegacyRoute(app: Express) {
         "Cache-Control": "private, no-store",
         "X-Frame-Options": "SAMEORIGIN",
       });
-      return res.send(withPortalShell(html, workspaceId, project?.legacyStorageKey ?? "legacy"));
+      return res.send(
+        withPortalShell(
+          html,
+          workspaceId,
+          project?.legacyStorageKey ?? "legacy"
+        )
+      );
     } catch (error) {
       console.error("[PGR] Falha ao abrir aplicativo legado", error);
-      return res.status(500).send("Não foi possível carregar o Gerador de PGR.");
+      return res
+        .status(500)
+        .send("Não foi possível carregar o Gerador de PGR.");
     }
   });
 }

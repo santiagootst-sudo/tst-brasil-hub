@@ -13,7 +13,7 @@ import {
   Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { workspaceIdFromSearch } from "@shared/workspaceContext";
-import { uploadCompanyLogo, uploadPgrEvidenceAsset } from "@/lib/cloudinaryUpload";
+import { readFileAsDataUrl } from "@/lib/fileUpload";
 
 function initials(name: string) {
   return name
@@ -37,6 +37,10 @@ function initials(name: string) {
     .slice(0, 2)
     .map(word => word[0]?.toUpperCase())
     .join("") || "EM";
+}
+
+function normalizeGheName(name: string) {
+  return name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 
 export default function PgrApp() {
@@ -133,11 +137,68 @@ export default function PgrApp() {
 
   const availableProjects = workspace.data?.pgrProjects ?? [];
   const selectedProject = availableProjects.find(project => project.id === selectedProjectId) ?? availableProjects[0] ?? null;
+  const pgrGhesQuery = trpc.portal.listGhes.useQuery(
+    { workspaceId, projectId: selectedProject?.id ?? 0 },
+    { enabled: Boolean(workspaceId && selectedProject && billing.data?.hasPaidAccess) },
+  );
+  const importLocalGhes = trpc.portal.importGhes.useMutation({
+    onSuccess: async result => {
+      await utils.portal.listGhes.invalidate({ workspaceId, projectId: selectedProject?.id ?? 0 });
+      toast.success(`${result.importedCount} GHE(s) migrado(s) para o TiDB; ${result.existingCount} já existia(m).`);
+    },
+    onError: error => toast.error(error.message || "Não foi possível migrar o inventário local."),
+  });
+  const createPgrGhe = trpc.portal.createGhe.useMutation({
+    onSuccess: async result => {
+      if (!selectedProject) return;
+      if (!result.created) {
+        toast.error(`O GHE "${result.ghe.name}" já consta no inventário deste PGR.`);
+        return;
+      }
+      const storageKey = `tst-pgr-project-${workspaceId}-${selectedProject.legacyStorageKey}-pgrDadosV23`;
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const data = raw ? JSON.parse(raw) : {};
+        const ghes = Array.isArray(data.ghes) ? data.ghes : [];
+        const normalized = normalizeGheName(result.ghe.name);
+        if (!ghes.some((item: any) => normalizeGheName(String(item?.funcao ?? item?.name ?? "")) === normalized)) {
+          ghes.push({
+            id: String(result.ghe.id),
+            funcao: result.ghe.name,
+            setor: "",
+            description: result.ghe.description ?? "",
+            descricao: result.ghe.description ?? "",
+            perigosSugeridos: result.ghe.suggestedHazards,
+            medidasSugeridas: result.ghe.suggestedMeasures,
+          });
+          data.ghes = ghes;
+          localStorage.setItem(storageKey, JSON.stringify(data));
+          setPgrSnapshot(data);
+        }
+      } catch {
+        // O registro server-side já foi salvo; o localStorage é apenas compatibilidade do gerador legado.
+      }
+      await utils.portal.listGhes.invalidate({ workspaceId, projectId: selectedProject.id });
+      toast.success(`GHE "${result.ghe.name}" salvo no inventário do TiDB.`);
+    },
+    onError: error => toast.error(error.message || "Não foi possível salvar o GHE no TiDB."),
+  });
   const iframeAccess = trpc.portal.iframeAccess.useQuery(
     { workspaceId, projectId: selectedProject?.id ?? 0 },
     { enabled: Boolean(selectedProject && billing.data?.hasPaidAccess && isPgrFullscreen) },
   );
   const selectedCompanyForExport = workspace.data?.companies.find(company => company.id === selectedProject?.companyId) ?? null;
+  const localGhes = Array.isArray((pgrSnapshot as any)?.ghes) ? (pgrSnapshot as any).ghes : [];
+  const serverGheNames = new Set((pgrGhesQuery.data ?? []).map(ghe => normalizeGheName(ghe.name)));
+  const importableLocalGhes = localGhes
+    .map((item: any) => ({
+      name: String(item?.funcao ?? item?.name ?? "").trim(),
+      description: typeof item?.description === "string" ? item.description : typeof item?.descricao === "string" ? item.descricao : null,
+      suggestedHazards: Array.isArray(item?.perigosSugeridos) ? item.perigosSugeridos.filter((value: unknown): value is string => typeof value === "string") : [],
+      suggestedMeasures: Array.isArray(item?.medidasSugeridas) ? item.medidasSugeridas.filter((value: unknown): value is string => typeof value === "string") : [],
+      employeeCount: Number.isInteger(item?.employeeCount) && item.employeeCount >= 0 ? item.employeeCount : 0,
+    }))
+    .filter((item: { name: string }) => item.name && !serverGheNames.has(normalizeGheName(item.name)));
 
   useEffect(() => {
     if (!selectedProject) {
@@ -147,11 +208,35 @@ export default function PgrApp() {
     const storageKey = `tst-pgr-project-${workspaceId}-${selectedProject.legacyStorageKey}-pgrDadosV23`;
     try {
       const saved = localStorage.getItem(storageKey);
-      setPgrSnapshot(saved ? JSON.parse(saved) : null);
+      const data = saved ? JSON.parse(saved) : {};
+      const localGhes = Array.isArray(data.ghes) ? data.ghes : [];
+      const serverGhes = pgrGhesQuery.data ?? [];
+      const localNames = new Set(localGhes.map((item: any) => normalizeGheName(String(item?.funcao ?? item?.name ?? ""))).filter(Boolean));
+      let changed = false;
+      for (const ghe of serverGhes) {
+        const normalized = normalizeGheName(ghe.name);
+        if (localNames.has(normalized)) continue;
+        localGhes.push({
+          id: String(ghe.id),
+          funcao: ghe.name,
+          setor: "",
+          description: ghe.description ?? "",
+          descricao: ghe.description ?? "",
+          perigosSugeridos: ghe.suggestedHazards,
+          medidasSugeridas: ghe.suggestedMeasures,
+        });
+        localNames.add(normalized);
+        changed = true;
+      }
+      if (changed) {
+        data.ghes = localGhes;
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      }
+      setPgrSnapshot(data);
     } catch {
       setPgrSnapshot(null);
     }
-  }, [workspaceId, selectedProject?.id, selectedProject?.legacyStorageKey]);
+  }, [workspaceId, selectedProject?.id, selectedProject?.legacyStorageKey, pgrGhesQuery.data]);
 
   useEffect(() => {
     const receiveSnapshot = (event: MessageEvent) => {
@@ -316,8 +401,8 @@ export default function PgrApp() {
                                 if (!file) return;
                                 setUploadingLogoCompanyId(company.id);
                                 try {
-                                  const uploaded = await uploadCompanyLogo(file);
-                                  uploadLogo.mutate({ workspaceId, companyId: company.id, remoteUrl: uploaded.url });
+                                  const dataUrl = await readFileAsDataUrl(file);
+                                  uploadLogo.mutate({ workspaceId, companyId: company.id, dataUrl });
                                 } catch (error) {
                                   toast.error(error instanceof Error ? error.message : "Não foi possível enviar o logo.");
                                 } finally {
@@ -457,6 +542,24 @@ export default function PgrApp() {
                   <p className="text-xs text-[#5d7479] leading-relaxed">
                     Informe a atividade econômica ou o ramo de atuação da empresa para receber sugestões técnicas de GHEs, perigos e medidas preventivas conforme a NR-01.
                   </p>
+                  {importableLocalGhes.length > 0 && (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#d8e9e5] bg-white px-3 py-2 text-[11px] text-[#45656a]">
+                      <span>{importableLocalGhes.length} GHE(s) local(is) aguardando migração para o banco.</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={importLocalGhes.isPending}
+                        onClick={() => {
+                          if (!selectedProject) return;
+                          importLocalGhes.mutate({ workspaceId, projectId: selectedProject.id, ghes: importableLocalGhes });
+                        }}
+                        className="h-7 rounded-lg bg-[#e8f6f1] px-3 text-[11px] font-bold text-[#0c7474] hover:bg-[#d8eee8]"
+                      >
+                        {importLocalGhes.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Migrar para o TiDB"}
+                      </Button>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Input
                       placeholder="Ex.: Indústria metalúrgica de usinagem e solda"
@@ -500,34 +603,18 @@ export default function PgrApp() {
                               type="button"
                               size="sm"
                               onClick={() => {
-                                  const storageKey = `tst-pgr-project-${workspaceId}-${selectedProject.legacyStorageKey}-pgrDadosV23`;
-                                try {
-                                  const raw = localStorage.getItem(storageKey);
-                                  let data = raw ? JSON.parse(raw) : {};
-                                  if (!data.ghes) data.ghes = [];
-                                  // Verificar duplicidade
-                                  const exists = data.ghes.some((g: any) => g.name === sug.gheName);
-                                  if (exists) {
-                                    toast.error(`O GHE "${sug.gheName}" já consta no inventário deste PGR.`);
-                                    return;
-                                  }
-                                  data.ghes.push({
-                                    id: Date.now().toString(),
-                                    funcao: sug.gheName,
-                                    setor: "",
-                                    description: sug.description,
-                                    descricao: sug.description,
-                                    perigosSugeridos: sug.suggestedHazards,
-                                    medidasSugeridas: sug.suggestedMeasures,
-                                  });
-                                  localStorage.setItem(storageKey, JSON.stringify(data));
-                                  setPgrSnapshot(data);
-                                  toast.success(`GHE "${sug.gheName}" inserido com sucesso no inventário do PGR!`);
-                                } catch (e) {
-                                  console.error("Erro ao inserir GHE no localStorage", e);
-                                  toast.error("Não foi possível inserir o GHE no inventário.");
-                                }
+                                if (!selectedProject) return;
+                                createPgrGhe.mutate({
+                                  workspaceId,
+                                  projectId: selectedProject.id,
+                                  name: sug.gheName,
+                                  description: sug.description,
+                                  suggestedHazards: sug.suggestedHazards,
+                                  suggestedMeasures: sug.suggestedMeasures,
+                                  employeeCount: 0,
+                                });
                               }}
+                              disabled={createPgrGhe.isPending}
                               className="h-7 rounded-lg bg-[#0c7474] px-3 text-[11px] font-bold text-white hover:bg-[#095c5c]"
                             >
                               Inserir no Inventário PGR
@@ -581,13 +668,13 @@ export default function PgrApp() {
                               return;
                             }
                             setIsUploadingPgrAttachment(true);
-                            void uploadPgrEvidenceAsset(file)
-                              .then(uploaded => uploadAttachment.mutate({
+                            void readFileAsDataUrl(file)
+                              .then(dataUrl => uploadAttachment.mutate({
                                 workspaceId,
                                 projectId: selectedProject.id,
                                 title: attachmentTitle.trim(),
                                 category: attachmentCategory,
-                                remoteUrl: uploaded.url,
+                                dataUrl,
                               }))
                               .catch(error => toast.error(error instanceof Error ? error.message : "Não foi possível enviar o anexo técnico."))
                               .finally(() => {
@@ -641,7 +728,13 @@ export default function PgrApp() {
           isAuthorizing={iframeAccess.isLoading}
           isIframeLoaded={isIframeLoaded}
           onClose={() => { setIsPgrFullscreen(false); setIsIframeLoaded(false); }}
-          onIframeLoad={() => setIsIframeLoaded(true)}
+           onIframeLoad={() => {
+             setIsIframeLoaded(true);
+             window.setTimeout(() => {
+               const iframe = document.querySelector<HTMLIFrameElement>('iframe[title^="Gerador de PGR"]');
+               iframe?.contentWindow?.postMessage({ type: "tst-pgr-request-document-snapshot" }, window.location.origin);
+             }, 100);
+           }}
         />
 
         <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>

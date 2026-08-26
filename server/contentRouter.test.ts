@@ -10,7 +10,12 @@ const db = vi.hoisted(() => ({
   updateContentMaterial: vi.fn(),
 }));
 
+const storage = vi.hoisted(() => ({
+  storagePut: vi.fn(),
+}));
+
 vi.mock("./db", () => db);
+vi.mock("./storage", () => storage);
 
 import { contentRouter } from "./routers/contentRouter";
 
@@ -89,4 +94,17 @@ describe("catálogo global de materiais", () => {
     await expect(contentRouter.createCaller(createContext()).metrics()).resolves.toMatchObject({ totalClicks: 4 });
     await expect(contentRouter.createCaller(createContext("user")).metrics()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
+
+  it("valida PDF e grava o conteúdo pelo storagePut no R2", async () => {
+    const content = Buffer.from("%PDF-1.4\nTST Brasil Hub\n");
+    storage.storagePut.mockResolvedValue({ key: "content-assets/pdf/test.pdf", url: "/storage/content-assets/pdf/test.pdf" });
+
+    await expect(contentRouter.createCaller(createContext()).uploadAsset({
+      kind: "pdf",
+      fileName: "manual-teste.pdf",
+      dataUrl: `data:application/pdf;base64,${content.toString("base64")}`,
+    })).resolves.toMatchObject({ fileName: "manual-teste.pdf", mimeType: "application/pdf", bytes: content.length });
+    expect(storage.storagePut).toHaveBeenCalledWith(expect.stringMatching(/^content-assets\/pdf\/.*\.pdf$/), content, "application/pdf");
+  });
+
 });

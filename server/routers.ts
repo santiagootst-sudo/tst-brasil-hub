@@ -1,4 +1,5 @@
 import * as db from "./db";
+import { isCredentialHashFormat } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -6,6 +7,7 @@ import { sdk } from "./_core/sdk";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { ENV } from "./_core/env";
 import { billingRouter } from "./routers/billingRouter";
 import { adminRouter } from "./routers/adminRouter";
 import { portalRouter } from "./routers/portalRouter";
@@ -34,17 +36,27 @@ export const appRouter = router({
         const email = input.email.trim().toLowerCase();
         const password = input.password.trim();
 
-        if (email === "santiagoocorretor@gmail.com" && password !== "251089") {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha incorreta para a conta master." });
+        const isMaster = email === ENV.masterAdminEmail;
+        if (isMaster) {
+          if (!ENV.masterAdminPasswordHash) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "A autenticação master ainda não foi configurada no ambiente de produção." });
+          }
+          if (!isCredentialHashFormat(ENV.masterAdminPasswordHash)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "A configuração da autenticação master está inválida. Gere novamente o hash com o comando oficial e substitua apenas o valor da variável no Render." });
+          }
+          if (!db.verifyCredential(password, ENV.masterAdminPasswordHash)) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Senha da conta master incorreta." });
+          }
         }
 
-        const approvedRequest = email === "santiagoocorretor@gmail.com" ? undefined : await db.authenticateApprovedAccess(email, password);
-        if (email !== "santiagoocorretor@gmail.com" && !approvedRequest) {
+        const localUser = isMaster ? undefined : await db.authenticateLocalUser(email, password);
+        const approvedRequest = isMaster || localUser ? undefined : await db.authenticateApprovedAccess(email, password);
+        if (!isMaster && !localUser && !approvedRequest) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Acesso não liberado. Solicite suas credenciais ao administrador do TST Brasil Hub." });
         }
 
-        const openId = email === "santiagoocorretor@gmail.com" ? "owner-master-openid-12345" : `user-${Buffer.from(email).toString("hex")}`;
-        const name = email === "santiagoocorretor@gmail.com" ? "Santiago (Master Admin)" : approvedRequest!.fullName;
+        const openId = isMaster ? (ENV.ownerOpenId || "owner-master-openid-12345") : localUser?.openId ?? `user-${Buffer.from(email).toString("hex")}`;
+        const name = isMaster ? "Santiago (Master Admin)" : localUser?.name || approvedRequest!.fullName;
         
         try {
           await db.upsertUser({
@@ -52,7 +64,7 @@ export const appRouter = router({
             name,
             email,
           loginMethod: "direct",
-          ...(approvedRequest ? { accessStatus: "active" as const, accessExpiresAt: approvedRequest.accessExpiresAt } : {}),
+          ...(approvedRequest ? { accessStatus: "active" as const, accessExpiresAt: approvedRequest.accessExpiresAt } : localUser ? { accessStatus: localUser.accessStatus, accessExpiresAt: localUser.accessExpiresAt } : {}),
             lastSignedIn: new Date(),
           });
         } catch (err: any) {

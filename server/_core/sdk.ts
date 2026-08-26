@@ -1,4 +1,9 @@
-import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS, decodeOAuthState } from "@shared/const";
+import {
+  AXIOS_TIMEOUT_MS,
+  COOKIE_NAME,
+  ONE_YEAR_MS,
+  decodeOAuthState,
+} from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
@@ -30,11 +35,10 @@ const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserI
 
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
-    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
-      console.error(
-        "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
-      );
+    if (ENV.oAuthServerUrl) {
+      console.info("[OAuth] Serviço externo inicializado.");
+    } else {
+      console.info("[OAuth] Serviço externo desativado; autenticação local em uso.");
     }
   }
 
@@ -154,8 +158,13 @@ class SDKServer {
   }
 
   private getSessionSecret() {
-    const secret = ENV.cookieSecret || process.env.JWT_SECRET || "tst-fallback-secret-key-2026-secure-production";
-    return new TextEncoder().encode(secret);
+    const secret = ENV.cookieSecret || process.env.JWT_SECRET;
+    if (!secret && ENV.isProduction) {
+      throw new Error("JWT_SECRET precisa estar configurado em produção.");
+    }
+    return new TextEncoder().encode(
+      secret || "local-development-only-session-secret"
+    );
   }
 
   /**
@@ -211,10 +220,7 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
-      if (
-        !isNonEmptyString(openId) ||
-        !isNonEmptyString(name)
-      ) {
+      if (!isNonEmptyString(openId) || !isNonEmptyString(name)) {
         console.warn("[Auth] Session payload missing required fields");
         return null;
       }
@@ -290,6 +296,9 @@ class SDKServer {
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
+      if (!ENV.oAuthServerUrl) {
+        throw ForbiddenError("Usuário não encontrado no banco local.");
+      }
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
         await db.upsertUser({

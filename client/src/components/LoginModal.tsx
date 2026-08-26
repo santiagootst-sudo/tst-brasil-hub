@@ -33,7 +33,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         console.error("Failed to store session token", e);
       }
       utils.auth.me.invalidate();
-      const isMaster = emailInput.trim().toLowerCase() === "santiagoocorretor@gmail.com";
+      const isMaster = data?.user?.role === "admin";
       if (isMaster) {
         localStorage.removeItem("tst_pending_plan");
         window.location.assign("/app");

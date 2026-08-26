@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiDeliveryAuditEvents, epiDeliveryEvidence, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
+import { accessRequests, accidentDetails, accidentInjuries, actionItems, adminAccessAudit, certificates, cipaCommissions, cipaDocuments, cipaMeetings, cipaMembers, cipaTerms, clientEngagements, clientVisits, companies, contentMaterialClicks, contentMaterials, departments, employees, epiDeliveries, epiDeliveryAuditEvents, epiDeliveryEvidence, epiItems, epiRequirements, epiReturns, inspectionTemplateItems, inspectionTemplates, inspections, jobRoles, type InsertUser, materials, occupationalRiskEvents, occupationalRisks, pgrAttachments, pgrGheGroups, pgrProjects, pgrRevisions, pgrTechnicalSignatures, psychosocialApplications, psychosocialResponses, psychosocialResults, sstOccurrences, subscriptions, supportTickets, type Subscription, trainingParticipants, trainings, users, workspaceMembers, workspaces, youtubeVideos } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -240,9 +240,34 @@ function hashCredential(password: string) {
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
 
-function verifyCredential(password: string, stored: string) {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
+function normalizeCredentialHash(stored: string) {
+  let normalized = stored.trim();
+  normalized = normalized.replace(/^MASTER_ADMIN_PASSWORD_HASH\s*=\s*/i, "").trim();
+  const quote = normalized[0];
+  if (
+    normalized.length >= 2 &&
+    (quote === '"' || quote === "'" || quote === "`") &&
+    normalized.at(-1) === quote
+  ) {
+    normalized = normalized.slice(1, -1).trim();
+  }
+  return normalized;
+}
+
+export function isCredentialHashFormat(stored: string) {
+  const normalized = normalizeCredentialHash(stored);
+  const [salt, hash, ...extra] = normalized.split(":");
+  return (
+    extra.length === 0 &&
+    /^[0-9a-f]{32}$/i.test(salt ?? "") &&
+    /^[0-9a-f]{128}$/i.test(hash ?? "")
+  );
+}
+
+export function verifyCredential(password: string, stored: string) {
+  const normalized = normalizeCredentialHash(stored);
+  if (!isCredentialHashFormat(normalized)) return false;
+  const [salt, hash] = normalized.split(":");
   const expected = Buffer.from(hash, "hex");
   const received = Buffer.from(scryptSync(password, salt, 64).toString("hex"), "hex");
   return expected.length === received.length && timingSafeEqual(expected, received);
@@ -305,11 +330,28 @@ export async function resetAccessCredential(input: { email: string; adminUserId:
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const email = input.email.trim().toLowerCase();
-  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
-  if (!request || request.status !== "approved") throw new Error("A conta ainda não possui acesso liberado.");
   const expiresAt = new Date(Date.now() + input.durationDays * 86_400_000);
-  await db.update(accessRequests).set({ credentialHash: hashCredential(input.temporaryPassword), accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: new Date(), updatedAt: new Date() }).where(eq(accessRequests.id, request.id));
-  return { request: (await db.select().from(accessRequests).where(eq(accessRequests.id, request.id)).limit(1))[0]!, expiresAt };
+  const credentialHash = hashCredential(input.temporaryPassword);
+  const now = new Date();
+  const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  const existingUser = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+
+  if (!request && !existingUser) throw new Error("Usuário não encontrado.");
+
+  let savedRequest = request;
+  if (request) {
+    await db.update(accessRequests).set({ credentialHash, status: "approved", accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: now, updatedAt: now }).where(eq(accessRequests.id, request.id));
+    savedRequest = (await db.select().from(accessRequests).where(eq(accessRequests.id, request.id)).limit(1))[0];
+  } else {
+    await db.insert(accessRequests).values({ fullName: existingUser?.name || email, email, status: "approved", credentialHash, accessExpiresAt: expiresAt, approvedByUserId: input.adminUserId, approvedAt: now, updatedAt: now });
+    savedRequest = (await db.select().from(accessRequests).where(eq(accessRequests.email, email)).limit(1))[0];
+  }
+
+  if (existingUser) {
+    await db.update(users).set({ passwordHash: credentialHash, accessStatus: "active", accessExpiresAt: expiresAt, loginMethod: "direct", updatedAt: now }).where(eq(users.id, existingUser.id));
+  }
+
+  return { request: savedRequest!, expiresAt };
 }
 
 export async function authenticateApprovedAccess(emailInput: string, password: string) {
@@ -318,6 +360,16 @@ export async function authenticateApprovedAccess(emailInput: string, password: s
   const request = (await db.select().from(accessRequests).where(eq(accessRequests.email, emailInput.trim().toLowerCase())).limit(1))[0];
   if (!request || request.status !== "approved" || !request.credentialHash || (request.accessExpiresAt && request.accessExpiresAt.getTime() <= Date.now())) return undefined;
   return verifyCredential(password, request.credentialHash) ? request : undefined;
+}
+
+export async function authenticateLocalUser(emailInput: string, password: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const email = emailInput.trim().toLowerCase();
+  const user = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+  if (!user || !user.passwordHash || user.accessStatus !== "active") return undefined;
+  if (user.accessExpiresAt && user.accessExpiresAt.getTime() <= Date.now()) return undefined;
+  return verifyCredential(password, user.passwordHash) ? user : undefined;
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -334,6 +386,9 @@ export async function getUserByOpenId(openId: string) {
         loginMethod: "direct",
         accessStatus: "active" as const,
         accessExpiresAt: null,
+        passwordHash: null,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastSignedIn: new Date(),
@@ -348,9 +403,12 @@ export async function getUserByOpenId(openId: string) {
         loginMethod: "direct",
         accessStatus: "active" as const,
         accessExpiresAt: null,
+        passwordHash: null,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
         createdAt: new Date(),
-      updatedAt: new Date(),
-      lastSignedIn: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
     };
   }
   const record = (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0];
@@ -373,6 +431,9 @@ export async function getUserById(userId: number) {
       loginMethod: "direct",
       accessStatus: "active" as const,
       accessExpiresAt: null,
+      passwordHash: null,
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
@@ -709,6 +770,117 @@ export async function createPgrProjectForWorkspace(input: { workspaceId: number;
     legacyStorageKey: input.legacyStorageKey,
   });
   return { id: Number((inserted as unknown as [{ insertId?: number }])[0]?.insertId ?? 0), ...input };
+}
+
+export function normalizePgrGheKey(name: string) {
+  return name.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function parsePgrGheList(value: string | null) {
+  if (!value) return [] as string[];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [] as string[];
+  }
+}
+
+function normalizePgrGheRow(row: typeof pgrGheGroups.$inferSelect) {
+  return {
+    id: row.id,
+    pgrProjectId: row.pgrProjectId,
+    name: row.name,
+    description: row.description ?? null,
+    suggestedHazards: parsePgrGheList(row.suggestedHazardsJson),
+    suggestedMeasures: parsePgrGheList(row.suggestedMeasuresJson),
+    employeeCount: Number(row.employeeCount ?? 0),
+    source: row.source,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+  };
+}
+
+export async function listPgrGheGroupsForProject(pgrProjectId: number, workspaceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(pgrGheGroups)
+    .where(and(eq(pgrGheGroups.pgrProjectId, pgrProjectId), eq(pgrGheGroups.workspaceId, workspaceId)))
+    .orderBy(desc(pgrGheGroups.createdAt), desc(pgrGheGroups.id));
+  return rows.map(normalizePgrGheRow);
+}
+
+export async function createPgrGheGroupForProject(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  companyId: number;
+  name: string;
+  description?: string | null;
+  suggestedHazards?: string[];
+  suggestedMeasures?: string[];
+  employeeCount?: number;
+  source: "manual" | "ai" | "imported";
+  createdByUserId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const dedupeKey = normalizePgrGheKey(input.name);
+  const existing = await db.select().from(pgrGheGroups)
+    .where(and(eq(pgrGheGroups.pgrProjectId, input.pgrProjectId), eq(pgrGheGroups.dedupeKey, dedupeKey)))
+    .limit(1);
+  if (existing[0]) return { record: normalizePgrGheRow(existing[0]), created: false };
+
+  try {
+    await db.insert(pgrGheGroups).values({
+      pgrProjectId: input.pgrProjectId,
+      workspaceId: input.workspaceId,
+      companyId: input.companyId,
+      name: input.name.trim(),
+      dedupeKey,
+      description: input.description?.trim() || null,
+      suggestedHazardsJson: JSON.stringify(input.suggestedHazards ?? []),
+      suggestedMeasuresJson: JSON.stringify(input.suggestedMeasures ?? []),
+      employeeCount: input.employeeCount ?? 0,
+      source: input.source,
+      createdByUserId: input.createdByUserId,
+    });
+  } catch (error) {
+    const afterRace = await db.select().from(pgrGheGroups)
+      .where(and(eq(pgrGheGroups.pgrProjectId, input.pgrProjectId), eq(pgrGheGroups.dedupeKey, dedupeKey)))
+      .limit(1);
+    if (!afterRace[0]) throw error;
+    return { record: normalizePgrGheRow(afterRace[0]), created: false };
+  }
+
+  const inserted = await db.select().from(pgrGheGroups)
+    .where(and(eq(pgrGheGroups.pgrProjectId, input.pgrProjectId), eq(pgrGheGroups.dedupeKey, dedupeKey)))
+    .limit(1);
+  if (!inserted[0]) throw new Error("Não foi possível recuperar o GHE criado.");
+  return { record: normalizePgrGheRow(inserted[0]), created: true };
+}
+
+export async function importPgrGheGroupsForProject(input: {
+  pgrProjectId: number;
+  workspaceId: number;
+  companyId: number;
+  ghes: Array<{
+    name: string;
+    description?: string | null;
+    suggestedHazards?: string[];
+    suggestedMeasures?: string[];
+    employeeCount?: number;
+  }>;
+  createdByUserId: number;
+}) {
+  let importedCount = 0;
+  let existingCount = 0;
+  for (const ghe of input.ghes) {
+    const result = await createPgrGheGroupForProject({ ...input, ...ghe, source: "imported" });
+    if (result.created) importedCount += 1;
+    else existingCount += 1;
+  }
+  const ghes = await listPgrGheGroupsForProject(input.pgrProjectId, input.workspaceId);
+  return { importedCount, existingCount, totalCount: ghes.length, ghes };
 }
 
 export async function listPgrAttachments(pgrProjectId: number, workspaceId: number) {
@@ -1232,6 +1404,15 @@ export async function updateEpiItemForWorkspace(input: { workspaceId: number; co
   return updated;
 }
 
+export async function updateEpiItemImageForWorkspace(input: { workspaceId: number; companyId: number; epiItemId: number; imageUrl: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(epiItems).set({ imageUrl: input.imageUrl }).where(and(eq(epiItems.id, input.epiItemId), eq(epiItems.workspaceId, input.workspaceId), eq(epiItems.companyId, input.companyId)));
+  const updated = await getEpiItemForWorkspace(input.epiItemId, input.workspaceId);
+  if (!updated) throw new Error("EPI não encontrado após a atualização da imagem.");
+  return updated;
+}
+
 export async function listEpiDeliveriesForWorkspace(workspaceId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -1464,10 +1645,14 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
   }
 
   const confirmationUrl = `${getEpiEvidenceBaseUrl()}/confirmar-epi/${evidence.verificationCode}`;
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  console.info(`[EPI email] Tentativa de envio: deliveryId=${input.deliveryId} recipient=${maskEmail(recipientEmail)} apiKeyConfigured=${Boolean(apiKey)} fromConfigured=${Boolean(from)}`);
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM_EMAIL;
-    if (!apiKey || !from) throw new Error("O canal de e-mail de confirmação ainda não está configurado.");
+    if (!apiKey || !from) {
+      console.warn("[EPI email] Envio bloqueado: configuration_missing.");
+      throw new Error("O canal de e-mail de confirmação ainda não está configurado.");
+    }
     const { Resend } = await import("resend");
     const response = await new Resend(apiKey).emails.send({
       from,
@@ -1475,8 +1660,12 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
       subject: `Confirmação de recebimento de EPI — ${company.name}`,
       html: `<main style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#172033"><h1 style="font-size:22px">Confirmação de recebimento de EPI</h1><p>Olá, ${employee.fullName}.</p><p>Foi registrada uma entrega de <strong>${item.name}</strong> para você. Confira a ficha e confirme o recebimento e as orientações recebidas.</p><p style="font-size:28px;letter-spacing:6px;font-weight:700">${otp}</p><p>Este código expira em 30 minutos e deve ser usado somente neste endereço:</p><p><a href="${confirmationUrl}">Abrir ficha de confirmação</a></p><p style="font-size:12px;color:#64748b">Evidência ${evidence.verificationCode.slice(0, 10)} · Não encaminhe este código a terceiros.</p></main>`,
     });
-    if (response.error) throw new Error("O provedor de e-mail recusou o envio da confirmação.");
+    if (response.error) {
+      console.warn("[EPI email] Resend recusou o envio: provider_rejected.");
+      throw new Error("O provedor de e-mail recusou o envio da confirmação.");
+    }
     const providerMessageId = response.data?.id ?? null;
+    console.info(`[EPI email] Resend aceitou o envio: deliveryId=${input.deliveryId} recipient=${maskEmail(recipientEmail)} providerMessageIdPresent=${Boolean(providerMessageId)}`);
     await db.update(epiDeliveryEvidence).set({ status: "sent", lastSentAt: new Date(), providerMessageId, failureReason: null, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
     await appendEpiEvidenceAuditEvent(db, {
       evidenceId: evidence.id,
@@ -1490,6 +1679,7 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
     });
   } catch (error) {
     const failureReason = error instanceof Error ? error.message.slice(0, 500) : "Falha não identificada no envio.";
+    console.warn("[EPI email] Envio concluído com falha; evidência marcada como failed.");
     await db.update(epiDeliveryEvidence).set({ status: "failed", failureReason, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
     await appendEpiEvidenceAuditEvent(db, {
       evidenceId: evidence.id,

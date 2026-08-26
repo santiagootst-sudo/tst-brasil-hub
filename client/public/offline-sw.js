@@ -2,7 +2,9 @@ const SHELL_CACHE = "tst-library-shell-v2";
 const SHELL_FALLBACK = "/";
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.add(SHELL_FALLBACK)));
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then(cache => cache.add(SHELL_FALLBACK))
+  );
   self.skipWaiting();
 });
 
@@ -15,17 +17,25 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/"))
+    return;
 
   // Módulos de desenvolvimento são mutáveis e não devem entrar no cache offline.
-  if (url.pathname.startsWith("/src/") || url.pathname.startsWith("/@vite/") || url.pathname.startsWith("/node_modules/") || url.pathname.startsWith("/__manus__/")) return;
+  if (
+    url.pathname.startsWith("/src/") ||
+    url.pathname.startsWith("/@vite/") ||
+    url.pathname.startsWith("/node_modules/")
+  )
+    return;
 
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then(response => {
           const copy = response.clone();
-          caches.open(SHELL_CACHE).then(cache => cache.put(SHELL_FALLBACK, copy));
+          caches
+            .open(SHELL_CACHE)
+            .then(cache => cache.put(SHELL_FALLBACK, copy));
           return response;
         })
         .catch(() => caches.match(SHELL_FALLBACK))

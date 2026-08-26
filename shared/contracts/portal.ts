@@ -86,6 +86,53 @@ export const suggestPgrGhesOutput = z.object({
   suggestions: z.array(pgrGheSuggestionSchema),
 });
 
+const pgrGhePayloadSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  description: z.string().trim().max(1500).nullable().optional(),
+  suggestedHazards: z.array(z.string().trim().min(1).max(255)).max(50).optional(),
+  suggestedMeasures: z.array(z.string().trim().min(1).max(255)).max(50).optional(),
+  employeeCount: z.number().int().min(0).max(1_000_000).optional(),
+});
+
+export const createPgrGheInput = workspaceIdInput.extend({
+  projectId: z.number().int().positive(),
+  name: pgrGhePayloadSchema.shape.name,
+  description: pgrGhePayloadSchema.shape.description,
+  suggestedHazards: pgrGhePayloadSchema.shape.suggestedHazards,
+  suggestedMeasures: pgrGhePayloadSchema.shape.suggestedMeasures,
+  employeeCount: pgrGhePayloadSchema.shape.employeeCount,
+});
+
+export const importPgrGhesInput = workspaceIdInput.extend({
+  projectId: z.number().int().positive(),
+  ghes: z.array(pgrGhePayloadSchema).max(500),
+});
+
+export const pgrGheSchema = z.object({
+  id: z.number().int().positive(),
+  pgrProjectId: z.number().int().positive(),
+  name: z.string(),
+  description: z.string().nullable(),
+  suggestedHazards: z.array(z.string()),
+  suggestedMeasures: z.array(z.string()),
+  employeeCount: z.number().int().nonnegative(),
+  source: z.enum(["manual", "ai", "imported"]),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const createPgrGheOutput = z.object({
+  created: z.boolean(),
+  ghe: pgrGheSchema,
+});
+
+export const importPgrGhesOutput = z.object({
+  importedCount: z.number().int().nonnegative(),
+  existingCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  ghes: z.array(pgrGheSchema),
+});
+
 export const uploadPgrAttachmentInput = workspaceIdInput.extend({
   projectId: z.number().int().positive(),
   title: z.string().trim().min(2, "Informe o título do laudo ou foto.").max(128),
@@ -485,6 +532,18 @@ export const createEpiItemInput = workspaceIdInput.extend({
 
 export const updateEpiItemInput = createEpiItemInput.extend({
   epiItemId: z.number().int().positive(),
+});
+
+export const uploadEpiImageInput = workspaceIdInput.extend({
+  companyId: z.number().int().positive(),
+  dataUrl: z.string().min(32).max(3_500_000),
+});
+
+export const epiImageUploadedSchema = z.object({
+  key: z.string().min(1),
+  url: z.string().min(1),
+  mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+  bytes: z.number().int().positive(),
 });
 
 export const createEpiDeliveryInput = workspaceIdInput.extend({
