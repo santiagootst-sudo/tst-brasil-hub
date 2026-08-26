@@ -198,7 +198,7 @@ export default function PgrApp() {
       suggestedMeasures: Array.isArray(item?.medidasSugeridas) ? item.medidasSugeridas.filter((value: unknown): value is string => typeof value === "string") : [],
       employeeCount: Number.isInteger(item?.employeeCount) && item.employeeCount >= 0 ? item.employeeCount : 0,
     }))
-    .filter((item: { name: string }) => item.name && !serverGheNames.has(item.name.toLocaleLowerCase()));
+    .filter((item: { name: string }) => item.name && !serverGheNames.has(normalizeGheName(item.name)));
 
   useEffect(() => {
     if (!selectedProject) {
@@ -728,7 +728,13 @@ export default function PgrApp() {
           isAuthorizing={iframeAccess.isLoading}
           isIframeLoaded={isIframeLoaded}
           onClose={() => { setIsPgrFullscreen(false); setIsIframeLoaded(false); }}
-          onIframeLoad={() => setIsIframeLoaded(true)}
+           onIframeLoad={() => {
+             setIsIframeLoaded(true);
+             window.setTimeout(() => {
+               const iframe = document.querySelector<HTMLIFrameElement>('iframe[title^="Gerador de PGR"]');
+               iframe?.contentWindow?.postMessage({ type: "tst-pgr-request-document-snapshot" }, window.location.origin);
+             }, 100);
+           }}
         />
 
         <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>

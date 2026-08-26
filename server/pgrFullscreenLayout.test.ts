@@ -23,7 +23,9 @@ describe("abertura ampliada do PGR", () => {
 
   it("torna observável quando o iframe do gerador concluiu o carregamento", () => {
     expect(pgrAppSource).toContain("const [isIframeLoaded, setIsIframeLoaded] = useState(false)");
-    expect(pgrAppSource).toContain("onIframeLoad={() => setIsIframeLoaded(true)}");
+    expect(pgrAppSource).toContain("onIframeLoad={() => {");
+    expect(pgrAppSource).toContain("setIsIframeLoaded(true);");
+    expect(pgrAppSource).toContain("tst-pgr-request-document-snapshot");
     expect(overlaySource).toContain("Gerador carregado");
   });
 
