@@ -1,4 +1,6 @@
 import type { Express, Request, Response } from "express";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { canUsePaidApps } from "./access";
 import {
   getPgrProjectForWorkspace,
@@ -14,13 +16,22 @@ let cachedPgrHtml: string | null = null;
 
 async function getPgrHtml() {
   if (cachedPgrHtml) return cachedPgrHtml;
-  const response = await fetch(publicAssetUrls.pgrLegacyHtml);
-  if (!response.ok)
-    throw new Error(
-      `Falha ao carregar o PGR do armazenamento (${response.status}).`
-    );
-  cachedPgrHtml = await response.text();
-  return cachedPgrHtml;
+
+  const assetPaths = [
+    resolve(process.cwd(), "dist/public/assets/pgr-legacy.html"),
+    resolve(process.cwd(), "client/public/assets/pgr-legacy.html"),
+  ];
+  let lastError: unknown;
+  for (const assetPath of assetPaths) {
+    try {
+      cachedPgrHtml = await readFile(assetPath, "utf8");
+      return cachedPgrHtml;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw new Error(`Falha ao carregar o asset local ${publicAssetUrls.pgrLegacyHtml}.`, { cause: lastError });
 }
 
 function withPortalShell(

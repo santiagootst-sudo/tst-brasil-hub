@@ -1,5 +1,4 @@
 import {
-  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -95,34 +94,4 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
     new GetObjectCommand({ Bucket: bucket, Key: key }),
     { expiresIn: 900 }
   );
-}
-
-async function storageDelete(relKey: string): Promise<void> {
-  const { client, bucket } = getStorageClient();
-  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: normalizeKey(relKey) }));
-}
-
-/**
- * Temporary production diagnostic. It is intentionally self-cleaning and returns
- * only non-sensitive metadata, never the object key or storage configuration.
- */
-export async function runStorageRoundtripTest(): Promise<{
-  ok: true;
-  bytes: number;
-  contentType: string;
-}> {
-  const relKey = `diagnostics/r2-roundtrip-${Date.now()}-${crypto.randomUUID()}.txt`;
-  const body = "TST Brasil Hub R2 round-trip diagnostic.\n";
-  const stored = await storagePut(relKey, body, "text/plain; charset=utf-8");
-
-  try {
-    const loaded = await storageGetObject(stored.key);
-    const expected = Buffer.from(body);
-    if (!loaded.body.equals(expected)) {
-      throw new Error("R2 round-trip content mismatch");
-    }
-    return { ok: true, bytes: loaded.body.length, contentType: loaded.contentType };
-  } finally {
-    await storageDelete(stored.key);
-  }
 }

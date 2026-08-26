@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createContentMaterial, getContentMaterialCheckoutMetrics, listContentMaterialsForAdmin, listPublishedContentMaterials, registerContentMaterialCheckoutClick, updateContentMaterial } from "../db";
-import { runStorageRoundtripTest, storagePut } from "../storage";
+import { storagePut } from "../storage";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 
 const placementSchema = z.enum(["marketplace", "library"]);
@@ -25,11 +25,6 @@ const contentAssetUploadSchema = z.object({
   bytes: z.number().int().positive(),
 });
 
-const r2RoundtripTestSchema = z.object({
-  ok: z.literal(true),
-  bytes: z.number().int().positive(),
-  contentType: z.string(),
-});
 
 const contentMaterialInput = z.object({
   placement: placementSchema,
@@ -95,8 +90,6 @@ export const contentRouter = router({
     const stored = await storagePut(`content-assets/${input.kind}/${crypto.randomUUID()}.${asset.extension}`, asset.buffer, asset.contentType);
     return { key: stored.key, url: stored.url, fileName: input.fileName, mimeType: asset.contentType, bytes: asset.buffer.length };
   }),
-  /** Temporary authenticated production diagnostic; remove after the live round-trip test. */
-  r2RoundtripTest: adminProcedure.output(r2RoundtripTestSchema).mutation(() => runStorageRoundtripTest()),
   metrics: adminProcedure.query(() => getContentMaterialCheckoutMetrics()),
   trackCheckout: protectedProcedure.input(z.object({ materialId: z.number().int().positive() })).mutation(({ ctx, input }) => registerContentMaterialCheckoutClick({ materialId: input.materialId, userId: ctx.user.id })),
   create: adminProcedure.input(contentMaterialInput).mutation(({ ctx, input }) => createContentMaterial({ ...normalizeMaterial(input), createdByUserId: ctx.user.id })),

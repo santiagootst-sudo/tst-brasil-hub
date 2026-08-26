@@ -8,12 +8,12 @@ const db = vi.hoisted(() => ({
   getWorkspaceForUser: vi.fn(),
 }));
 const sdk = vi.hoisted(() => ({ authenticateRequest: vi.fn() }));
-const storage = vi.hoisted(() => ({ storageGetSignedUrl: vi.fn() }));
+const fs = vi.hoisted(() => ({ readFile: vi.fn() }));
 const pgrTicket = vi.hoisted(() => ({ verifyPgrIframeTicket: vi.fn() }));
 
 vi.mock("./db", () => db);
 vi.mock("./_core/sdk", () => ({ sdk }));
-vi.mock("./storage", () => storage);
+vi.mock("node:fs/promises", () => ({ readFile: fs.readFile }));
 vi.mock("./pgrIframeTicket", () => pgrTicket);
 
 import { registerPgrLegacyRoute } from "./pgrLegacyRoute";
@@ -48,7 +48,7 @@ function createRequest(workspaceId = "7", query: Record<string, string> = {}) {
 describe("rota protegida do PGR", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, text: vi.fn().mockResolvedValue("<html>PGR</html>") }));
+    fs.readFile.mockResolvedValue("<html>PGR</html>");
   });
 
   it("responde 401 quando não há autenticação", async () => {
@@ -83,7 +83,6 @@ describe("rota protegida do PGR", () => {
     sdk.authenticateRequest.mockResolvedValue({ id: 12, role: "user" });
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, role: "owner" });
     db.getSubscriptionForUser.mockResolvedValue({ status: "active" });
-    storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
     const response = createResponse();
     await registerHandler()(createRequest(), response);
     expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" }));
@@ -103,7 +102,6 @@ describe("rota protegida do PGR", () => {
     db.getWorkspaceForUser.mockResolvedValue({ id: 7, role: "owner" });
     db.getSubscriptionForUser.mockResolvedValue(undefined);
     db.getUserById.mockResolvedValue({ id: 12, role: "user", accessStatus: "active", accessExpiresAt: new Date("2027-01-01T00:00:00.000Z") });
-    storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
     const response = createResponse();
 
     await registerHandler()(createRequest(), response);
@@ -118,7 +116,6 @@ describe("rota protegida do PGR", () => {
     db.getPgrProjectForWorkspace.mockResolvedValue({ id: 3, legacyStorageKey: "project-3" });
     db.getSubscriptionForUser.mockResolvedValue({ status: "active" });
     db.getUserById.mockResolvedValue({ id: 12, role: "user", accessStatus: "active", accessExpiresAt: null });
-    storage.storageGetSignedUrl.mockResolvedValue("https://storage.example/pgr.html");
     const response = createResponse();
 
     await registerHandler()(createRequest("7", { ticket: "ticket-temporario" }), response);
