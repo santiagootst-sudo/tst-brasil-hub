@@ -47,6 +47,12 @@ import { workspaceIdFromSearch } from "@shared/workspaceContext";
 import { downloadConsolidatedEpiReportPdf, downloadEpiReceiptPdf } from "@/lib/pdfReports";
 import { uploadContentAsset } from "@/lib/cloudinaryUpload";
 
+function maskRecipientEmail(email: string | null | undefined) {
+  const [local, domain] = (email ?? "").split("@");
+  if (!local || !domain) return "destinatário cadastrado";
+  return `${local.slice(0, 2)}${"•".repeat(Math.max(1, local.length - 2))}@${domain}`;
+}
+
 export default function Operations() {
   const utils = trpc.useUtils();
   const search = useSearch();
@@ -218,9 +224,9 @@ export default function Operations() {
     },
   });
   const sendEpiEvidenceMutation = trpc.portal.sendEpiEvidence.useMutation({
-    onSuccess: async () => {
+    onSuccess: async result => {
       await Promise.all([utils.portal.listEpiEvidence.invalidate({ workspaceId, companyId: activeCompanyId || null, limit: 300 }), utils.portal.operations.invalidate({ workspaceId })]);
-      toast.success("E-mail de confirmação enviado. A ficha e o OTP foram registrados na trilha auditável.");
+      toast.success(`E-mail de confirmação enviado para ${maskRecipientEmail(result.evidence.recipientEmail)}. A ficha e o OTP foram registrados na trilha auditável.`);
     },
     onError: error => toast.error(error.message || "Não foi possível enviar a confirmação por e-mail."),
   });

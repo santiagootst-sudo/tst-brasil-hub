@@ -1527,7 +1527,7 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
   const confirmationUrl = `${getEpiEvidenceBaseUrl()}/confirmar-epi/${evidence.verificationCode}`;
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  console.info(`[EPI email] Tentativa de envio: apiKeyConfigured=${Boolean(apiKey)} fromConfigured=${Boolean(from)}`);
+  console.info(`[EPI email] Tentativa de envio: deliveryId=${input.deliveryId} recipient=${maskEmail(recipientEmail)} apiKeyConfigured=${Boolean(apiKey)} fromConfigured=${Boolean(from)}`);
   try {
     if (!apiKey || !from) {
       console.warn("[EPI email] Envio bloqueado: configuration_missing.");
@@ -1545,7 +1545,7 @@ export async function createAndSendEpiEvidence(input: { workspaceId: number; del
       throw new Error("O provedor de e-mail recusou o envio da confirmação.");
     }
     const providerMessageId = response.data?.id ?? null;
-    console.info(`[EPI email] Resend aceitou o envio: providerMessageIdPresent=${Boolean(providerMessageId)}`);
+    console.info(`[EPI email] Resend aceitou o envio: deliveryId=${input.deliveryId} recipient=${maskEmail(recipientEmail)} providerMessageIdPresent=${Boolean(providerMessageId)}`);
     await db.update(epiDeliveryEvidence).set({ status: "sent", lastSentAt: new Date(), providerMessageId, failureReason: null, updatedAt: new Date() }).where(eq(epiDeliveryEvidence.id, evidence.id));
     await appendEpiEvidenceAuditEvent(db, {
       evidenceId: evidence.id,
